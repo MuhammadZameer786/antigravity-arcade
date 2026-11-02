@@ -784,22 +784,30 @@ class QuantumBreaker {
       updatePointerPos(e.clientX);
     });
 
-    // Touch Support for Mobile / Tablets
-    this.canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      if (e.touches.length > 0) {
+    // Touch Support for Mobile / Tablets & Window-wide touch tracking
+    const handleTouchInput = (e) => {
+      if (this.state === 'PLAYING' && e.touches.length > 0) {
+        e.preventDefault();
         updatePointerPos(e.touches[0].clientX);
       }
-    }, { passive: false });
+    };
 
-    this.canvas.addEventListener('touchstart', (e) => {
-      if (this.state === 'PLAYING') {
-        this.handleLaunchOrFire();
+    this.canvas.addEventListener('touchmove', handleTouchInput, { passive: false });
+    window.addEventListener('touchmove', handleTouchInput, { passive: false });
+
+    const handleTouchStart = (e) => {
+      this.audio.init();
+      if (this.state === 'PLAYING' && e.touches.length > 0) {
+        const target = e.target;
+        if (!target.closest('button') && !target.closest('a')) {
+          this.handleLaunchOrFire();
+          updatePointerPos(e.touches[0].clientX);
+        }
       }
-      if (e.touches.length > 0) {
-        updatePointerPos(e.touches[0].clientX);
-      }
-    });
+    };
+
+    this.canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
 
     this.canvas.addEventListener('pointerdown', () => {
       this.audio.init();

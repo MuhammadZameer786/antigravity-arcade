@@ -537,12 +537,10 @@ class NeonPong {
       this.keys[e.code] = false;
     });
 
-    // Touch controls: dragging on left or right zones
-    const handleTouch = (zone, paddle, e) => {
+    // Touch & pointer controls: dragging on left or right zones (or anywhere in 1P mode)
+    const handleTouch = (paddle, clientY) => {
       if (this.state !== 'playing') return;
-      e.preventDefault();
       const rect = this.canvas.getBoundingClientRect();
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       const scaleY = this.height / rect.height;
       const targetY = (clientY - rect.top) * scaleY - paddle.h / 2;
       paddle.y = Math.max(this.topBound, Math.min(this.bottomBound - paddle.h, targetY));
@@ -551,14 +549,30 @@ class NeonPong {
     const leftZone = document.getElementById('touch-left-zone');
     const rightZone = document.getElementById('touch-right-zone');
 
-    ['pointerdown', 'pointermove'].forEach(evt => {
-      leftZone.addEventListener(evt, (e) => {
-        if (e.buttons > 0) handleTouch(leftZone, this.p1, e);
-      });
-      rightZone.addEventListener(evt, (e) => {
-        if (this.mode === '2p' && e.buttons > 0) handleTouch(rightZone, this.p2, e);
-      });
-    });
+    const bindZone = (zone, getPaddle) => {
+      const onMove = (e) => {
+        if (this.state !== 'playing') return;
+        const paddle = getPaddle();
+        if (!paddle) return;
+        if (e.touches && e.touches.length > 0) {
+          e.preventDefault();
+          handleTouch(paddle, e.touches[0].clientY);
+        } else if (e.clientY !== undefined && (e.buttons > 0 || e.pointerType === 'touch')) {
+          e.preventDefault();
+          handleTouch(paddle, e.clientY);
+        }
+      };
+
+      zone.addEventListener('touchstart', onMove, { passive: false });
+      zone.addEventListener('touchmove', onMove, { passive: false });
+      zone.addEventListener('pointerdown', onMove);
+      zone.addEventListener('pointermove', onMove);
+    };
+
+    // In 1P mode, both left and right screen touches control Player 1!
+    // In 2P mode, left zone controls P1, right zone controls P2!
+    bindZone(leftZone, () => this.p1);
+    bindZone(rightZone, () => (this.mode === '2p' ? this.p2 : this.p1));
 
     window.addEventListener('resize', () => this.resizeCanvas());
     this.resizeCanvas();

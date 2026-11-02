@@ -41,6 +41,7 @@ html, body {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -49,7 +50,7 @@ html, body {
 
 #game-container {
   position: relative;
-  width: min(1080px, 98vw);
+  width: min(1080px, 98vw, calc((100dvh - 20px) * 16 / 9));
   aspect-ratio: 16 / 9;
   background: #010006;
   box-shadow: 
@@ -710,14 +711,249 @@ html, body {
   box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);
 }
 
-@media (max-width: 768px) {
-  .mobile-controls {
+@media (max-width: 820px) and (orientation: portrait), (max-aspect-ratio: 1/1) and (max-width: 820px) {
+  .game-wrapper {
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  #game-container {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    aspect-ratio: unset;
     display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: none;
   }
-  .controls-grid {
-    grid-template-columns: 1fr;
+
+  #webgl-canvas {
+    width: 100vw;
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    max-height: 52dvh;
+    object-fit: contain;
   }
+
+  .vignette-overlay {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 100vw;
+    aspect-ratio: 16 / 9;
+    max-height: 52dvh;
+  }
+
+  #hud-overlay {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 100vw;
+    aspect-ratio: 16 / 9;
+    max-height: 52dvh;
+    padding: 6px 10px;
+  }
+
+  .hud-header {
+    gap: 6px;
+  }
+
+  .hud-panel {
+    padding: 3px 8px;
+  }
+
+  .hud-title-tag {
+    font-size: 8px;
+  }
+
+  .hud-main-val {
+    font-size: 11px;
+  }
+
+  .hud-sub-val {
+    font-size: 8px;
+  }
+
   .flight-hints {
     display: none;
+  }
+
+  .radar-container {
+    width: 60px;
+    height: 60px;
+  }
+
+  #radar-canvas {
+    width: 60px;
+    height: 60px;
+  }
+
+  .meter-group {
+    width: 90px;
+  }
+
+  .meter-label-row {
+    font-size: 8px;
+  }
+
+  .meter-bar-frame {
+    height: 5px;
+  }
+
+  .systems-meters {
+    gap: 4px;
+  }
+
+  .system-pill {
+    padding: 2px 6px;
+  }
+
+  .system-title {
+    font-size: 7.5px;
+  }
+
+  .system-val {
+    font-size: 9.5px;
+  }
+
+  .hud-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+
+  .mobile-controls {
+    display: flex;
+    position: absolute;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    left: 16px;
+    right: 16px;
+    z-index: 30;
+  }
+
+  .touch-stick-zone {
+    width: 100px;
+    height: 100px;
+  }
+
+  .touch-btn {
+    width: 52px;
+    height: 52px;
+    font-size: 10px;
+  }
+
+  .modal-layer {
+    position: absolute;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    padding: 16px;
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-layer.active {
+    display: flex;
+  }
+
+  .modal-content-card {
+    width: min(440px, 94vw);
+    max-height: 85dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 18px 16px;
+  }
+
+  .modal-title {
+    font-size: 26px;
+  }
+
+  .modal-desc {
+    font-size: 11px;
+    line-height: 1.4;
+    margin-bottom: 12px;
+  }
+
+  .controls-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .control-item {
+    font-size: 10.5px;
+  }
+
+  .btn-primary-launch {
+    padding: 12px 24px;
+    font-size: 13px;
+    width: 100%;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .game-wrapper {
+    padding: 4px;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  #game-container {
+    width: min(1080px, 98vw, calc((100dvh - 8px) * 16 / 9));
+    height: calc(100dvh - 8px);
+    aspect-ratio: 16 / 9;
+  }
+
+  .modal-content-card {
+    max-height: 90dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 18px;
+  }
+
+  .modal-title {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+
+  .modal-desc {
+    display: none;
+  }
+
+  .flight-hints {
+    display: none;
+  }
+
+  .mobile-controls {
+    display: flex;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .touch-stick-zone {
+    width: 80px;
+    height: 80px;
+  }
+
+  .touch-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 9px;
   }
 }

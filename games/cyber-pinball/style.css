@@ -42,6 +42,7 @@ html, body {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -52,7 +53,7 @@ html, body {
 #pinball-cabinet {
   position: relative;
   width: min(540px, 98vw);
-  height: min(920px, 98vh);
+  height: min(920px, calc(100dvh - 12px));
   display: flex;
   flex-direction: column;
   background: var(--bg-cabinet);
@@ -818,8 +819,126 @@ kbd {
   color: var(--neon-pink);
 }
 
-/* Responsive adjustments */
-@media (max-height: 800px) {
+/* ==========================================================================
+   MOBILE RESPONSIVE ADAPTATIONS
+   ========================================================================== */
+
+@media (max-width: 600px) {
+  .cabinet-outer {
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  #pinball-cabinet {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  .cabinet-header {
+    padding: 4px 8px;
+  }
+
+  .marquee-bar {
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+  }
+
+  .title-text {
+    font-size: 13px;
+  }
+
+  .cab-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
+
+  .dmd-val {
+    font-size: 14px;
+  }
+
+  .dmd-ticker-text {
+    font-size: 11px;
+  }
+
+  .dmd-indicators {
+    gap: 4px;
+  }
+
+  .dmd-pill {
+    padding: 2px 4px;
+    font-size: 8px;
+  }
+
+  .cabinet-footer {
+    display: none; /* Hide keyboard legend on mobile touch devices */
+  }
+
+  .modal-card {
+    width: min(440px, 94vw);
+    max-height: 85dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 18px 14px;
+  }
+
+  .glitch-title {
+    font-size: 24px;
+  }
+
+  .mission-briefing {
+    padding: 10px 12px;
+  }
+
+  .mission-briefing ul {
+    font-size: 11px;
+    gap: 5px;
+  }
+
+  .controls-showcase {
+    gap: 5px;
+  }
+
+  .ctrl-row {
+    font-size: 11px;
+  }
+
+  .badge {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  .nudge-bar {
+    bottom: 8px;
+    gap: 6px;
+  }
+
+  .nudge-btn {
+    padding: 5px 10px;
+    font-size: 9px;
+  }
+
+  .plunger-control-ui {
+    height: 110px;
+    bottom: 24px;
+    right: 8px;
+    width: 48px;
+  }
+
+  .plunger-tap-btn {
+    font-size: 9px;
+    padding: 4px 2px;
+  }
+}
+
+@media (max-height: 800px) and (min-width: 601px) {
   .cabinet-header {
     padding: 4px 8px;
   }

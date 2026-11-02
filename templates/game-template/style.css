@@ -37,6 +37,7 @@ html, body {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -45,7 +46,7 @@ html, body {
 
 #game-container {
   position: relative;
-  width: min(960px, 96vw);
+  width: min(960px, 96vw, calc((100dvh - 24px) * 16 / 9));
   aspect-ratio: 16 / 9;
   background: #030108;
   box-shadow: 0 0 40px rgba(0, 243, 255, 0.2), 0 0 80px rgba(255, 0, 127, 0.15);
@@ -294,4 +295,191 @@ html, body {
 .secondary-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   border-color: #fff;
+}
+
+/* ==========================================================================
+   MOBILE RESPONSIVE ADAPTATIONS (PORTRAIT & LANDSCAPE)
+   ========================================================================== */
+
+@media (max-width: 820px) and (orientation: portrait), (max-aspect-ratio: 1/1) and (max-width: 820px) {
+  .game-wrapper {
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  #game-container {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    aspect-ratio: unset;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: none;
+  }
+
+  #gameCanvas {
+    width: 100vw;
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    max-height: 52dvh;
+    object-fit: contain;
+  }
+
+  .crt-overlay {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 100vw;
+    aspect-ratio: 16 / 9;
+    max-height: 52dvh;
+  }
+
+  .overlay-hud {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 100vw;
+    aspect-ratio: 16 / 9;
+    max-height: 52dvh;
+    padding: 8px 10px;
+  }
+
+  .hud-top {
+    gap: 4px;
+  }
+
+  .hud-box {
+    padding: 2px 6px;
+  }
+
+  .hud-label {
+    font-size: 8px;
+  }
+
+  .hud-val {
+    font-size: 13px;
+  }
+
+  .hud-controls-hint {
+    gap: 6px;
+  }
+
+  .neon-icon-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+  }
+
+  .game-modal {
+    position: absolute;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    padding: 16px;
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .game-modal.active {
+    display: flex;
+  }
+
+  .modal-card {
+    width: min(440px, 94vw);
+    max-height: 85dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 18px 16px;
+  }
+
+  .glitch-title, .gameover-title, .pause-title {
+    font-size: 22px;
+  }
+
+  .instructions-panel {
+    padding: 8px 10px;
+    margin-bottom: 14px;
+  }
+
+  .control-row {
+    font-size: 10.5px;
+    gap: 6px;
+  }
+
+  .key-badge {
+    font-size: 8.5px;
+    padding: 2px 5px;
+  }
+
+  .primary-btn {
+    padding: 12px 20px;
+    font-size: 13px;
+    width: 100%;
+  }
+
+  .results-grid {
+    gap: 8px;
+  }
+
+  .res-val {
+    font-size: 16px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .game-wrapper {
+    padding: 4px;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  #game-container {
+    width: min(960px, 96vw, calc((100dvh - 8px) * 16 / 9));
+    height: calc(100dvh - 8px);
+    aspect-ratio: 16 / 9;
+  }
+
+  .modal-card {
+    max-height: 90dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 18px;
+  }
+
+  .glitch-title, .gameover-title, .pause-title {
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+
+  .subtitle {
+    margin-bottom: 6px;
+    font-size: 9.5px;
+  }
+
+  .instructions-panel {
+    display: none;
+  }
+
+  .overlay-hud {
+    padding: 6px 12px;
+  }
+
+  .hud-val {
+    font-size: 13px;
+  }
 }

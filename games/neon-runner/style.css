@@ -44,6 +44,7 @@ body {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -52,7 +53,7 @@ body {
 
 #game-container {
   position: relative;
-  width: min(960px, 96vw);
+  width: min(960px, 96vw, calc((100dvh - 24px) * 16 / 9));
   aspect-ratio: 16 / 9;
   background: #06020c;
   box-shadow: 
@@ -636,4 +637,270 @@ body {
 .jump-btn {
   width: 76px;
   height: 76px;
+}
+
+/* ==========================================================================
+   MOBILE RESPONSIVE ADAPTATIONS (PORTRAIT & LANDSCAPE)
+   ========================================================================== */
+
+@media (max-width: 820px) and (orientation: portrait), (max-aspect-ratio: 1/1) and (max-width: 820px) {
+  .game-wrapper {
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  #game-container {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    aspect-ratio: unset;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: none;
+  }
+
+  #gameCanvas {
+    width: 100vw;
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    max-height: 52dvh;
+    object-fit: contain;
+  }
+
+  .crt-overlay {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 100vw;
+    aspect-ratio: 16 / 9;
+    max-height: 52dvh;
+  }
+
+  .overlay-hud {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 100vw;
+    aspect-ratio: 16 / 9;
+    max-height: 52dvh;
+    padding: 8px 10px;
+  }
+
+  .hud-top {
+    gap: 5px;
+  }
+
+  .hud-box {
+    padding: 3px 6px;
+  }
+
+  .hud-label {
+    font-size: 8px;
+    letter-spacing: 0.8px;
+  }
+
+  .hud-val {
+    font-size: 13px;
+  }
+
+  .overdrive-container {
+    width: 140px;
+    padding: 4px 8px;
+  }
+
+  .overdrive-text {
+    font-size: 8.5px;
+  }
+
+  .hud-controls-hint {
+    gap: 6px;
+  }
+
+  .neon-icon-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+  }
+
+  .touch-controls-layer {
+    display: flex;
+    position: absolute;
+    bottom: max(22px, env(safe-area-inset-bottom));
+    left: 0;
+    width: 100%;
+    padding: 0 16px;
+    z-index: 20;
+  }
+
+  .touch-action-btn {
+    width: 66px;
+    height: 66px;
+    font-size: 11px;
+  }
+
+  .jump-btn {
+    width: 76px;
+    height: 76px;
+    font-size: 12px;
+  }
+
+  .dash-btn {
+    width: 54px;
+    height: 54px;
+  }
+
+  .game-modal {
+    position: absolute;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    padding: 16px;
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .game-modal.active {
+    display: flex;
+  }
+
+  .modal-card {
+    width: min(440px, 94vw);
+    max-height: 85dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 20px 18px;
+  }
+
+  .glitch-title {
+    font-size: 26px;
+    letter-spacing: 2px;
+  }
+
+  .instructions-panel {
+    gap: 7px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+  }
+
+  .control-row {
+    font-size: 10.5px;
+  }
+
+  .key-badge {
+    font-size: 9.5px;
+    padding: 3px 6px;
+  }
+
+  .item-legend {
+    margin-bottom: 14px;
+    gap: 6px;
+  }
+
+  .legend-item {
+    font-size: 11px;
+  }
+
+  .primary-btn {
+    padding: 12px 28px;
+    font-size: 13.5px;
+    width: 100%;
+  }
+
+  .results-grid {
+    gap: 8px;
+  }
+
+  .res-val {
+    font-size: 16px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .game-wrapper {
+    padding: 4px;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  #game-container {
+    width: min(960px, 96vw, calc((100dvh - 8px) * 16 / 9));
+    height: calc(100dvh - 8px);
+    aspect-ratio: 16 / 9;
+  }
+
+  .modal-card {
+    max-height: 90dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 18px;
+  }
+
+  .glitch-title {
+    font-size: 22px;
+    margin-bottom: 2px;
+  }
+
+  .subtitle {
+    margin-bottom: 8px;
+    font-size: 10px;
+  }
+
+  .instructions-panel {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .control-row {
+    font-size: 10px;
+  }
+
+  .item-legend {
+    display: none;
+  }
+
+  .overlay-hud {
+    padding: 6px 12px;
+  }
+
+  .hud-val {
+    font-size: 13px;
+  }
+
+  .touch-controls-layer {
+    display: flex;
+    bottom: 8px;
+    padding: 0 12px;
+  }
+
+  .touch-action-btn {
+    width: 52px;
+    height: 52px;
+    font-size: 9.5px;
+  }
+
+  .jump-btn {
+    width: 58px;
+    height: 58px;
+  }
+
+  .dash-btn {
+    width: 44px;
+    height: 44px;
+  }
 }

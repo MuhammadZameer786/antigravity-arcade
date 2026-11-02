@@ -79,6 +79,7 @@ html, body {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -87,7 +88,7 @@ html, body {
 
 #game-container {
   position: relative;
-  width: min(960px, 98vw);
+  width: min(960px, 98vw, calc((100dvh - 20px) * 16 / 9));
   aspect-ratio: 16 / 9;
   background: #04010a;
   box-shadow: 
@@ -817,22 +818,265 @@ html, body {
   background: linear-gradient(135deg, rgba(255, 230, 0, 0.6), rgba(255, 119, 0, 0.8));
 }
 
-/* Responsiveness */
-@media (max-width: 600px) {
-  .modal-card {
-    padding: 16px 20px;
+/* ==========================================================================
+   MOBILE RESPONSIVE ADAPTATIONS (PORTRAIT & LANDSCAPE)
+   ========================================================================== */
+
+@media (max-width: 820px) and (orientation: portrait), (max-aspect-ratio: 1/1) and (max-width: 820px) {
+  .game-wrapper {
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
   }
-  .config-columns {
-    grid-template-columns: 1fr;
+
+  #game-container {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    aspect-ratio: unset;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: none;
   }
-  .hud-val {
-    font-size: 15px;
+
+  #gameCanvas {
+    width: 100vw;
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    max-height: 52dvh;
+    object-fit: contain;
   }
+
+  .crt-overlay {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 100vw;
+    aspect-ratio: 16 / 9;
+    max-height: 52dvh;
+  }
+
+  .overlay-hud {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 100vw;
+    aspect-ratio: 16 / 9;
+    max-height: 52dvh;
+    padding: 8px 10px;
+  }
+
+  .hud-top {
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
   .hud-box {
-    min-width: 65px;
+    min-width: 50px;
+    padding: 2px 6px;
+  }
+
+  .hud-label {
+    font-size: 7.5px;
+    letter-spacing: 0.8px;
+  }
+
+  .hud-val {
+    font-size: 13px;
+  }
+
+  .boost-container {
+    width: 140px;
     padding: 4px 8px;
   }
+
+  .boost-label {
+    font-size: 8px;
+  }
+
+  .hud-controls-hint {
+    gap: 6px;
+  }
+
+  .neon-icon-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+  }
+
+  .touch-controls-layer {
+    display: flex;
+    position: absolute;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    left: 0;
+    width: 100%;
+    padding: 0 16px;
+    justify-content: space-between;
+    align-items: flex-end;
+    z-index: 25;
+  }
+
+  .dpad-container {
+    width: 130px;
+    height: 130px;
+  }
+
+  .dpad-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 14px;
+  }
+
+  .dpad-middle-row {
+    width: 100%;
+  }
+
+  .touch-boost-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 9.5px;
+  }
+
+  .game-modal {
+    position: absolute;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    padding: 16px;
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .game-modal.active {
+    display: flex;
+  }
+
+  .modal-card {
+    width: min(440px, 94vw);
+    max-height: 85dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 18px 16px;
+  }
+
+  .glitch-title {
+    font-size: 22px;
+    letter-spacing: 2px;
+  }
+
+  .config-columns {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .selection-section {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .pill-selector {
+    gap: 4px;
+  }
+
+  .pill-btn {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+
   .modal-buttons {
     flex-direction: column;
+    gap: 8px;
+  }
+
+  .neon-btn {
+    padding: 11px 20px;
+    font-size: 12.5px;
+    width: 100%;
+  }
+
+  .results-grid {
+    gap: 6px;
+  }
+
+  .res-val {
+    font-size: 15px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .game-wrapper {
+    padding: 4px;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  #game-container {
+    width: min(960px, 98vw, calc((100dvh - 8px) * 16 / 9));
+    height: calc(100dvh - 8px);
+    aspect-ratio: 16 / 9;
+  }
+
+  .modal-card {
+    max-height: 90dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 18px;
+  }
+
+  .glitch-title {
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+
+  .subtitle {
+    display: none;
+  }
+
+  .selection-section {
+    gap: 6px;
+  }
+
+  .touch-controls-layer {
+    display: flex;
+    bottom: 8px;
+    padding: 0 12px;
+  }
+
+  .dpad-container {
+    width: 100px;
+    height: 100px;
+  }
+
+  .dpad-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .touch-boost-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 8px;
+  }
+
+  .overlay-hud {
+    padding: 6px 12px;
+  }
+
+  .hud-val {
+    font-size: 13px;
   }
 }

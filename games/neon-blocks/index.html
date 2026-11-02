@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>NEON MATRIX BLOCKS // Cyberpunk Tetromino Puzzle</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -130,102 +130,6 @@
             <!-- CRT Scanlines Overlay -->
             <div id="crt-overlay" class="crt-overlay active"></div>
 
-            <!-- Mode Selection / Start Overlay Modal -->
-            <div id="modal-start" class="game-modal active">
-              <div class="modal-box">
-                <div class="modal-badge">NEON CYBERPUZZLE</div>
-                <h1 class="modal-title">MATRIX BLOCKS</h1>
-                <p class="modal-desc">
-                  Falling polyomino matrix puzzle with Super Rotation System, holographic ghost projections, laser clears, and live Web Audio synthwave.
-                </p>
-
-                <div class="mode-select-group">
-                  <div class="mode-option selected" data-mode="marathon">
-                    <div class="mode-opt-title">⚡ MARATHON</div>
-                    <div class="mode-opt-desc">Classic 15-level progression with escalating speed and high scores.</div>
-                  </div>
-                  <div class="mode-option" data-mode="sprint">
-                    <div class="mode-opt-title">⏱️ SPRINT (40 LINES)</div>
-                    <div class="mode-opt-desc">Race against the clock to clear 40 lines as fast as possible.</div>
-                  </div>
-                  <div class="mode-option" data-mode="ultra">
-                    <div class="mode-opt-title">🔥 ULTRA (2 MIN)</div>
-                    <div class="mode-opt-desc">Score as many points as humanly possible in 120 adrenaline seconds.</div>
-                  </div>
-                </div>
-
-                <div class="modal-controls-summary">
-                  <div class="ctrl-chip"><span>← →</span> Move</div>
-                  <div class="ctrl-chip"><span>↑ / X</span> Rotate CW</div>
-                  <div class="ctrl-chip"><span>Z</span> Rotate CCW</div>
-                  <div class="ctrl-chip"><span>↓</span> Soft Drop</div>
-                  <div class="ctrl-chip"><span>Space</span> Hard Drop</div>
-                  <div class="ctrl-chip"><span>C / Shift</span> Hold</div>
-                </div>
-
-                <button id="btn-start-game" class="neon-primary-btn">
-                  <span>INITIALIZE MATRIX</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Pause Modal -->
-            <div id="modal-pause" class="game-modal">
-              <div class="modal-box">
-                <h2 class="modal-title">SYSTEM PAUSED</h2>
-                <p class="modal-desc">Matrix cycle suspended. Press [P] or click Resume to continue.</p>
-                <div class="modal-btn-stack">
-                  <button id="btn-resume-game" class="neon-primary-btn">RESUME CYCLE</button>
-                  <button id="btn-restart-game" class="neon-secondary-btn">RESTART GAME</button>
-                  <button id="btn-menu-game" class="neon-secondary-btn">CHANGE MODE</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Game Over / Victory Modal -->
-            <div id="modal-gameover" class="game-modal">
-              <div class="modal-box">
-                <div id="go-badge" class="modal-badge red">MATRIX OVERFLOW</div>
-                <h2 id="go-title" class="modal-title">GAME OVER</h2>
-                
-                <div class="go-stats-grid">
-                  <div class="go-stat-card">
-                    <span class="go-stat-lbl">FINAL SCORE</span>
-                    <span id="go-score" class="go-stat-val glow-cyan">0</span>
-                  </div>
-                  <div class="go-stat-card">
-                    <span class="go-stat-lbl">HIGH SCORE</span>
-                    <span id="go-high" class="go-stat-val glow-green">0</span>
-                  </div>
-                  <div class="go-stat-card">
-                    <span class="go-stat-lbl">LINES CLEARED</span>
-                    <span id="go-lines" class="go-stat-val">0</span>
-                  </div>
-                  <div class="go-stat-card">
-                    <span class="go-stat-lbl">LEVEL REACHED</span>
-                    <span id="go-level" class="go-stat-val glow-yellow">1</span>
-                  </div>
-                  <div class="go-stat-card">
-                    <span class="go-stat-lbl">TIME ELAPSED</span>
-                    <span id="go-time" class="go-stat-val">00:00.00</span>
-                  </div>
-                  <div class="go-stat-card">
-                    <span class="go-stat-lbl">TETRIS CLEARS</span>
-                    <span id="go-tetris" class="go-stat-val glow-pink">0</span>
-                  </div>
-                </div>
-
-                <div id="go-new-record" class="new-record-banner">
-                  ⭐ NEW PERSONAL RECORD SET! ⭐
-                </div>
-
-                <div class="modal-btn-stack">
-                  <button id="btn-play-again" class="neon-primary-btn">PLAY AGAIN</button>
-                  <button id="btn-go-menu" class="neon-secondary-btn">MAIN MENU</button>
-                </div>
-              </div>
-            </div>
-
           </div>
         </main>
 
@@ -305,6 +209,102 @@
           </div>
         </div>
       </footer>
+
+      <!-- Mode Selection / Start Overlay Modal -->
+      <div id="modal-start" class="game-modal active">
+        <div class="modal-box">
+          <div class="modal-badge">NEON CYBERPUZZLE</div>
+          <h1 class="modal-title">MATRIX BLOCKS</h1>
+          <p class="modal-desc">
+            Falling polyomino matrix puzzle with Super Rotation System, holographic ghost projections, laser clears, and live Web Audio synthwave.
+          </p>
+
+          <div class="mode-select-group">
+            <div class="mode-option selected" data-mode="marathon">
+              <div class="mode-opt-title">⚡ MARATHON</div>
+              <div class="mode-opt-desc">Classic 15-level progression with escalating speed and high scores.</div>
+            </div>
+            <div class="mode-option" data-mode="sprint">
+              <div class="mode-opt-title">⏱️ SPRINT (40 LINES)</div>
+              <div class="mode-opt-desc">Race against the clock to clear 40 lines as fast as possible.</div>
+            </div>
+            <div class="mode-option" data-mode="ultra">
+              <div class="mode-opt-title">🔥 ULTRA (2 MIN)</div>
+              <div class="mode-opt-desc">Score as many points as humanly possible in 120 adrenaline seconds.</div>
+            </div>
+          </div>
+
+          <div class="modal-controls-summary">
+            <div class="ctrl-chip"><span>← →</span> Move</div>
+            <div class="ctrl-chip"><span>↑ / X</span> Rotate CW</div>
+            <div class="ctrl-chip"><span>Z</span> Rotate CCW</div>
+            <div class="ctrl-chip"><span>↓</span> Soft Drop</div>
+            <div class="ctrl-chip"><span>Space</span> Hard Drop</div>
+            <div class="ctrl-chip"><span>C / Shift</span> Hold</div>
+          </div>
+
+          <button id="btn-start-game" class="neon-primary-btn">
+            <span>INITIALIZE MATRIX</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Pause Modal -->
+      <div id="modal-pause" class="game-modal">
+        <div class="modal-box">
+          <h2 class="modal-title">SYSTEM PAUSED</h2>
+          <p class="modal-desc">Matrix cycle suspended. Press [P] or click Resume to continue.</p>
+          <div class="modal-btn-stack">
+            <button id="btn-resume-game" class="neon-primary-btn">RESUME CYCLE</button>
+            <button id="btn-restart-game" class="neon-secondary-btn">RESTART GAME</button>
+            <button id="btn-menu-game" class="neon-secondary-btn">CHANGE MODE</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game Over / Victory Modal -->
+      <div id="modal-gameover" class="game-modal">
+        <div class="modal-box">
+          <div id="go-badge" class="modal-badge red">MATRIX OVERFLOW</div>
+          <h2 id="go-title" class="modal-title">GAME OVER</h2>
+          
+          <div class="go-stats-grid">
+            <div class="go-stat-card">
+              <span class="go-stat-lbl">FINAL SCORE</span>
+              <span id="go-score" class="go-stat-val glow-cyan">0</span>
+            </div>
+            <div class="go-stat-card">
+              <span class="go-stat-lbl">HIGH SCORE</span>
+              <span id="go-high" class="go-stat-val glow-green">0</span>
+            </div>
+            <div class="go-stat-card">
+              <span class="go-stat-lbl">LINES CLEARED</span>
+              <span id="go-lines" class="go-stat-val">0</span>
+            </div>
+            <div class="go-stat-card">
+              <span class="go-stat-lbl">LEVEL REACHED</span>
+              <span id="go-level" class="go-stat-val glow-yellow">1</span>
+            </div>
+            <div class="go-stat-card">
+              <span class="go-stat-lbl">TIME ELAPSED</span>
+              <span id="go-time" class="go-stat-val">00:00.00</span>
+            </div>
+            <div class="go-stat-card">
+              <span class="go-stat-lbl">TETRIS CLEARS</span>
+              <span id="go-tetris" class="go-stat-val glow-pink">0</span>
+            </div>
+          </div>
+
+          <div id="go-new-record" class="new-record-banner">
+            ⭐ NEW PERSONAL RECORD SET! ⭐
+          </div>
+
+          <div class="modal-btn-stack">
+            <button id="btn-play-again" class="neon-primary-btn">PLAY AGAIN</button>
+            <button id="btn-go-menu" class="neon-secondary-btn">MAIN MENU</button>
+          </div>
+        </div>
+      </div>
 
     </div>
   </div>
