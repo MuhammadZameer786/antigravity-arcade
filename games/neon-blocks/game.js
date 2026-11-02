@@ -1222,8 +1222,9 @@
     }
 
     executeRowCollapse(fullRows) {
-      // Sort rows descending
-      fullRows.sort((a, b) => b - a);
+      // Top row first: adding a row at the top shifts everything above the removed
+      // row down one, so only rows still to come below it keep their index
+      fullRows.sort((a, b) => a - b);
 
       fullRows.forEach(r => {
         this.board.splice(r, 1);
