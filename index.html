@@ -1005,123 +1005,44 @@
       border-color: #fff;
     }
 
-    /* Ideas / Planned Cards */
-    .idea-card {
-      background: rgba(14, 10, 26, 0.45);
-      border: 1px dashed rgba(255, 255, 255, 0.16);
-      border-radius: 16px;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      transition: all 0.25s ease;
+    /* Arcade Footer */
+    .arcade-footer {
+      margin-top: 60px;
+      padding: 40px 20px 20px;
+      text-align: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      z-index: 1;
     }
 
-    .idea-card:hover {
-      border-color: var(--neon-pink);
-      background: rgba(20, 12, 38, 0.7);
-      transform: translateY(-3px);
-    }
-
-    .idea-icon {
-      font-size: 28px;
-      margin-bottom: 12px;
-    }
-
-    .idea-title {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 6px;
-    }
-
-    .idea-desc {
-      color: #8c93a8;
-      font-size: 0.9rem;
-      line-height: 1.4;
-      margin-bottom: 16px;
-      flex-grow: 1;
-    }
-
-    .prompt-btn {
-      background: rgba(255, 0, 127, 0.15);
-      border: 1px solid rgba(255, 0, 127, 0.4);
-      color: #ff55a3;
-      padding: 8px 14px;
-      border-radius: 6px;
-      font-family: 'Orbitron', monospace;
-      font-size: 11px;
-      cursor: pointer;
+    .footer-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-      text-align: center;
-      justify-content: center;
+      gap: 8px;
+      background: rgba(0, 243, 255, 0.08);
+      border: 1px solid rgba(0, 243, 255, 0.25);
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-family: 'Orbitron', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--neon-cyan);
+      margin-bottom: 12px;
+      text-transform: uppercase;
     }
 
-    .prompt-btn:hover {
-      background: var(--neon-pink);
-      color: #fff;
-      box-shadow: 0 0 15px rgba(255, 0, 127, 0.5);
-    }
-
-    /* Helper Guide Banner */
-    .guide-box {
-      margin-top: 50px;
-      background: linear-gradient(135deg, rgba(20, 12, 40, 0.8), rgba(9, 5, 20, 0.95));
-      border: 1px solid rgba(157, 0, 255, 0.3);
-      border-radius: 14px;
-      padding: 24px 30px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-
-    .guide-text h3 {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 1.15rem;
-      color: var(--neon-purple);
+    .footer-sub {
+      color: #9da3b4;
+      font-size: 0.95rem;
+      letter-spacing: 1px;
       margin-bottom: 6px;
     }
 
-    .guide-text p {
-      color: #9da3b4;
-      font-size: 0.92rem;
-    }
-
-    .guide-code {
-      font-family: monospace;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 2px 6px;
-      border-radius: 4px;
-      color: var(--neon-cyan);
-    }
-
-    /* Toast Notification */
-    #toast {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background: rgba(12, 6, 26, 0.95);
-      border: 1px solid var(--neon-green);
-      color: var(--neon-green);
-      padding: 12px 24px;
-      border-radius: 30px;
-      font-family: 'Orbitron', monospace;
-      font-size: 12px;
-      letter-spacing: 1px;
-      box-shadow: 0 0 20px rgba(5, 255, 161, 0.4);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      z-index: 100;
-      pointer-events: none;
-    }
-
-    #toast.show {
-      transform: translateX(-50%) translateY(0);
+    .footer-note {
+      color: #636b83;
+      font-size: 0.82rem;
+      letter-spacing: 0.8px;
     }
 
     /* Neon Matrix Blocks Banner Art */
@@ -1227,7 +1148,7 @@
         <span>Game Station Ready</span>
       </div>
       <h1 class="hero-title">Antigravity Arcade</h1>
-      <p class="hero-subtitle">Your personal mini-games playground for quick breaks & pass-times. Pick a game below or ask to build a new one anytime!</p>
+      <p class="hero-subtitle">Your personal neon cyber arcade for quick breaks & pass-times. Pick any game below and play instantly in your browser!</p>
 
       <div class="quick-stats">
         <div class="stat-item">
@@ -1811,103 +1732,13 @@
       </div>
     </div>
 
-    <!-- Suggested Games to Build Section -->
-    <div class="section-head" style="margin-top: 55px;">
-      <div class="section-title">
-        <span class="icon">💡</span> Pass-Time Ideas to Build Next
-      </div>
-      <div class="section-tag">Click to copy request prompt</div>
-    </div>
-
-    <div class="games-grid">
-      <!-- Idea 1: Neon Cyber Drift -->
-      <div class="idea-card">
-        <div class="idea-icon">🏎️</div>
-        <h3 class="idea-title">Neon Cyber Drift</h3>
-        <p class="idea-desc">
-          Top-down retro arcade racer with vector drift physics, turbo boosts, neon checkpoints, and synthwave beats.
-        </p>
-        <button class="prompt-btn" onclick="copyPrompt('Please build a top-down Neon Cyber Drift racing game in games/cyber-drift with vector momentum, drift trails, and time trials.')">
-          📋 Copy Prompt
-        </button>
-      </div>
-
-      <!-- Idea 2: Starfall Shooter -->
-      <div class="idea-card">
-        <div class="idea-icon">🚀</div>
-        <h3 class="idea-title">Starfall Defender</h3>
-        <p class="idea-desc">
-          Retro vertical space shooter with waves of cyber drones, multi-directional weapon upgrades, and boss encounters.
-        </p>
-        <button class="prompt-btn" onclick="copyPrompt('Please build a top-down retro space shooter in games/starfall-defender with weapon upgrades and particle effects.')">
-          📋 Copy Prompt
-        </button>
-      </div>
-
-      <!-- Idea 3: Cyber Pinball -->
-      <div class="idea-card">
-        <div class="idea-icon">⚡</div>
-        <h3 class="idea-title">Neon Pinball / Cyber Flipper</h3>
-        <p class="idea-desc">
-          High-voltage cyberpunk pinball table with dual flippers, magnetic bumpers, skill-shot ramps, and multi-ball jackpots.
-        </p>
-        <button class="prompt-btn" onclick="copyPrompt('Please build a neon Cyber Pinball game in games/cyber-pinball with flippers, ramps, and multi-ball jackpots.')">
-          📋 Copy Prompt
-        </button>
-      </div>
-
-      <!-- Idea 4: Cyber Drop / Polyomino -->
-      <div class="idea-card">
-        <div class="idea-icon">🧩</div>
-        <h3 class="idea-title">Quantum Drop / Neon Tetris</h3>
-        <p class="idea-desc">
-          Retro block stacking puzzle with neon glowing tetrominoes, hard drops, combo line clears, and synth beats.
-        </p>
-        <button class="prompt-btn" onclick="copyPrompt('Please build a Neon Tetris / Block Stacking puzzle game in games/quantum-drop with synthwave music.')">
-          📋 Copy Prompt
-        </button>
-      </div>
-
-      <!-- Idea 5: Neon Asteroids / Space Drift -->
-      <div class="idea-card">
-        <div class="idea-icon">☄️</div>
-        <h3 class="idea-title">Neon Asteroids / Drift</h3>
-        <p class="idea-desc">
-          Vector space drift combat with shattering crystalline asteroids, inertia momentum physics, particle thrusters, and defense turrets.
-        </p>
-        <button class="prompt-btn" onclick="copyPrompt('Please build a Neon Asteroids space shooter in games/neon-asteroids with inertia vector physics and particle explosions.')">
-          📋 Copy Prompt
-        </button>
-      </div>
-
-      <!-- Idea 6: Custom Request -->
-      <div class="idea-card">
-        <div class="idea-icon">✨</div>
-        <h3 class="idea-title">Any Custom Idea!</h3>
-        <p class="idea-desc">
-          Have a favorite classic or custom mechanic (Tetris, Flappy, Minesweeper, Roguelike, Rhythm game)? Just name it!
-        </p>
-        <button class="prompt-btn" onclick="copyPrompt('Please build a new simple pass-time game: [describe your game idea here]')">
-          📋 Custom Request
-        </button>
-      </div>
-    </div>
-
-    <!-- Workspace Structure Guide Banner -->
-    <div class="guide-box">
-      <div class="guide-text">
-        <h3>📁 Clean Architecture</h3>
-        <p>Every game lives independently inside its own folder in <span class="guide-code">games/&lt;game-name&gt;/</span>. You can open any game directly or through this hub.</p>
-      </div>
-      <div>
-        <a href="templates/game-template/README.md" class="play-btn" style="background: rgba(157, 0, 255, 0.2); border: 1px solid var(--neon-purple); color: #fff; box-shadow: none;">
-          <span>📦 View Starter Template</span>
-        </a>
-      </div>
-    </div>
+    <!-- Arcade Footer -->
+    <footer class="arcade-footer">
+      <div class="footer-badge">🕹️ ANTIGRAVITY ARCADE</div>
+      <p class="footer-sub">Pure Vanilla HTML5 Canvas • Procedural Web Audio • Zero Installs</p>
+      <p class="footer-note">Optimized for Desktop, Tablets & Mobile Touchscreens</p>
+    </footer>
   </div>
-
-  <div id="toast">Prompt copied to clipboard!</div>
 
   <script>
     // Load local high scores & records for all active games
@@ -1944,28 +1775,6 @@
       const blocksEl = document.getElementById('blocks-highscore-display');
       if (blocksEl) blocksEl.textContent = Number(blocksScore).toLocaleString() + ' PTS';
     });
-
-    // Copy prompt helper
-    function copyPrompt(text) {
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(text).then(() => {
-          showToast('Prompt copied to clipboard! Paste it here anytime.');
-        }).catch(() => {
-          showToast('Prompt ready: ' + text);
-        });
-      } else {
-        showToast('Prompt ready: ' + text);
-      }
-    }
-
-    function showToast(msg) {
-      const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.classList.add('show');
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 3000);
-    }
   </script>
 </body>
 </html>
