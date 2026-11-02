@@ -915,6 +915,17 @@ class CyberJetpackGame {
     window.addEventListener('touchend', onPointerUp, { passive: false });
     window.addEventListener('touchcancel', onPointerUp, { passive: false });
 
+    // Don't run on while the phone is locked, or behind the rotate prompt
+    const pauseIfPlaying = () => {
+      if (this.state === 'PLAYING') this.pauseGame();
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) pauseIfPlaying();
+    });
+    window.matchMedia('(orientation: portrait)').addEventListener('change', (e) => {
+      if (e.matches) pauseIfPlaying();
+    });
+
     // Buttons
     document.getElementById('btn-start').addEventListener('click', () => this.startGame());
     document.getElementById('btn-restart').addEventListener('click', () => this.startGame());

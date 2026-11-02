@@ -33,6 +33,8 @@ html, body {
   justify-content: center;
   align-items: center;
   background: radial-gradient(circle at 50% 30%, #17092b 0%, #080312 70%, #030107 100%);
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
 }
 
 .game-wrapper {
@@ -84,13 +86,14 @@ html, body {
   width: 50%;
   z-index: 8;
   cursor: ns-resize;
+  touch-action: none;
 }
 
-.touch-left {
+.touch-p1 {
   left: 0;
 }
 
-.touch-right {
+.touch-p2 {
   right: 0;
 }
 
@@ -505,245 +508,398 @@ html, body {
 }
 
 /* ==========================================================================
-   MOBILE RESPONSIVE ADAPTATIONS (PORTRAIT & LANDSCAPE)
+   MOBILE LAYOUTS
+   Portrait turns the court a quarter turn so it fills the phone (see render()
+   in game.js). Touch zones must stay below the HUD or its buttons stop working.
    ========================================================================== */
 
-@media (max-width: 820px) and (orientation: portrait), (max-aspect-ratio: 1/1) and (max-width: 820px) {
+.touch-only {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .keys-only {
+    display: none;
+  }
+
+  .touch-only {
+    display: inline;
+  }
+
+  .control-row.touch-only {
+    display: flex;
+  }
+
+  .control-row {
+    justify-content: flex-start;
+  }
+
+  .key-badge {
+    min-width: 108px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 820px) and (orientation: portrait) {
+  :root {
+    --hud-h: calc(58px + env(safe-area-inset-top));
+    /* Largest 9:16 court that fits under the HUD and leaves a strip for thumbs */
+    --court-w: min(100vw, calc((100dvh - var(--hud-h) - 28px) * 9 / 16));
+  }
+
   .game-wrapper {
     padding: 0;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    overflow: hidden;
   }
 
   #game-container {
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    max-height: 100dvh;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    background: transparent;
+    border: none;
     border-radius: 0;
-    border-left: none;
-    border-right: none;
-    aspect-ratio: unset;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
     box-shadow: none;
   }
 
-  #gameCanvas {
-    width: 100vw;
-    max-width: 100%;
-    aspect-ratio: 16 / 9;
-    height: auto;
-    max-height: 52dvh;
-    object-fit: contain;
-  }
-
+  #gameCanvas,
   .crt-overlay {
     position: absolute;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    width: 100vw;
-    aspect-ratio: 16 / 9;
-    max-height: 52dvh;
+    top: var(--hud-h);
+    right: auto;
+    bottom: auto;
+    left: 50%;
+    width: var(--court-w);
+    height: auto;
+    aspect-ratio: 9 / 16;
+    transform: translateX(-50%);
   }
 
   .touch-paddle-zone {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 50%;
-    z-index: 15;
+    left: 0;
+    right: 0;
+    width: 100%;
+    cursor: ew-resize;
   }
 
-  .overlay-hud {
-    position: absolute;
+  .touch-p1 {
     top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    width: 100vw;
-    aspect-ratio: 16 / 9;
-    max-height: 52dvh;
-    padding: 8px 10px;
+  }
+
+  .touch-p2 {
+    bottom: 50%;
+  }
+
+  /* HUD: one slim bar above the court */
+  .overlay-hud {
+    bottom: auto;
+    height: var(--hud-h);
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 6px;
+    padding: env(safe-area-inset-top) 8px 0;
   }
 
   .hud-top {
+    flex: 1;
+    min-width: 0;
     gap: 4px;
-    justify-content: space-between;
   }
 
   .hud-player-box {
-    padding: 3px 8px;
+    flex: 1;
+    min-width: 0;
+    padding: 2px 6px;
+    backdrop-filter: none;
   }
 
   .hud-player-box .hud-label {
+    max-width: 100%;
     font-size: 8px;
+    letter-spacing: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .hud-score {
     font-size: 20px;
   }
 
-  .hud-center-info {
-    gap: 4px;
+  .hud-center-info .hud-box:not(.rally-box),
+  .mode-tag-display {
+    display: none;
   }
 
   .hud-center-info .hud-box {
-    padding: 2px 6px;
+    padding: 3px 6px;
   }
 
   .hud-center-info .hud-label {
-    font-size: 7.5px;
+    font-size: 8px;
+    letter-spacing: 0;
   }
 
   .hud-center-info .hud-val {
-    font-size: 12px;
+    font-size: 15px;
   }
 
   .hud-controls-hint {
-    gap: 6px;
+    gap: 4px;
   }
 
   .neon-icon-btn {
-    width: 34px;
-    height: 34px;
-    font-size: 14px;
+    width: 40px;
+    height: 44px;
   }
 
-  .mode-tag-display {
-    font-size: 9px;
+  .banner-notification {
+    top: 42dvh;
+    padding: 6px 16px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    white-space: nowrap;
   }
 
+  /* Menus */
   .game-modal {
-    position: absolute;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    padding: 16px;
-    z-index: 50;
-    display: none;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .game-modal.active {
-    display: flex;
+    padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px);
   }
 
   .modal-card {
-    width: min(440px, 94vw);
-    max-height: 85dvh;
+    width: min(460px, 100%);
+    max-height: 100%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 18px 16px;
   }
 
+  .mini-card {
+    max-width: 340px;
+  }
+
   .glitch-title {
-    font-size: 24px;
+    font-size: 30px;
     letter-spacing: 2px;
   }
 
   .subtitle {
-    font-size: 10px;
+    font-size: 11px;
     margin-bottom: 12px;
   }
 
-  .mode-select-group {
-    margin-bottom: 10px;
-  }
-
   .group-title {
-    font-size: 9.5px;
-    margin-bottom: 5px;
+    font-size: 10px;
   }
 
   .btn-group {
     gap: 6px;
   }
 
+  .diff-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
   .toggle-btn, .diff-btn, .pts-btn {
-    padding: 7px 10px;
-    font-size: 10px;
+    min-height: 44px;
+    padding: 6px 4px;
+    font-size: 12px;
   }
 
   .instructions-panel {
-    gap: 6px;
-    margin-bottom: 14px;
+    margin: 12px 0 14px;
     padding: 8px 10px;
   }
 
   .control-row {
-    font-size: 10px;
+    font-size: 13px;
+    gap: 8px;
   }
 
   .key-badge {
-    font-size: 8.5px;
-    padding: 2px 5px;
+    font-size: 9px;
+    padding: 3px 5px;
   }
 
-  .primary-btn {
-    padding: 12px 24px;
-    font-size: 13px;
-    width: 100%;
+  .gameover-title,
+  .pause-title {
+    font-size: 22px;
   }
 
   .results-grid {
     gap: 8px;
+    margin: 14px 0;
   }
 
-  .res-val {
-    font-size: 16px;
+  .modal-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .neon-btn {
+    width: 100%;
+    min-height: 48px;
+    font-size: 14px;
+  }
+}
+
+/* Short phones: the drag hint is shown as a banner anyway, so keep START on screen */
+@media (max-width: 820px) and (orientation: portrait) and (max-height: 640px) {
+  .instructions-panel {
+    display: none;
+  }
+
+  #btn-start {
+    margin-top: 6px;
   }
 }
 
 @media (orientation: landscape) and (max-height: 600px) {
   .game-wrapper {
-    padding: 4px;
-    height: 100vh;
-    height: 100dvh;
+    padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
   }
 
   #game-container {
-    width: min(960px, 96vw, calc((100dvh - 8px) * 16 / 9));
-    height: calc(100dvh - 8px);
-    aspect-ratio: 16 / 9;
+    width: min(100%, calc(100dvh * 16 / 9));
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* HUD: scores in the corners, buttons by the net, all see-through over the court */
+  .overlay-hud {
+    padding: 4px 8px;
+  }
+
+  .hud-center-info,
+  .mode-tag-display {
+    display: none;
+  }
+
+  .hud-player-box {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 2px 8px;
+    background: rgba(12, 6, 26, 0.45);
+    backdrop-filter: none;
+  }
+
+  .hud-score {
+    font-size: 18px;
+  }
+
+  .hud-bottom {
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .hud-controls-hint {
+    opacity: 0.8;
+  }
+
+  .neon-icon-btn {
+    width: 40px;
+    height: 36px;
+  }
+
+  .banner-notification {
+    top: 20%;
+    padding: 5px 16px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  /* Menus: two columns, so nothing needs scrolling on a short screen */
+  .game-modal {
+    padding: 8px;
   }
 
   .modal-card {
-    max-height: 90dvh;
+    max-height: 100%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 12px 18px;
   }
 
-  .glitch-title {
-    font-size: 20px;
-    margin-bottom: 2px;
+  #start-screen .modal-card {
+    display: grid;
+    grid-template-columns: 1fr 1.35fr;
+    gap: 2px 20px;
+    align-items: center;
+    max-width: 660px;
   }
 
-  .subtitle {
+  #start-screen .glitch-title {
+    grid-area: 1 / 1;
+    font-size: 22px;
+    margin: 0;
+  }
+
+  #start-screen .subtitle {
+    grid-area: 2 / 1;
+    font-size: 10px;
+    margin: 0;
+  }
+
+  #start-screen #btn-start {
+    grid-area: 3 / 1;
+    min-height: 48px;
+  }
+
+  #start-screen .mode-select-group {
     margin-bottom: 6px;
-    font-size: 9.5px;
   }
 
-  .mode-select-group {
-    margin-bottom: 8px;
+  #mode-group {
+    grid-area: 1 / 2;
+  }
+
+  #difficulty-group {
+    grid-area: 2 / 2;
+  }
+
+  #length-group {
+    grid-area: 3 / 2;
+  }
+
+  .toggle-btn, .diff-btn, .pts-btn {
+    min-height: 40px;
+    padding: 4px;
+    font-size: 10px;
   }
 
   .instructions-panel {
     display: none;
   }
 
-  .overlay-hud {
-    padding: 6px 12px;
+  .gameover-title,
+  .pause-title {
+    font-size: 20px;
   }
 
-  .hud-score {
-    font-size: 18px;
+  .gameover-sub,
+  .pause-sub {
+    margin-bottom: 8px;
+  }
+
+  .results-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 8px 0 10px;
+  }
+
+  .mini-card {
+    max-width: 480px;
+  }
+
+  .neon-btn {
+    min-height: 44px;
+    padding: 8px 18px;
+    white-space: nowrap;
   }
 }

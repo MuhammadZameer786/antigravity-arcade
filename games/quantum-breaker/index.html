@@ -91,19 +91,31 @@
           <p class="subtitle">NEON MATRIX MULTI-BALL BREAKOUT</p>
 
           <div class="instructions-panel">
-            <div class="control-row">
+            <div class="control-row keys-only">
               <span class="key-badge">MOUSE / TOUCH / A-D / ← →</span>
               <span>MOVE QUANTUM PADDLE</span>
             </div>
-            <div class="control-row">
+            <div class="control-row keys-only">
               <span class="key-badge">SPACE / UP / CLICK / TAP</span>
               <span>LAUNCH BALL / FIRE LASER BLOCKED</span>
             </div>
-            <div class="control-row">
+            <div class="control-row touch-only">
+              <span class="key-badge">DRAG</span>
+              <span>MOVE PADDLE FROM ANYWHERE</span>
+            </div>
+            <div class="control-row touch-only">
+              <span class="key-badge">TAP</span>
+              <span>LAUNCH BALL</span>
+            </div>
+            <div class="control-row touch-only">
+              <span class="key-badge">HOLD</span>
+              <span>KEEP LASERS FIRING</span>
+            </div>
+            <div class="control-row keys-only">
               <span class="key-badge">POWERUPS</span>
               <span>MULTIBALL (3x), LASER, EXPAND, PIERCE, CHRONO, SHIELD</span>
             </div>
-            <div class="control-row">
+            <div class="control-row keys-only">
               <span class="key-badge">P / ESC & M</span>
               <span>PAUSE GAME & MUTE AUDIO</span>
             </div>
@@ -205,7 +217,7 @@
 
           <div class="modal-buttons">
             <button id="btn-restart" class="neon-btn primary-btn">
-              <span>RETRY MATRIX [R]</span>
+              <span>RETRY MATRIX<span class="keys-only"> [R]</span></span>
             </button>
             <a href="../../index.html" class="neon-btn secondary-btn">
               <span>ARCADE HUB</span>
@@ -253,10 +265,10 @@
           <p class="subtitle">GAME PAUSED</p>
           <div class="modal-buttons">
             <button id="btn-resume" class="neon-btn primary-btn">
-              <span>RESUME [P]</span>
+              <span>RESUME<span class="keys-only"> [P]</span></span>
             </button>
             <button id="btn-pause-restart" class="neon-btn secondary-btn">
-              <span>RESTART [R]</span>
+              <span>RESTART<span class="keys-only"> [R]</span></span>
             </button>
             <a href="../../index.html" class="neon-btn secondary-btn">
               <span>ARCADE HUB</span>

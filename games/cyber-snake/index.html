@@ -18,6 +18,9 @@
       <!-- Retro CRT Scanline Atmosphere -->
       <div class="crt-overlay" id="crt-overlay"></div>
 
+      <!-- Marks the space a portrait grid can fill; chooseGrid() in game.js measures it -->
+      <div id="arena-slot"></div>
+
       <!-- In-Game HUD -->
       <div id="hud" class="overlay-hud">
         <div class="hud-top">
@@ -51,7 +54,7 @@
         <div class="hud-middle">
           <div class="boost-container" id="boost-container">
             <div class="boost-meta">
-              <span class="boost-label">⚡ OVERDRIVE TURBO [SPACE]</span>
+              <span class="boost-label">⚡ OVERDRIVE TURBO<span class="keys-only"> [SPACE]</span></span>
               <span id="boost-percent" class="boost-val">100%</span>
             </div>
             <div class="boost-track">
@@ -167,15 +170,23 @@
 
           <!-- Controls panel -->
           <div class="instructions-panel">
-            <div class="control-row">
+            <div class="control-row keys-only">
               <span class="key-badge">WASD / ARROW KEYS</span>
               <span>STEER CYBER SERPENT</span>
             </div>
-            <div class="control-row">
+            <div class="control-row keys-only">
               <span class="key-badge">HOLD SPACE / TOUCH BOOST</span>
               <span>TURBO OVERDRIVE THRUST (2X SPEED)</span>
             </div>
-            <div class="control-row">
+            <div class="control-row touch-only">
+              <span class="key-badge">SWIPE</span>
+              <span>STEER FROM ANYWHERE (OR USE THE D-PAD)</span>
+            </div>
+            <div class="control-row touch-only">
+              <span class="key-badge">TURBO</span>
+              <span>HOLD FOR 2X SPEED</span>
+            </div>
+            <div class="control-row keys-only">
               <span class="key-badge">P / ESC & M</span>
               <span>PAUSE MATRIX & MUTE SYNTHWAVE AUDIO</span>
             </div>
@@ -249,7 +260,7 @@
 
           <div class="modal-buttons">
             <button id="btn-restart" class="neon-btn primary-btn pulse-glow">
-              <span>RE-ENGAGE SYSTEM [R]</span>
+              <span>RE-ENGAGE SYSTEM<span class="keys-only"> [R]</span></span>
             </button>
             <a href="../../index.html" class="neon-btn secondary-btn">
               <span>ARCADE HUB</span>
@@ -277,7 +288,7 @@
 
           <div class="modal-buttons">
             <button id="btn-resume" class="neon-btn primary-btn">
-              <span>RESUME PROCESS [P]</span>
+              <span>RESUME PROCESS<span class="keys-only"> [P]</span></span>
             </button>
             <button id="btn-pause-restart" class="neon-btn secondary-btn">
               <span>RESTART RUN</span>

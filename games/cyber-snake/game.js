@@ -666,6 +666,9 @@ class CyberSnakeGame {
     this.cols = 48;
     this.rows = 27;
     this.cellSize = 20; // 48 * 20 = 960, 27 * 20 = 540
+    this.worldW = 960;
+    this.worldH = 540;
+    this.renderScale = 1;
 
     // Theme Configs
     this.themes = {
@@ -813,6 +816,7 @@ class CyberSnakeGame {
 
     this.initEventListeners();
     this.loadSavedSettings();
+    this.chooseGrid();
     this.updateHUD();
     this.showBanner('CYBER MATRIX STANDBY', 2000);
 
@@ -955,32 +959,78 @@ class CyberSnakeGame {
       this.isBoostActive = false;
     }, { passive: false });
 
-    // Touch Canvas Swipe
-    let touchStartX = 0;
-    let touchStartY = 0;
-    this.canvas.addEventListener('touchstart', (e) => {
-      if (e.touches.length > 0) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-      }
-    }, { passive: true });
+    touchBoost.addEventListener('touchcancel', () => {
+      this.isBoostActive = false;
+    });
 
-    this.canvas.addEventListener('touchend', (e) => {
-      if (e.changedTouches.length > 0) {
-        const dx = e.changedTouches[0].clientX - touchStartX;
-        const dy = e.changedTouches[0].clientY - touchStartY;
-        const absX = Math.abs(dx);
-        const absY = Math.abs(dy);
+    // Swipe anywhere on screen: the turn happens as soon as the finger has moved far
+    // enough, and the same swipe keeps reading so one gesture can chain several turns
+    let swipe = null;
+    window.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' || e.target.closest('button, a, .game-modal')) return;
+      swipe = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    });
 
-        if (Math.max(absX, absY) > 25) {
-          if (absX > absY) {
-            this.handleDirectionInput(dx > 0 ? 'RIGHT' : 'LEFT');
-          } else {
-            this.handleDirectionInput(dy > 0 ? 'DOWN' : 'UP');
-          }
+    window.addEventListener('pointermove', (e) => {
+      if (!swipe || swipe.id !== e.pointerId) return;
+      const dx = e.clientX - swipe.x;
+      const dy = e.clientY - swipe.y;
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+
+      if (Math.max(absX, absY) > 18) {
+        if (absX > absY) {
+          this.handleDirectionInput(dx > 0 ? 'RIGHT' : 'LEFT');
+        } else {
+          this.handleDirectionInput(dy > 0 ? 'DOWN' : 'UP');
         }
+        swipe.x = e.clientX;
+        swipe.y = e.clientY;
       }
-    }, { passive: true });
+    });
+
+    const endSwipe = () => {
+      swipe = null;
+    };
+    window.addEventListener('pointerup', endSwipe);
+    window.addEventListener('pointercancel', endSwipe);
+
+    // Don't let the snake run on while the phone is locked or another app is open
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.pauseGame();
+    });
+
+    // A run keeps its grid, so a phone rotated mid-run pauses and letterboxes that grid
+    window.addEventListener('resize', () => this.resizeCanvas());
+    window.matchMedia('(orientation: portrait)').addEventListener('change', () => {
+      this.resizeCanvas();
+      this.pauseGame();
+    });
+  }
+
+  // Portrait phones get a tall grid that fills the space above the controls
+  chooseGrid() {
+    const slot = document.getElementById('arena-slot').getBoundingClientRect();
+    if (slot.height > 0) {
+      this.cols = 24;
+      this.rows = Math.floor(slot.height / (slot.width / this.cols));
+    } else {
+      this.cols = 48;
+      this.rows = 27;
+    }
+    this.worldW = this.cols * this.cellSize;
+    this.worldH = this.rows * this.cellSize;
+    document.documentElement.style.setProperty('--grid-ratio', `${this.cols} / ${this.rows}`);
+    this.resizeCanvas();
+  }
+
+  resizeCanvas() {
+    // Size the buffer for the screen so the neon stays sharp on high-density phones
+    const cssW = this.canvas.getBoundingClientRect().width || this.worldW;
+    const density = (cssW * (window.devicePixelRatio || 1)) / this.worldW;
+    this.renderScale = Math.max(1, Math.min(1.5, density));
+    this.canvas.width = Math.round(this.worldW * this.renderScale);
+    this.canvas.height = Math.round(this.worldH * this.renderScale);
   }
 
   selectTheme(themeName) {
@@ -1101,6 +1151,7 @@ class CyberSnakeGame {
   // GAME LIFECYCLE
   // ============================================================================
   startGame() {
+    this.chooseGrid();
     this.state = 'PLAYING';
     this.dom.startScreen.classList.remove('active');
     this.dom.gameoverScreen.classList.remove('active');
@@ -1165,8 +1216,8 @@ class CyberSnakeGame {
 
     if (this.mode === 'hazards') {
       // Create 4 cyber energy pylons around the board
-      const marginX = 10;
-      const marginY = 6;
+      const marginX = Math.round(this.cols * 0.2);
+      const marginY = Math.round(this.rows * 0.22);
       this.hazards.push({ x: marginX, y: marginY, width: 2, height: 2, type: 'pylon' });
       this.hazards.push({ x: this.cols - marginX - 2, y: marginY, width: 2, height: 2, type: 'pylon' });
       this.hazards.push({ x: marginX, y: this.rows - marginY - 2, width: 2, height: 2, type: 'pylon' });
@@ -1174,8 +1225,8 @@ class CyberSnakeGame {
 
       // Create a pair of quantum portals
       this.portals = [
-        { x: 6, y: Math.floor(this.rows / 2), color: '#00f3ff', label: 'PORTAL α' },
-        { x: this.cols - 7, y: Math.floor(this.rows / 2), color: '#ff007f', label: 'PORTAL β' }
+        { x: Math.round(this.cols / 8), y: Math.floor(this.rows / 2), color: '#00f3ff', label: 'PORTAL α' },
+        { x: this.cols - 1 - Math.round(this.cols / 8), y: Math.floor(this.rows / 2), color: '#ff007f', label: 'PORTAL β' }
       ];
     }
   }
@@ -1438,7 +1489,7 @@ class CyberSnakeGame {
     }
 
     // Radar scanline progression
-    this.radarY = (this.radarY + dt * 140) % 540;
+    this.radarY = (this.radarY + dt * 140) % this.worldH;
 
     this.updateHUD();
   }
@@ -1667,6 +1718,7 @@ class CyberSnakeGame {
   // ============================================================================
   render() {
     this.ctx.save();
+    this.ctx.setTransform(this.renderScale, 0, 0, this.renderScale, 0, 0);
 
     // Camera Shake
     if (this.shakeIntensity > 0) {
@@ -1677,7 +1729,7 @@ class CyberSnakeGame {
 
     // 1. Clear Screen
     this.ctx.fillStyle = '#04010a';
-    this.ctx.fillRect(0, 0, 960, 540);
+    this.ctx.fillRect(0, 0, this.worldW, this.worldH);
 
     // 2. Draw Ambient Cyber Grid
     this.drawGrid();
@@ -1700,7 +1752,7 @@ class CyberSnakeGame {
     this.ctx.lineWidth = 2;
     this.ctx.beginPath();
     this.ctx.moveTo(0, this.radarY);
-    this.ctx.lineTo(960, this.radarY);
+    this.ctx.lineTo(this.worldW, this.radarY);
     this.ctx.stroke();
 
     this.ctx.restore();
@@ -1716,7 +1768,7 @@ class CyberSnakeGame {
       const x = c * this.cellSize;
       this.ctx.beginPath();
       this.ctx.moveTo(x, 0);
-      this.ctx.lineTo(x, 540);
+      this.ctx.lineTo(x, this.worldH);
       this.ctx.stroke();
     }
 
@@ -1725,7 +1777,7 @@ class CyberSnakeGame {
       const y = r * this.cellSize;
       this.ctx.beginPath();
       this.ctx.moveTo(0, y);
-      this.ctx.lineTo(960, y);
+      this.ctx.lineTo(this.worldW, y);
       this.ctx.stroke();
     }
 
@@ -1739,7 +1791,7 @@ class CyberSnakeGame {
     } else {
       this.ctx.strokeStyle = 'rgba(0, 243, 255, 0.25)';
       this.ctx.lineWidth = 1.5;
-      this.ctx.strokeRect(0, 0, 960, 540);
+      this.ctx.strokeRect(0, 0, this.worldW, this.worldH);
     }
 
     this.ctx.restore();

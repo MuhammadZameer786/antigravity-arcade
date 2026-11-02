@@ -4,218 +4,109 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>CYBER PINBALL // Neon Matrix Overdrive</title>
-  <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&family=VT323&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
-  <div class="cabinet-outer">
-    <!-- Pinball Machine Cabinet Frame -->
-    <div id="pinball-cabinet">
-      
-      <!-- Upper Cabinet Marquee / Dot Matrix Display (DMD) Header -->
-      <header class="cabinet-header">
-        <div class="marquee-bar">
-          <div class="marquee-title">
-            <span class="neon-badge cyan">NEON</span>
-            <span class="title-text">CYBER PINBALL</span>
-            <span class="neon-badge pink">OVERDRIVE</span>
-          </div>
-          <div class="marquee-actions">
-            <a href="../../index.html" class="cab-btn" title="Exit to Arcade Hub">
-              <span>🏠</span>
-            </a>
-            <button id="btn-audio-toggle" class="cab-btn" title="Toggle Sound / Synth [M]">
-              <span id="audio-icon">🔊</span>
-            </button>
-            <button id="btn-crt-toggle" class="cab-btn" title="Toggle CRT Scanlines [C]">
-              <span>📺</span>
-            </button>
-            <button id="btn-pause" class="cab-btn" title="Pause Game [P]">
-              <span id="pause-icon">⏸</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Dot Matrix Display Screen -->
-        <div class="dmd-screen" id="dmd-screen">
-          <div class="dmd-grid-overlay"></div>
-          <div class="dmd-content">
-            <div class="dmd-row top-row">
-              <div class="dmd-block">
-                <span class="dmd-label">SCORE</span>
-                <span id="dmd-score" class="dmd-val glow-cyan">000,000</span>
-              </div>
-              <div class="dmd-block">
-                <span class="dmd-label">MULTIPLIER</span>
-                <span id="dmd-mult" class="dmd-val glow-pink">x1</span>
-              </div>
-              <div class="dmd-block">
-                <span class="dmd-label">BALL</span>
-                <span id="dmd-ball" class="dmd-val glow-yellow">1 / 3</span>
-              </div>
-              <div class="dmd-block">
-                <span class="dmd-label">HIGH SCORE</span>
-                <span id="dmd-high" class="dmd-val glow-green">500,000</span>
-              </div>
-            </div>
-
-            <div class="dmd-row ticker-row">
-              <div id="dmd-ticker" class="dmd-ticker-text">PULL PLUNGER TO LAUNCH // MULTI-BALL JACKPOTS READY</div>
-            </div>
-
-            <!-- Mini Status Indicators (Locks & Modes) -->
-            <div class="dmd-indicators">
-              <div class="ind-group">
-                <span class="ind-label">LOCKS:</span>
-                <span id="lock-ind-1" class="dmd-pill lock-pill">1</span>
-                <span id="lock-ind-2" class="dmd-pill lock-pill">2</span>
-                <span id="lock-ind-3" class="dmd-pill lock-pill">3</span>
-              </div>
-              <div class="ind-group">
-                <span class="ind-label">MODE:</span>
-                <span id="multiball-ind" class="dmd-pill mode-pill">MULTI-BALL</span>
-                <span id="jackpot-ind" class="dmd-pill jackpot-pill">JACKPOT LIT</span>
-                <span id="save-ind" class="dmd-pill save-pill active">BALL SAVE</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <!-- Main Playfield Glass Container -->
-      <div id="playfield-container">
-        <!-- Canvas resolution: 540x880 -->
-        <canvas id="pinballCanvas" width="540" height="880"></canvas>
-
-        <!-- CRT Scanline Overlay -->
-        <div id="crt-overlay" class="crt-overlay active"></div>
-
-        <!-- Dynamic Screen Flash Layer for Jackpots & Bumpers -->
-        <div id="flash-overlay" class="flash-overlay"></div>
-
-        <!-- Interactive Plunger Gauge Overlay (bottom right) -->
-        <div id="plunger-control" class="plunger-control-ui" title="Hold SPACE or drag downward to charge plunger">
-          <div class="plunger-meter-label">CHARGE</div>
-          <div class="plunger-meter-track">
-            <div id="plunger-meter-fill" class="plunger-meter-fill"></div>
-          </div>
-          <button id="plunger-tap-btn" class="plunger-tap-btn">LAUNCH</button>
-        </div>
-
-        <!-- Mobile Touch Flipper Zones -->
-        <div class="touch-controls-layer">
-          <div id="touch-left-flipper" class="touch-zone left-zone">
-            <span class="touch-hint">LEFT FLIPPER [A/Z]</span>
-          </div>
-          <div id="touch-right-flipper" class="touch-zone right-zone">
-            <span class="touch-hint">RIGHT FLIPPER [D//]</span>
-          </div>
-        </div>
-
-        <!-- Virtual Nudge Buttons -->
-        <div class="nudge-bar">
-          <button id="btn-nudge-left" class="nudge-btn" title="Nudge Left [X]">◀ TILT</button>
-          <button id="btn-nudge-up" class="nudge-btn" title="Nudge Up [SPACE]">▲ SHAKE</button>
-          <button id="btn-nudge-right" class="nudge-btn" title="Nudge Right [N]">TILT ▶</button>
-        </div>
+  <div id="app">
+    <header class="hud">
+      <div class="stat stat-score">
+        <span class="stat-label">SCORE</span>
+        <span id="hud-score" class="stat-value cyan">0</span>
       </div>
-
-      <!-- Cabinet Footer with Controls Guide -->
-      <footer class="cabinet-footer">
-        <div class="footer-key-guides">
-          <span class="key-item"><kbd>A</kbd> / <kbd>Z</kbd> Left Flipper</span>
-          <span class="key-item"><kbd>D</kbd> / <kbd>/</kbd> Right Flipper</span>
-          <span class="key-item"><kbd>SPACE</kbd> / <kbd>↓</kbd> Plunger</span>
-          <span class="key-item"><kbd>X</kbd> / <kbd>N</kbd> Nudge</span>
-          <span class="key-item"><kbd>P</kbd> Pause</span>
-          <span class="key-item"><kbd>M</kbd> Audio</span>
-        </div>
-      </footer>
-
-      <!-- Modals -->
-
-      <!-- Start Game Modal -->
-      <div id="start-modal" class="cab-modal active">
-        <div class="modal-card">
-          <div class="glitch-title" data-text="CYBER PINBALL">CYBER PINBALL</div>
-          <div class="modal-sub">NEON MATRIX OVERDRIVE</div>
-
-          <div class="mission-briefing">
-            <h3>⚡ MISSION PROTOCOLS</h3>
-            <ul>
-              <li><strong>CYBER LOOPS:</strong> Shoot the Left Warp Ramp and Right Matrix Ramp to build combos and unlock Multi-Ball.</li>
-              <li><strong>DROP TARGETS:</strong> Knock down the 3 <em>C-Y-B</em> targets on the left to ignite the <strong>MATRIX LOCK</strong>.</li>
-              <li><strong>MATRIX LOCK & MULTI-BALL:</strong> Shoot into the glowing Cyber Scoop to lock 3 balls. Locking 3 balls activates <strong>3-BALL MULTI-BALL MAYHEM!</strong></li>
-              <li><strong>JACKPOT SCORES:</strong> Hit glowing ramps during Multi-ball for <strong>500,000 JACKPOT</strong> and <strong>1,000,000 SUPER JACKPOT!</strong></li>
-              <li><strong>POP BUMPERS:</strong> Charge the 3 Neon Cores to trigger Super Bumpers (5,000 pts/hit).</li>
-              <li><strong>TURBINE SPINNER:</strong> Rip the right orbit spinner for rapid-fire points.</li>
-            </ul>
-          </div>
-
-          <div class="controls-showcase">
-            <div class="ctrl-row"><span class="badge">A / Z / Left Touch</span> <span>Left Flipper</span></div>
-            <div class="ctrl-row"><span class="badge">D / / / Right Touch</span> <span>Right & Upper Flippers</span></div>
-            <div class="ctrl-row"><span class="badge">SPACE / Hold & Release</span> <span>Power Plunger</span></div>
-            <div class="ctrl-row"><span class="badge">X / N / Touch Bar</span> <span>Tilt Nudge</span></div>
-          </div>
-
-          <button id="btn-start-game" class="neon-primary-btn">
-            <span>⚡ INSERT COIN / LAUNCH ⚡</span>
-          </button>
-        </div>
+      <div class="stat">
+        <span class="stat-label">BALL</span>
+        <span id="hud-ball" class="stat-value yellow">1/3</span>
       </div>
-
-      <!-- Pause Modal -->
-      <div id="pause-modal" class="cab-modal">
-        <div class="modal-card mini-card">
-          <div class="glitch-title">PAUSED</div>
-          <p class="modal-sub">CYBER MATRIX IN STASIS</p>
-          <div class="modal-btn-stack">
-            <button id="btn-resume" class="neon-primary-btn">▶ RESUME PLAY</button>
-            <button id="btn-restart" class="neon-secondary-btn">↺ RESTART GAME</button>
-            <a href="../../index.html" class="neon-secondary-btn">🏠 ARCADE HUB</a>
-          </div>
-        </div>
+      <div class="stat">
+        <span class="stat-label">MULT</span>
+        <span id="hud-mult" class="stat-value pink">x1</span>
       </div>
-
-      <!-- Game Over & Leaderboard Modal -->
-      <div id="gameover-modal" class="cab-modal">
-        <div class="modal-card">
-          <div class="glitch-title" data-text="GAME OVER">GAME OVER</div>
-          <div class="modal-sub">TRANSMISSION TERMINATED</div>
-
-          <div class="final-stats-board">
-            <div class="stat-highlight">
-              <span class="lbl">FINAL SCORE</span>
-              <span id="final-score-val" class="big-val glow-cyan">0</span>
-            </div>
-            <div class="stats-mini-grid">
-              <div class="mini-stat"><span class="lbl">JACKPOTS</span><span id="final-jackpots" class="val glow-pink">0</span></div>
-              <div class="mini-stat"><span class="lbl">RAMP LOOPS</span><span id="final-loops" class="val glow-yellow">0</span></div>
-              <div class="mini-stat"><span class="lbl">BUMPER HITS</span><span id="final-bumpers" class="val glow-green">0</span></div>
-              <div class="mini-stat"><span class="lbl">SPINNER REVS</span><span id="final-spins" class="val glow-cyan">0</span></div>
-            </div>
-          </div>
-
-          <!-- High Score Hall of Fame -->
-          <div class="leaderboard-section">
-            <div class="lb-title">🏆 MATRIX TOP AGENTS</div>
-            <ol id="leaderboard-list" class="leaderboard-list">
-              <!-- Dynamically populated from localStorage -->
-            </ol>
-          </div>
-
-          <button id="btn-play-again" class="neon-primary-btn">
-            <span>⚡ INSERT COIN / PLAY AGAIN ⚡</span>
-          </button>
-        </div>
+      <div class="stat stat-high">
+        <span class="stat-label">BEST</span>
+        <span id="hud-high" class="stat-value green">0</span>
       </div>
+      <div class="hud-buttons">
+        <button id="btn-audio" class="icon-btn" title="Sound [M]" aria-label="Toggle sound"><span id="audio-icon">🔊</span></button>
+        <button id="btn-pause" class="icon-btn" title="Pause [P]" aria-label="Pause">⏸</button>
+      </div>
+    </header>
 
+    <div id="ticker" class="ticker">PRESS START</div>
+
+    <main id="table-wrap">
+      <canvas id="table" width="540" height="960"></canvas>
+    </main>
+
+    <div class="thumb-strip touch-only" aria-hidden="true">
+      <span>◀ LEFT FLIPPER</span>
+      <span>RIGHT FLIPPER ▶</span>
     </div>
   </div>
 
-  <script src="game.js"></script>
+  <div id="start-modal" class="modal active">
+    <div class="card">
+      <h1 class="title">CYBER PINBALL</h1>
+      <p class="subtitle">NEON MATRIX OVERDRIVE</p>
+
+      <ul class="how-to">
+        <li><strong>N-E-O lanes:</strong> light all three to raise the multiplier</li>
+        <li><strong>C-Y-B targets:</strong> knock them down to light the lock</li>
+        <li><strong>Scoop:</strong> lock 3 balls to start multiball</li>
+        <li><strong>Multiball:</strong> orbits and the scoop score jackpots</li>
+      </ul>
+
+      <div class="controls touch-only">
+        <div><span class="badge">LEFT SIDE</span> Left flipper</div>
+        <div><span class="badge">RIGHT SIDE</span> Right flipper</div>
+        <div><span class="badge">HOLD RIGHT</span> Pull plunger, let go to launch</div>
+      </div>
+      <div class="controls keys-only">
+        <div><span class="badge">A / ←</span> Left flipper</div>
+        <div><span class="badge">D / →</span> Right flipper</div>
+        <div><span class="badge">SPACE</span> Hold, let go to launch</div>
+        <div><span class="badge">X / N</span> Nudge</div>
+      </div>
+
+      <button id="btn-start" class="btn btn-primary">START GAME</button>
+      <a href="../../index.html" class="btn btn-secondary">ARCADE HUB</a>
+    </div>
+  </div>
+
+  <div id="pause-modal" class="modal">
+    <div class="card card-small">
+      <h2 class="title">PAUSED</h2>
+      <button id="btn-resume" class="btn btn-primary">RESUME</button>
+      <button id="btn-restart" class="btn btn-secondary">RESTART</button>
+      <a href="../../index.html" class="btn btn-secondary">ARCADE HUB</a>
+    </div>
+  </div>
+
+  <div id="gameover-modal" class="modal">
+    <div class="card">
+      <h2 class="title">GAME OVER</h2>
+      <div id="final-score" class="final-score">0</div>
+      <div class="final-stats">
+        <div><span id="final-jackpots">0</span>JACKPOTS</div>
+        <div><span id="final-orbits">0</span>ORBITS</div>
+        <div><span id="final-bumpers">0</span>BUMPERS</div>
+        <div><span id="final-spins">0</span>SPINS</div>
+      </div>
+      <ol id="records" class="records"></ol>
+      <button id="btn-again" class="btn btn-primary">PLAY AGAIN</button>
+      <a href="../../index.html" class="btn btn-secondary">ARCADE HUB</a>
+    </div>
+  </div>
+
+  <!-- Phones held sideways: the table needs the height -->
+  <div class="rotate-prompt">
+    <div class="rotate-phone"></div>
+    <div class="rotate-title">ROTATE YOUR PHONE</div>
+    <div class="rotate-sub">CYBER PINBALL PLAYS UPRIGHT</div>
+  </div>
+
+  <script src="game.js?v=2"></script>
 </body>
 </html>

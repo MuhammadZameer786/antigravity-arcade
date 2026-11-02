@@ -560,2155 +560,1313 @@ class CyberAudio {
 }
 
 // ============================================================================
-// 2. VECTOR MATH & GEOMETRY HELPERS
+// 2. TABLE: GEOMETRY, PHYSICS AND RULES
+// No DOM in here. The table reports what happens through emit(name, data).
 // ============================================================================
-function distSq(x1, y1, x2, y2) {
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  return dx * dx + dy * dy;
-}
+const TABLE_W = 540;
+const TABLE_H = 960;
+const CENTER_X = 253; // Middle of the playfield, left of the shooter lane
+const BALL_R = 10;
+const WALL_R = 2;
+const GRAVITY = 1000;
+const STEP = 1 / 300; // Under BALL_R of travel per step at MAX_SPEED, so no tunnelling
+const MAX_SPEED = 2300;
+const LANE_X = 509;
+const PLUNGER_Y = 926;
+const LAUNCH_MIN = 1500;
+const LAUNCH_MAX = 2000;
+const BALLS_PER_GAME = 3;
+const BALL_SAVE_TIME = 10;
+const STUCK_TIME = 3;
+const MAX_MULT = 6;
 
-function dist(x1, y1, x2, y2) {
-  return Math.sqrt(distSq(x1, y1, x2, y2));
-}
+const mirrorX = (x) => CENTER_X * 2 - x;
 
-function closestPointOnSegment(px, py, x1, y1, x2, y2) {
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const lenSq = dx * dx + dy * dy;
-  if (lenSq === 0) return { x: x1, y: y1, t: 0 };
-  let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
-  t = Math.max(0, Math.min(1, t));
-  return { x: x1 + t * dx, y: y1 + t * dy, t };
-}
-
-function cubicBezier(p0, p1, p2, p3, t) {
-  const u = 1 - t;
-  const tt = t * t;
-  const uu = u * u;
-  const uuu = uu * u;
-  const ttt = tt * t;
-  return {
-    x: uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
-    y: uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y
-  };
-}
-
-// ============================================================================
-// 3. VISUAL FX: PARTICLES & FLOATING TEXT
-// ============================================================================
-class ParticleEngine {
-  constructor() {
-    this.particles = [];
-    this.floatTexts = [];
+class Flipper {
+  constructor(side) {
+    const dir = side === 'left' ? 1 : -1;
+    this.side = side;
+    this.px = CENTER_X - dir * 100;
+    this.py = 850;
+    this.length = 84;
+    this.radius = 8;
+    this.rest = side === 'left' ? 0.49 : Math.PI - 0.49;
+    this.active = side === 'left' ? -0.49 : Math.PI + 0.49;
+    this.angle = this.rest;
+    this.omega = 0;
+    this.held = false;
   }
 
-  emit(x, y, count, color, speed = 120, size = 3) {
-    for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const spd = (0.3 + Math.random() * 0.7) * speed;
-      this.particles.push({
-        x, y,
-        vx: Math.cos(angle) * spd,
-        vy: Math.sin(angle) * spd,
-        color,
-        size: size * (0.6 + Math.random() * 0.8),
-        alpha: 1,
-        decay: 1.5 + Math.random() * 1.5
+  update(h) {
+    const target = this.held ? this.active : this.rest;
+    const speed = this.held ? 26 : 16;
+    const diff = target - this.angle;
+    const move = Math.sign(diff) * Math.min(Math.abs(diff), speed * h);
+    this.angle += move;
+    this.omega = move / h;
+  }
+
+  get tipX() { return this.px + Math.cos(this.angle) * this.length; }
+  get tipY() { return this.py + Math.sin(this.angle) * this.length; }
+}
+
+class Table {
+  constructor(emit) {
+    this.emit = emit || (() => {});
+    this.buildGeometry();
+    this.newGame();
+  }
+
+  buildGeometry() {
+    this.walls = [];
+    this.kickers = [];
+    const poly = (points, list = this.walls) => {
+      for (let i = 0; i < points.length - 1; i++) {
+        list.push({ ax: points[i][0], ay: points[i][1], bx: points[i + 1][0], by: points[i + 1][1] });
+      }
+    };
+    const both = (points) => {
+      poly(points);
+      poly(points.map(([x, y]) => [mirrorX(x), y]));
+    };
+
+    // Cabinet: left wall, top arch, right wall
+    const outline = [[14, TABLE_H + 40], [14, 230]];
+    for (let i = 1; i <= 32; i++) {
+      const a = Math.PI + (Math.PI * i) / 32;
+      outline.push([270 + 256 * Math.cos(a), 230 + 216 * Math.sin(a)]);
+    }
+    outline.push([526, TABLE_H + 40]);
+    poly(outline);
+
+    // Shooter lane divider and floor
+    poly([[492, TABLE_H + 40], [492, 226]]);
+    poly([[492, 950], [526, 950]]);
+
+    // One-way gate: the ball leaves the lane through it, then it acts as a wall
+    // The second turns plunger shots into the bumpers instead of down the left orbit
+    this.gates = [
+      { ax: 524, ay: 196, bx: 492, by: 226, nx: -0.684, ny: -0.73 },
+      { ax: 15, ay: 262, bx: 58, by: 300, nx: 0.662, ny: -0.749 }
+    ];
+
+    // Orbit islands
+    both([[58, 300], [58, 530], [72, 548]]);
+
+    // Orbit exit deflectors: keep a ball leaving an orbit out of the outlane
+    both([[14, 606], [60, 652]]);
+
+    // Top lane dividers
+    [133, 213, 293, 373].forEach((x) => poly([[x, 80], [x, 125]]));
+
+    // Slingshot bodies and inlane guides
+    both([[100, 690], [100, 770], [150, 806]]);
+    both([[46, 724], [46, 792], [156, 844]]);
+    [[100, 690, 150, 806]].forEach(([ax, ay, bx, by]) => {
+      poly([[ax, ay], [bx, by]], this.kickers);
+      poly([[mirrorX(ax), ay], [mirrorX(bx), by]], this.kickers);
+    });
+
+    this.bumpers = [
+      { x: 253, y: 195, r: 26, flash: 0 },
+      { x: 172, y: 285, r: 26, flash: 0 },
+      { x: 334, y: 285, r: 26, flash: 0 }
+    ];
+    this.scoop = { x: 398, y: 455, r: 13 };
+    this.dropTargets = [
+      { ax: 65, ay: 350, bx: 65, by: 390, letter: 'C' },
+      { ax: 65, ay: 392, bx: 65, by: 432, letter: 'Y' },
+      { ax: 65, ay: 434, bx: 65, by: 474, letter: 'B' }
+    ];
+    this.laneSensors = [
+      { min: 133, max: 213, x: 173, y: 105, letter: 'N' },
+      { min: 213, max: 293, x: 253, y: 105, letter: 'E' },
+      { min: 293, max: 373, x: 333, y: 105, letter: 'O' }
+    ];
+    this.orbitY = 440;
+    this.spinnerY = 360;
+    this.spinner = { ax: 448, bx: 492, y: this.spinnerY };
+
+    this.flippers = { left: new Flipper('left'), right: new Flipper('right') };
+    this.flipperList = [this.flippers.left, this.flippers.right];
+  }
+
+  newGame() {
+    this.score = 0;
+    this.ballNum = 1;
+    this.mult = 1;
+    this.locks = 0;
+    this.lockLit = false;
+    this.multiball = false;
+    this.jackpots = 0;
+    this.orbits = 0;
+    this.bumperHits = 0;
+    this.spins = 0;
+    this.over = false;
+    this.time = 0;
+    this.lanes = [false, false, false];
+    this.dropTargets.forEach((t) => { t.down = false; });
+    this.flipperList.forEach((f) => { f.held = false; f.angle = f.rest; f.omega = 0; });
+    this.serveBall();
+  }
+
+  serveBall() {
+    this.balls = [this.makeBall()];
+    this.autoQueue = 0;
+    this.autoTimer = 0;
+    this.saveTimer = 0;
+    this.charging = false;
+    this.charge = 0;
+    this.spinner.turns = 0;
+    this.spinner.angle = 0;
+    this.emit('serve', { ball: this.ballNum });
+  }
+
+  makeBall() {
+    return { x: LANE_X, y: PLUNGER_Y, vx: 0, vy: 0, held: 'plunger', holdTime: 0, anchorX: LANE_X, anchorY: PLUNGER_Y, stillTime: 0, trail: [] };
+  }
+
+  get plungerBall() { return this.balls.find((b) => b.held === 'plunger'); }
+
+  addScore(points, x, y) {
+    const total = points * this.mult;
+    this.score += total;
+    this.emit('score', { total, x, y });
+    return total;
+  }
+
+  // ---- Player input -------------------------------------------------------
+  setFlipper(side, down) {
+    if (this.over) return;
+    const flipper = this.flippers[side];
+    if (flipper.held === down) return;
+    flipper.held = down;
+    if (down) {
+      // Lane change: flippers shuffle the lit top lanes
+      const l = this.lanes;
+      this.lanes = side === 'left' ? [l[1], l[2], l[0]] : [l[2], l[0], l[1]];
+    }
+    this.emit(down ? 'flipperUp' : 'flipperDown', { side });
+  }
+
+  setCharging(on) {
+    if (this.over) return;
+    if (on && this.plungerBall && !this.charging) {
+      this.charging = true;
+      this.charge = 0;
+      this.emit('chargeStart');
+    } else if (!on && this.charging) {
+      this.charging = false;
+      const ball = this.plungerBall;
+      this.emit('chargeEnd', { fired: !!ball });
+      if (ball) this.launch(ball, this.charge);
+      this.charge = 0;
+    }
+  }
+
+  launch(ball, power, saved = true) {
+    ball.held = null;
+    ball.vx = 0;
+    ball.vy = -(LAUNCH_MIN + (LAUNCH_MAX - LAUNCH_MIN) * power) * (0.97 + Math.random() * 0.06);
+    this.resetStillness(ball);
+    if (saved && !this.multiball) this.saveTimer = BALL_SAVE_TIME;
+    this.emit('launch');
+  }
+
+  nudge(dx) {
+    if (this.over || this.time - (this.lastNudge || -1) < 0.5) return;
+    this.lastNudge = this.time;
+    for (const ball of this.balls) {
+      if (ball.held) continue;
+      ball.vx += dx * 150;
+      ball.vy -= 90;
+    }
+    this.emit('nudge', { dx });
+  }
+
+  // ---- Simulation ---------------------------------------------------------
+  step(h = STEP) {
+    if (this.over) return;
+    this.time += h;
+    this.flipperList.forEach((f) => f.update(h));
+    if (this.saveTimer > 0) this.saveTimer = Math.max(0, this.saveTimer - h);
+    if (this.charging) this.charge = Math.min(1, this.charge + h / 0.9);
+    for (const bumper of this.bumpers) bumper.flash = Math.max(0, bumper.flash - h * 5);
+    this.updateSpinner(h);
+
+    if (this.autoQueue > 0) {
+      this.autoTimer -= h;
+      if (this.autoTimer <= 0) {
+        const ball = this.makeBall();
+        this.balls.push(ball);
+        this.launch(ball, 0.7, false);
+        this.autoQueue--;
+        this.autoTimer = 0.8;
+      }
+    }
+
+    for (let i = this.balls.length - 1; i >= 0; i--) {
+      const ball = this.balls[i];
+      if (ball.held) {
+        this.updateHeld(ball, h);
+        continue;
+      }
+      this.moveBall(ball, h);
+      if (ball.y > TABLE_H + 20) {
+        this.balls.splice(i, 1);
+        this.onDrain();
+        if (this.over) return;
+      }
+    }
+  }
+
+  updateHeld(ball, h) {
+    if (ball.held !== 'scoop') return;
+    ball.holdTime -= h;
+    if (ball.holdTime <= 0) {
+      ball.held = null;
+      ball.vx = -300 + (Math.random() - 0.5) * 140;
+      ball.vy = 620;
+      ball.y += 16;
+      this.resetStillness(ball);
+      this.emit('scoopKick');
+    }
+  }
+
+  moveBall(ball, h) {
+    const prevY = ball.y;
+    ball.vy += GRAVITY * h;
+    ball.x += ball.vx * h;
+    ball.y += ball.vy * h;
+
+    for (const wall of this.walls) this.hitWall(ball, wall, 0.3);
+    for (const kicker of this.kickers) this.hitKicker(ball, kicker);
+    for (const gate of this.gates) this.hitGate(ball, gate);
+    for (const target of this.dropTargets) {
+      if (!target.down) this.hitDropTarget(ball, target);
+    }
+    for (const bumper of this.bumpers) this.hitBumper(ball, bumper);
+    for (const flipper of this.flipperList) this.hitFlipper(ball, flipper);
+
+    const speed = Math.hypot(ball.vx, ball.vy);
+    if (speed > MAX_SPEED) {
+      ball.vx *= MAX_SPEED / speed;
+      ball.vy *= MAX_SPEED / speed;
+    }
+
+    this.checkSensors(ball, prevY);
+    this.checkScoop(ball);
+    this.checkStuck(ball, h);
+
+    // Fell back down the lane: wait for another pull
+    if (ball.x > 492 && ball.y >= PLUNGER_Y && ball.vy >= 0) {
+      ball.x = LANE_X;
+      ball.y = PLUNGER_Y;
+      ball.vx = 0;
+      ball.vy = 0;
+      if (this.balls.some((b) => b !== ball && b.held === 'plunger') || this.multiball) {
+        this.launch(ball, 0.7, false);
+      } else {
+        ball.held = 'plunger';
+      }
+    }
+  }
+
+  // Pushes the ball out of a segment. Returns the contact, or null if none.
+  touchSegment(ball, s, extra) {
+    const dx = s.bx - s.ax;
+    const dy = s.by - s.ay;
+    const t = Math.max(0, Math.min(1, ((ball.x - s.ax) * dx + (ball.y - s.ay) * dy) / (dx * dx + dy * dy)));
+    const cx = s.ax + dx * t;
+    const cy = s.ay + dy * t;
+    const ox = ball.x - cx;
+    const oy = ball.y - cy;
+    const reach = BALL_R + extra;
+    const distSq = ox * ox + oy * oy;
+    if (distSq >= reach * reach || distSq === 0) return null;
+    const dist = Math.sqrt(distSq);
+    const nx = ox / dist;
+    const ny = oy / dist;
+    ball.x = cx + nx * reach;
+    ball.y = cy + ny * reach;
+    return { nx, ny, cx, cy };
+  }
+
+  bounce(ball, nx, ny, restitution) {
+    const vn = ball.vx * nx + ball.vy * ny;
+    if (vn >= 0) return 0;
+    ball.vx -= (1 + restitution) * vn * nx;
+    ball.vy -= (1 + restitution) * vn * ny;
+    return -vn;
+  }
+
+  hitWall(ball, wall, restitution) {
+    const contact = this.touchSegment(ball, wall, WALL_R);
+    if (contact) this.bounce(ball, contact.nx, contact.ny, restitution);
+  }
+
+  hitKicker(ball, kicker) {
+    const contact = this.touchSegment(ball, kicker, WALL_R);
+    if (!contact) return;
+    const impact = this.bounce(ball, contact.nx, contact.ny, 0.3);
+    if (impact > 90) {
+      ball.vx += contact.nx * 520;
+      ball.vy += contact.ny * 520;
+      this.addScore(500, ball.x, ball.y);
+      this.emit('sling', { x: ball.x, y: ball.y });
+    }
+  }
+
+  hitGate(ball, g) {
+    const side = (ball.x - g.ax) * g.nx + (ball.y - g.ay) * g.ny;
+    if (side < 0 || ball.vx * g.nx + ball.vy * g.ny >= 0) return;
+    const contact = this.touchSegment(ball, g, WALL_R);
+    if (contact) this.bounce(ball, contact.nx, contact.ny, 0.3);
+  }
+
+  hitDropTarget(ball, target) {
+    const contact = this.touchSegment(ball, target, 3);
+    if (!contact) return;
+    const impact = this.bounce(ball, contact.nx, contact.ny, 0.4);
+    if (impact < 120 || contact.nx < 0) return;
+    target.down = true;
+    this.addScore(5000, target.ax + 20, target.ay + 20);
+    this.emit('dropTarget');
+    if (this.dropTargets.every((t) => t.down)) {
+      this.lockLit = true;
+      this.addScore(25000, 110, 412);
+      this.emit('lockLit');
+    }
+  }
+
+  hitBumper(ball, bumper) {
+    const ox = ball.x - bumper.x;
+    const oy = ball.y - bumper.y;
+    const reach = BALL_R + bumper.r;
+    const distSq = ox * ox + oy * oy;
+    if (distSq >= reach * reach || distSq === 0) return;
+    const dist = Math.sqrt(distSq);
+    const nx = ox / dist;
+    const ny = oy / dist;
+    ball.x = bumper.x + nx * reach;
+    ball.y = bumper.y + ny * reach;
+    this.bounce(ball, nx, ny, 0.4);
+    ball.vx += nx * 560;
+    ball.vy += ny * 560;
+    bumper.flash = 1;
+    this.bumperHits++;
+    this.addScore(1000, bumper.x, bumper.y);
+    this.emit('bumper', { x: ball.x, y: ball.y });
+  }
+
+  hitFlipper(ball, flipper) {
+    const segment = { ax: flipper.px, ay: flipper.py, bx: flipper.tipX, by: flipper.tipY };
+    const contact = this.touchSegment(ball, segment, flipper.radius);
+    if (!contact) return;
+    // Surface speed at the contact point, from the flipper's rotation
+    const sx = -flipper.omega * (contact.cy - flipper.py);
+    const sy = flipper.omega * (contact.cx - flipper.px);
+    const rel = (ball.vx - sx) * contact.nx + (ball.vy - sy) * contact.ny;
+    if (rel >= 0) return;
+    const restitution = Math.abs(flipper.omega) > 1 ? 0.55 : 0.2;
+    ball.vx -= (1 + restitution) * rel * contact.nx;
+    ball.vy -= (1 + restitution) * rel * contact.ny;
+  }
+
+  checkSensors(ball, prevY) {
+    const crossed = (y) => (prevY < y) !== (ball.y < y);
+
+    if (crossed(105)) {
+      this.laneSensors.forEach((lane, i) => {
+        if (ball.x > lane.min && ball.x < lane.max) this.rollLane(i);
       });
     }
-  }
 
-  emitRing(x, y, color, maxRadius = 45) {
-    this.particles.push({
-      x, y,
-      isRing: true,
-      radius: 5,
-      maxRadius,
-      color,
-      alpha: 1,
-      decay: 2.5
-    });
-  }
-
-  addFloatingText(x, y, text, color = '#00f3ff', size = 16) {
-    this.floatTexts.push({
-      x, y,
-      text,
-      color,
-      size,
-      alpha: 1,
-      vy: -45,
-      life: 1.2
-    });
-  }
-
-  update(dt) {
-    // Update particles
-    for (let i = this.particles.length - 1; i >= 0; i--) {
-      const p = this.particles[i];
-      if (p.isRing) {
-        p.radius += (p.maxRadius - p.radius) * 12 * dt;
-        p.alpha -= p.decay * dt;
-      } else {
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.alpha -= p.decay * dt;
-      }
-      if (p.alpha <= 0) {
-        this.particles.splice(i, 1);
-      }
+    if (crossed(this.spinnerY) && ball.x > this.spinner.ax && ball.x < this.spinner.bx) {
+      this.spinner.turns += Math.min(16, Math.abs(ball.vy) / 110);
     }
 
-    // Update float texts
-    for (let i = this.floatTexts.length - 1; i >= 0; i--) {
-      const ft = this.floatTexts[i];
-      ft.y += ft.vy * dt;
-      ft.life -= dt;
-      ft.alpha = Math.max(0, ft.life / 1.2);
-      if (ft.life <= 0) {
-        this.floatTexts.splice(i, 1);
-      }
+    if (crossed(this.orbitY) && ball.vy < -250) {
+      if (ball.x > 14 && ball.x < 58) this.passOrbit(36);
+      else if (ball.x > 448 && ball.x < 492) this.passOrbit(470);
     }
   }
 
-  draw(ctx) {
-    // Draw particles
-    for (const p of this.particles) {
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, p.alpha);
-      if (p.isRing) {
-        ctx.strokeStyle = p.color;
-        ctx.lineWidth = 2.5;
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 8;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-
-    // Draw floating texts
-    for (const ft of this.floatTexts) {
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, ft.alpha);
-      ctx.font = `900 ${ft.size}px 'Orbitron', monospace`;
-      ctx.textAlign = 'center';
-      ctx.fillStyle = ft.color;
-      ctx.shadowColor = ft.color;
-      ctx.shadowBlur = 12;
-      ctx.fillText(ft.text, ft.x, ft.y);
-      ctx.restore();
-    }
-  }
-}
-
-// ============================================================================
-// 4. PINBALL BALL CLASS
-// ============================================================================
-class Pinball {
-  constructor(id, x, y) {
-    this.id = id;
-    this.x = x;
-    this.y = y;
-    this.vx = 0;
-    this.vy = 0;
-    this.radius = 9.5;
-    this.mass = 1.0;
-    this.state = 'FREE'; // 'FREE', 'PLUNGER', 'RAMP', 'LOCKED', 'DRAINED'
-    this.rampProgress = 0;
-    this.currentRamp = null;
-    this.trail = [];
-    this.trailMax = 12;
-
-    // Glowing comet colors
-    const colors = ['#00f3ff', '#ff007f', '#ffe600', '#05ffa1'];
-    this.glowColor = colors[(id - 1) % colors.length];
-  }
-
-  reset(x, y, state = 'PLUNGER') {
-    this.x = x;
-    this.y = y;
-    this.vx = 0;
-    this.vy = 0;
-    this.state = state;
-    this.rampProgress = 0;
-    this.currentRamp = null;
-    this.trail = [];
-  }
-
-  updateTrail() {
-    this.trail.push({ x: this.x, y: this.y });
-    if (this.trail.length > this.trailMax) {
-      this.trail.shift();
+  rollLane(i) {
+    this.addScore(2500, this.laneSensors[i].x, this.laneSensors[i].y);
+    this.lanes[i] = true;
+    this.emit('lane');
+    if (this.lanes.every(Boolean)) {
+      this.lanes = [false, false, false];
+      if (this.mult < MAX_MULT) this.mult++;
+      this.emit('multUp', { mult: this.mult });
     }
   }
 
-  draw(ctx) {
-    if (this.state === 'DRAINED' || this.state === 'LOCKED') return;
-
-    // Draw comet trail
-    if (this.trail.length > 1) {
-      for (let i = 0; i < this.trail.length - 1; i++) {
-        const p1 = this.trail[i];
-        const p2 = this.trail[i + 1];
-        const ratio = (i + 1) / this.trail.length;
-        ctx.save();
-        ctx.strokeStyle = this.glowColor;
-        ctx.globalAlpha = ratio * 0.45;
-        ctx.lineWidth = this.radius * 2 * ratio;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
-
-    // Ball Elevation Shadow (if on ramp)
-    if (this.state === 'RAMP') {
-      ctx.save();
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-      ctx.beginPath();
-      ctx.arc(this.x + 8, this.y + 12, this.radius * 0.9, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // Chrome Steel Ball with Cyber Neon Edge
-    ctx.save();
-    ctx.shadowColor = this.glowColor;
-    ctx.shadowBlur = 14;
-
-    // Outer neon glow
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = '#0f172a';
-    ctx.fill();
-    ctx.strokeStyle = this.glowColor;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Chrome spherical gradient
-    const grad = ctx.createRadialGradient(
-      this.x - this.radius * 0.35,
-      this.y - this.radius * 0.35,
-      this.radius * 0.1,
-      this.x,
-      this.y,
-      this.radius
-    );
-    grad.addColorStop(0, '#ffffff');
-    grad.addColorStop(0.3, '#d8e4f5');
-    grad.addColorStop(0.7, '#64748b');
-    grad.addColorStop(1, '#1e293b');
-
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius - 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // Specular Glint
-    ctx.beginPath();
-    ctx.arc(this.x - this.radius * 0.35, this.y - this.radius * 0.35, this.radius * 0.28, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.fill();
-
-    ctx.restore();
-  }
-}
-
-// ============================================================================
-// 5. FLIPPER CLASS
-// ============================================================================
-class Flipper {
-  constructor(side, pivotX, pivotY, length, restAngle, maxAngle, upSpeed = 26, downSpeed = 16) {
-    this.side = side; // 'left' or 'right'
-    this.pivotX = pivotX;
-    this.pivotY = pivotY;
-    this.length = length;
-    this.restAngle = restAngle;
-    this.maxAngle = maxAngle;
-    this.angle = restAngle;
-    this.prevAngle = restAngle;
-    this.angularVelocity = 0;
-    this.isPressed = false;
-    this.upSpeed = upSpeed;
-    this.downSpeed = downSpeed;
-    this.r0 = 12; // Radius at pivot
-    this.r1 = 6;  // Radius at tip
-  }
-
-  press() {
-    this.isPressed = true;
-  }
-
-  release() {
-    this.isPressed = false;
-  }
-
-  update(dt) {
-    this.prevAngle = this.angle;
-    const targetAngle = this.isPressed ? this.maxAngle : this.restAngle;
-    const diff = targetAngle - this.angle;
-
-    if (Math.abs(diff) > 0.005) {
-      const speed = this.isPressed ? this.upSpeed : this.downSpeed;
-      const step = Math.sign(diff) * speed * dt;
-      if (Math.abs(step) >= Math.abs(diff)) {
-        this.angle = targetAngle;
-      } else {
-        this.angle += step;
-      }
+  passOrbit(x) {
+    this.orbits++;
+    if (this.multiball) {
+      this.awardJackpot(x, this.orbitY);
     } else {
-      this.angle = targetAngle;
+      this.addScore(25000, x, this.orbitY);
+      this.emit('orbit');
+    }
+  }
+
+  awardJackpot(x, y) {
+    this.jackpots++;
+    this.addScore(250000, x, y);
+    this.emit('jackpot');
+  }
+
+  updateSpinner(h) {
+    const s = this.spinner;
+    if (s.turns <= 0) return;
+    const spent = Math.min(s.turns, (s.turns * 2 + 4) * h);
+    const before = Math.floor(s.angle);
+    s.angle += spent;
+    s.turns -= spent;
+    if (Math.floor(s.angle) > before) {
+      this.spins++;
+      this.addScore(250);
+      this.emit('spin', { rate: Math.min(1, s.turns / 8) });
+    }
+  }
+
+  checkScoop(ball) {
+    const s = this.scoop;
+    if (Math.hypot(ball.x - s.x, ball.y - s.y) > s.r || Math.hypot(ball.vx, ball.vy) > 1000) return;
+    ball.x = s.x;
+    ball.y = s.y;
+    ball.vx = 0;
+    ball.vy = 0;
+    ball.held = 'scoop';
+    ball.holdTime = 0.9;
+    this.addScore(10000, s.x, s.y);
+
+    if (this.multiball) {
+      this.awardJackpot(s.x, s.y);
+    } else if (this.lockLit) {
+      this.lockLit = false;
+      this.locks++;
+      this.dropTargets.forEach((t) => { t.down = false; });
+      this.emit('lock', { locks: this.locks });
+      if (this.locks === 3) this.startMultiball();
+    } else {
+      this.emit('scoop');
+    }
+  }
+
+  startMultiball() {
+    this.locks = 0;
+    this.multiball = true;
+    this.autoQueue = 2;
+    this.autoTimer = 1;
+    this.emit('multiballStart');
+  }
+
+  checkStuck(ball, h) {
+    if (Math.hypot(ball.x - ball.anchorX, ball.y - ball.anchorY) > 14) {
+      this.resetStillness(ball);
+      return;
+    }
+    ball.stillTime += h;
+    if (ball.stillTime < STUCK_TIME) return;
+    // Cradling on a held flipper is a real move, so leave those balls alone
+    if (this.flipperList.some((f) => f.held && ball.y > 780)) return;
+    ball.vx = (Math.random() < 0.5 ? -1 : 1) * (160 + Math.random() * 160);
+    ball.vy = -420;
+    this.resetStillness(ball);
+    this.emit('unstuck');
+  }
+
+  resetStillness(ball) {
+    ball.anchorX = ball.x;
+    ball.anchorY = ball.y;
+    ball.stillTime = 0;
+  }
+
+  onDrain() {
+    if (this.saveTimer > 0 && !this.multiball) {
+      this.saveTimer = 0;
+      this.autoQueue++;
+      this.autoTimer = 0.6;
+      this.emit('ballSaved');
+      return;
     }
 
-    this.angularVelocity = (this.angle - this.prevAngle) / dt;
-  }
+    const remaining = this.balls.length + this.autoQueue;
+    if (this.multiball && remaining <= 1) {
+      this.multiball = false;
+      this.emit('multiballEnd');
+    }
+    if (remaining > 0) return;
 
-  getTip() {
-    return {
-      x: this.pivotX + Math.cos(this.angle) * this.length,
-      y: this.pivotY + Math.sin(this.angle) * this.length
-    };
-  }
-
-  draw(ctx) {
-    const tip = this.getTip();
-    const perp = this.angle + Math.PI / 2;
-    const cosP = Math.cos(perp);
-    const sinP = Math.sin(perp);
-
-    const p0A = { x: this.pivotX + cosP * this.r0, y: this.pivotY + sinP * this.r0 };
-    const p0B = { x: this.pivotX - cosP * this.r0, y: this.pivotY - sinP * this.r0 };
-    const p1A = { x: tip.x + cosP * this.r1, y: tip.y + sinP * this.r1 };
-    const p1B = { x: tip.x - cosP * this.r1, y: tip.y - sinP * this.r1 };
-
-    ctx.save();
-    const color = this.side === 'left' ? '#00f3ff' : '#ff007f';
-    ctx.shadowColor = color;
-    ctx.shadowBlur = this.isPressed ? 18 : 10;
-
-    // Tapered Flipper Body
-    ctx.beginPath();
-    ctx.moveTo(p0A.x, p0A.y);
-    ctx.lineTo(p1A.x, p1A.y);
-    ctx.arc(tip.x, tip.y, this.r1, perp, perp + Math.PI);
-    ctx.lineTo(p0B.x, p0B.y);
-    ctx.arc(this.pivotX, this.pivotY, this.r0, perp + Math.PI, perp);
-    ctx.closePath();
-
-    ctx.fillStyle = this.isPressed ? '#fff' : (this.side === 'left' ? 'rgba(0, 243, 255, 0.85)' : 'rgba(255, 0, 127, 0.85)');
-    ctx.fill();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    // Center pivot bushing
-    ctx.beginPath();
-    ctx.arc(this.pivotX, this.pivotY, this.r0 * 0.45, 0, Math.PI * 2);
-    ctx.fillStyle = '#06020f';
-    ctx.fill();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.restore();
+    this.emit('drain');
+    this.ballNum++;
+    this.mult = 1;
+    this.lanes = [false, false, false];
+    if (this.ballNum > BALLS_PER_GAME) {
+      this.ballNum = BALLS_PER_GAME;
+      this.over = true;
+      this.emit('gameOver');
+      return;
+    }
+    this.serveBall();
   }
 }
 
 // ============================================================================
-// 6. MAIN CYBER PINBALL GAME ENGINE
+// 3. DISPLAY, INPUT AND GAME FLOW
 // ============================================================================
-class CyberPinballGame {
+const COLORS = {
+  cyan: '#00f3ff',
+  pink: '#ff007f',
+  yellow: '#ffe600',
+  green: '#05ffa1',
+  purple: '#a824ff',
+  orange: '#ff6a00',
+  dim: '#2a1a4a'
+};
+const MAX_PARTICLES = 140;
+
+class PinballGame {
   constructor() {
-    this.canvas = document.getElementById('pinballCanvas');
+    this.canvas = document.getElementById('table');
     this.ctx = this.canvas.getContext('2d');
+    this.wrap = document.getElementById('table-wrap');
     this.audio = new CyberAudio();
-    this.fx = new ParticleEngine();
-
-    // Table dimensions
-    this.width = 540;
-    this.height = 880;
-
-    // Table Physics Constants
-    this.gravity = 760; // px / s^2 (downward table incline)
-    this.airDamping = 0.9995;
-    this.substeps = 10;
-
-    // Game State
-    this.score = 0;
-    this.highScore = parseInt(localStorage.getItem('cyber_pinball_highscore') || '500000', 10);
-    this.multiplier = 1;
-    this.currentBall = 1;
-    this.maxBalls = 3;
-    this.lockedBallsCount = 0;
-    this.isMultiballActive = false;
-    this.multiballTimer = 0;
-    this.jackpotLit = false;
-    this.jackpotStreak = 0;
-    this.ballSaveTimer = 0;
-    this.tiltCount = 0;
-    this.isTilted = false;
-    this.tiltTimer = 0;
-    this.state = 'MENU'; // 'MENU', 'PLAYING', 'PAUSED', 'GAMEOVER'
-    this.stats = { jackpots: 0, rampLoops: 0, bumperHits: 0, spins: 0 };
-
-    // Plunger
-    this.plungerCharge = 0; // 0 to 1
-    this.isChargingPlunger = false;
-    this.plungerX = 515;
-    this.plungerY = 850;
-
-    // Ball Pool
-    this.balls = [
-      new Pinball(1, this.plungerX, this.plungerY),
-      new Pinball(2, this.plungerX, this.plungerY),
-      new Pinball(3, this.plungerX, this.plungerY)
-    ];
-
-    // Main Left and Right Flippers
-    this.leftFlipper = new Flipper('left', 175, 770, 78, 0.46, -0.48);
-    this.rightFlipper = new Flipper('right', 365, 770, 78, Math.PI - 0.46, Math.PI + 0.48);
-    // Upper Auxiliary Flipper (controlled with right flipper key for nailing Left Warp Ramp!)
-    this.upperFlipper = new Flipper('right', 445, 405, 52, Math.PI - 0.55, Math.PI + 0.35, 28, 18);
-
-    // Dynamic Pop Bumpers (3 Cyber Cores)
-    this.bumpers = [
-      { id: 1, name: 'ALPHA', x: 200, y: 240, r: 25, color: '#00f3ff', pulse: 0 },
-      { id: 2, name: 'BETA',  x: 325, y: 240, r: 25, color: '#ff007f', pulse: 0 },
-      { id: 3, name: 'GAMMA', x: 262, y: 175, r: 25, color: '#ffe600', pulse: 0 }
-    ];
-    this.superBumpersTimer = 0;
-
-    // Slingshots (Triangular electric kickers)
-    this.leftSling = {
-      p1: { x: 120, y: 730 },
-      p2: { x: 168, y: 730 },
-      p3: { x: 144, y: 630 },
-      pulse: 0
+    this.ui = {
+      score: document.getElementById('hud-score'),
+      ball: document.getElementById('hud-ball'),
+      mult: document.getElementById('hud-mult'),
+      high: document.getElementById('hud-high'),
+      ticker: document.getElementById('ticker')
     };
-    this.rightSling = {
-      p1: { x: 420, y: 730 },
-      p2: { x: 372, y: 730 },
-      p3: { x: 396, y: 630 },
-      pulse: 0
+    this.table = new Table((name, data) => this.onTableEvent(name, data || {}));
+    this.state = 'START';
+    this.particles = [];
+    this.popups = [];
+    this.flash = 0;
+    this.shake = 0;
+    this.lastTime = 0;
+    this.accumulator = 0;
+    this.pointers = new Map();
+    this.keysDown = new Set();
+    this.touchUsed = window.matchMedia('(pointer: coarse)').matches;
+    this.highScore = this.readHighScore();
+    this.shownScore = -1;
+
+    this.modals = {
+      start: document.getElementById('start-modal'),
+      pause: document.getElementById('pause-modal'),
+      over: document.getElementById('gameover-modal')
     };
 
-    // Drop Targets (3 'C-Y-B' Targets on left wall)
-    this.dropTargets = [
-      { id: 0, letter: 'C', x: 50, y: 260, w: 10, h: 22, dropped: false },
-      { id: 1, letter: 'Y', x: 50, y: 290, w: 10, h: 22, dropped: false },
-      { id: 2, letter: 'B', x: 50, y: 320, w: 10, h: 22, dropped: false }
-    ];
-    this.matrixLockLit = false;
-
-    // Top Rollover Lanes ('C-Y-B' lanes at upper table)
-    this.topLanes = [
-      { id: 0, letter: 'C', x: 195, y: 100, r: 12, lit: false },
-      { id: 1, letter: 'Y', x: 262, y: 92,  r: 12, lit: true },
-      { id: 2, letter: 'B', x: 330, y: 100, r: 12, lit: false }
-    ];
-    this.skillShotLane = 1;
-
-    // Turbine Spinner (right orbit lane)
-    this.spinner = {
-      x: 460, y: 290, w: 26, h: 6,
-      angle: 0, angularSpeed: 0, pulse: 0
-    };
-
-    // Matrix Lock Scoop Chamber (Scoop vortex)
-    this.scoop = {
-      x: 262, y: 330, r: 20, active: true, pulse: 0
-    };
-
-    // Outlane Cyber-Save Kickback (left outlane)
-    this.cyberSaveLit = true;
-
-    // One-Way Shooter Lane Gate (spring flap that opens on launch, prevents ball from draining back into plunger)
-    this.shooterGate = {
-      x1: 495,
-      y1: 195,
-      x2: 535,
-      y2: 180,
-      swing: 0
-    };
-
-    // Ramps
-    this.initRamps();
-
-    // Table Boundary Walls & Guides
-    this.initStaticWalls();
-
-    // Setup User Controls & DOM Listeners
-    this.initDOM();
     this.bindEvents();
-
-    // Start Animation Loop
-    this.lastTime = performance.now();
+    this.resize();
+    this.updateHud();
     requestAnimationFrame((t) => this.loop(t));
   }
 
-  // ==========================================================================
-  // INITIALIZATION: RAMPS & TABLE WALLS
-  // ==========================================================================
-  initRamps() {
-    // Left Warp Loop Ramp: Bezier curve looping across top, exiting over right inlane
-    this.leftRamp = {
-      name: 'LEFT_WARP',
-      entrance: { x1: 85, y1: 395, x2: 125, y2: 395 },
-      // Cubic Bezier curve points
-      p0: { x: 105, y: 395 },
-      p1: { x: 95, y: 160 },
-      p2: { x: 260, y: 55 },
-      p3: { x: 440, y: 120 },
-      p4: { x: 460, y: 320 },
-      p5: { x: 450, y: 560 }, // Exit over right inlane wireform
-      wireformExit: { x: 450, y: 580, vx: 20, vy: 260 },
-      comboCount: 0
-    };
-
-    // Right Matrix Jackpot Ramp: Curves up into matrix lock chamber, exits over left inlane
-    this.rightRamp = {
-      name: 'RIGHT_MATRIX',
-      entrance: { x1: 375, y1: 375, x2: 415, y2: 375 },
-      p0: { x: 395, y: 375 },
-      p1: { x: 405, y: 200 },
-      p2: { x: 310, y: 120 },
-      p3: { x: 190, y: 120 },
-      p4: { x: 100, y: 250 },
-      p5: { x: 90, y: 560 }, // Exit over left inlane wireform
-      wireformExit: { x: 90, y: 580, vx: -20, vy: 260 }
-    };
-  }
-
-  initStaticWalls() {
-    this.walls = [];
-    const addWall = (x1, y1, x2, y2, bounce = 0.5, isRubber = false) => {
-      this.walls.push({ x1, y1, x2, y2, bounce, isRubber });
-    };
-
-    // Shooter Lane right wall & floor
-    addWall(535, 140, 535, 875, 0.4);
-    addWall(495, 875, 535, 875, 0.3);
-
-    // Shooter Lane separator wall (from y=200 down to y=810)
-    addWall(495, 200, 495, 810, 0.4);
-
-    // Top-Right Curved Arch (routes plunger launch cleanly to top ceiling)
-    // Center: (425, 140), Radius: 110. Theta goes monotonically from 0 to PI/2
-    const archSegments = 16;
-    let prevArchX = 535;
-    let prevArchY = 140;
-    for (let i = 1; i <= archSegments; i++) {
-      const theta = (i / archSegments) * (Math.PI / 2);
-      const archX = 425 + Math.cos(theta) * 110;
-      const archY = 140 - Math.sin(theta) * 110;
-      addWall(prevArchX, prevArchY, archX, archY, 0.6);
-      prevArchX = archX;
-      prevArchY = archY;
-    }
-
-    // Top table roof wall
-    addWall(425, 30, 120, 30, 0.5);
-
-    // Top-left curved corner
-    // Center: (120, 105), Radius: 75. Theta goes from PI/2 to PI
-    let prevTLX = 120;
-    let prevTLY = 30;
-    for (let i = 1; i <= 8; i++) {
-      const theta = Math.PI / 2 + (i / 8) * (Math.PI / 2);
-      const curX = 120 + Math.cos(theta) * 75;
-      const curY = 105 - Math.sin(theta) * 75;
-      addWall(prevTLX, prevTLY, curX, curY, 0.5);
-      prevTLX = curX;
-      prevTLY = curY;
-    }
-
-    // Left outer perimeter wall
-    addWall(45, 105, 45, 620, 0.4);
-
-    // Left Outlane & Inlane guides:
-    addWall(45, 620, 45, 750, 0.4); // Left outlane outer wall
-    addWall(45, 750, 65, 810, 0.4);
-    addWall(65, 810, 120, 870, 0.4);
-
-    addWall(75, 620, 75, 720, 0.4); // Left lane divider
-    // Left inlane guide: curves down and connects directly onto top of left flipper pivot (170, 758)
-    addWall(75, 720, 115, 745, 0.5);
-    addWall(115, 745, 170, 758, 0.5);
-
-    // Right Outlane & Inlane guides:
-    addWall(495, 620, 495, 750, 0.4); // Right outlane outer wall
-    addWall(495, 750, 475, 810, 0.4);
-    addWall(475, 810, 420, 870, 0.4);
-
-    addWall(465, 620, 465, 720, 0.4); // Right lane divider
-    // Right inlane guide: curves down and connects directly onto top of right flipper pivot (370, 758)
-    addWall(465, 720, 425, 745, 0.5);
-    addWall(425, 745, 370, 758, 0.5);
-
-    // Drain trough bottom floor guides (leads to drain gap between x=210 and x=330)
-    addWall(120, 870, 210, 890, 0.4);
-    addWall(420, 870, 330, 890, 0.4);
-
-    // Left Slingshot solid rubber walls (Face A and Face C)
-    addWall(120, 730, 144, 630, 0.7, true); // inlane side
-    addWall(120, 730, 168, 730, 0.7, true); // bottom side
-
-    // Right Slingshot solid rubber walls (Face A and Face C)
-    addWall(420, 730, 396, 630, 0.7, true); // inlane side
-    addWall(372, 730, 420, 730, 0.7, true); // bottom side
-
-    // Upper table guide posts & lane dividers (open ceiling channel from y=30 to y=65)
-    addWall(155, 65, 170, 115, 0.6, true);
-    addWall(365, 65, 355, 115, 0.6, true);
-    addWall(228, 65, 228, 115, 0.6, true);
-    addWall(296, 65, 296, 115, 0.6, true);
-
-    // Left ramp entrance funnels (funnels ball UP from flippers into ramp at y=395)
-    addWall(65, 450, 85, 395, 0.5);
-    addWall(145, 450, 125, 395, 0.5);
-
-    // Right ramp entrance funnels (funnels ball UP from flippers into ramp at y=375)
-    addWall(355, 430, 375, 375, 0.5);
-    addWall(435, 430, 415, 375, 0.5);
-
-    // Right orbit guide walls
-    addWall(450, 200, 450, 360, 0.4);
-    // Smooth transition from right orbit down onto upper flipper
-    addWall(495, 360, 445, 405, 0.5);
-  }
-
-  // ==========================================================================
-  // DOM & CONTROLS BINDING
-  // ==========================================================================
-  initDOM() {
-    this.dmdScore = document.getElementById('dmd-score');
-    this.dmdMult = document.getElementById('dmd-mult');
-    this.dmdBall = document.getElementById('dmd-ball');
-    this.dmdHigh = document.getElementById('dmd-high');
-    this.dmdTicker = document.getElementById('dmd-ticker');
-
-    this.lockInd1 = document.getElementById('lock-ind-1');
-    this.lockInd2 = document.getElementById('lock-ind-2');
-    this.lockInd3 = document.getElementById('lock-ind-3');
-    this.multiballInd = document.getElementById('multiball-ind');
-    this.jackpotInd = document.getElementById('jackpot-ind');
-    this.saveInd = document.getElementById('save-ind');
-
-    this.plungerFill = document.getElementById('plunger-meter-fill');
-    this.flashOverlay = document.getElementById('flash-overlay');
-    this.crtOverlay = document.getElementById('crt-overlay');
-
-    this.startModal = document.getElementById('start-modal');
-    this.pauseModal = document.getElementById('pause-modal');
-    this.gameOverModal = document.getElementById('gameover-modal');
-
-    this.dmdHigh.textContent = this.formatScore(this.highScore);
-    this.updateLeaderboardUI();
-  }
-
+  // ---- Setup --------------------------------------------------------------
   bindEvents() {
-    // Keyboard Controls
-    window.addEventListener('keydown', (e) => {
-      if (e.repeat) return;
-      this.handleKeyDown(e.code);
-    });
+    const click = (id, fn) => document.getElementById(id).addEventListener('click', fn);
+    click('btn-start', () => this.startGame());
+    click('btn-again', () => this.startGame());
+    click('btn-restart', () => this.startGame());
+    click('btn-resume', () => this.setPaused(false));
+    click('btn-pause', () => this.setPaused(this.state === 'PLAYING'));
+    click('btn-audio', () => this.toggleAudio());
 
-    window.addEventListener('keyup', (e) => {
-      this.handleKeyUp(e.code);
-    });
+    window.addEventListener('pointerdown', (e) => this.onPointerDown(e));
+    window.addEventListener('pointerup', (e) => this.onPointerUp(e));
+    window.addEventListener('pointercancel', (e) => this.onPointerUp(e));
+    window.addEventListener('contextmenu', (e) => e.preventDefault());
+    window.addEventListener('keydown', (e) => this.onKey(e, true));
+    window.addEventListener('keyup', (e) => this.onKey(e, false));
 
-    // Touch Zones
-    const touchLeft = document.getElementById('touch-left-flipper');
-    const touchRight = document.getElementById('touch-right-flipper');
+    window.addEventListener('resize', () => this.resize());
+    new ResizeObserver(() => this.resize()).observe(this.wrap);
 
-    const bindTouchZone = (el, pressFn, releaseFn) => {
-      el.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        el.classList.add('active');
-        pressFn();
-      });
-      el.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        el.classList.remove('active');
-        releaseFn();
-      });
-      el.addEventListener('touchcancel', (e) => {
-        e.preventDefault();
-        el.classList.remove('active');
-        releaseFn();
-      });
-    };
-
-    bindTouchZone(touchLeft, () => this.leftFlipperPress(), () => this.leftFlipperRelease());
-    bindTouchZone(touchRight, () => this.rightFlipperPress(), () => this.rightFlipperRelease());
-
-    // Plunger Touch / Click UI
-    const plungerBtn = document.getElementById('plunger-tap-btn');
-    plungerBtn.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      this.startChargingPlunger();
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.autoPause();
     });
-    window.addEventListener('mouseup', () => {
-      if (this.isChargingPlunger) this.releasePlunger();
-    });
-    plungerBtn.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      this.startChargingPlunger();
-    });
-    plungerBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      this.releasePlunger();
-    });
-
-    // Nudge Buttons
-    document.getElementById('btn-nudge-left').addEventListener('click', () => this.nudge(-1, 0));
-    document.getElementById('btn-nudge-up').addEventListener('click', () => this.nudge(0, -1));
-    document.getElementById('btn-nudge-right').addEventListener('click', () => this.nudge(1, 0));
-
-    // Cabinet Bar Buttons
-    document.getElementById('btn-audio-toggle').addEventListener('click', () => {
-      const isMuted = this.audio.toggleMute();
-      document.getElementById('audio-icon').textContent = isMuted ? '🔇' : '🔊';
-    });
-
-    document.getElementById('btn-crt-toggle').addEventListener('click', () => {
-      this.crtOverlay.classList.toggle('active');
-    });
-
-    document.getElementById('btn-pause').addEventListener('click', () => this.togglePause());
-
-    // Modal Buttons
-    document.getElementById('btn-start-game').addEventListener('click', () => this.startGame());
-    document.getElementById('btn-resume').addEventListener('click', () => this.togglePause());
-    document.getElementById('btn-restart').addEventListener('click', () => {
-      this.pauseModal.classList.remove('active');
-      this.startGame();
-    });
-    document.getElementById('btn-play-again').addEventListener('click', () => {
-      this.gameOverModal.classList.remove('active');
-      this.startGame();
-    });
+    window.addEventListener('blur', () => this.releaseAll());
   }
 
-  handleKeyDown(code) {
-    if (this.state === 'MENU' || this.state === 'GAMEOVER') {
-      if (code === 'Space' || code === 'Enter') {
+  resize() {
+    const box = this.wrap.getBoundingClientRect();
+    if (box.width === 0 || box.height === 0) return;
+    const cssW = Math.min(box.width, (box.height * TABLE_W) / TABLE_H);
+    const cssH = (cssW * TABLE_H) / TABLE_W;
+    const scale = (cssW * Math.min(window.devicePixelRatio || 1, 2)) / TABLE_W;
+    if (scale === this.scale) return;
+    this.scale = scale;
+    this.canvas.style.width = `${cssW}px`;
+    this.canvas.style.height = `${cssH}px`;
+    this.canvas.width = Math.round(TABLE_W * scale);
+    this.canvas.height = Math.round(TABLE_H * scale);
+    this.buildStaticLayer();
+    this.draw();
+  }
+
+  // ---- Input --------------------------------------------------------------
+  onPointerDown(e) {
+    if (e.target.closest('button, a, .modal')) return;
+    e.preventDefault();
+    this.audio.init();
+    if (e.pointerType === 'touch') this.touchUsed = true;
+    if (this.state !== 'PLAYING') return;
+    const side = e.clientX < window.innerWidth / 2 ? 'left' : 'right';
+    this.pointers.set(e.pointerId, side);
+    this.applyHeld();
+  }
+
+  onPointerUp(e) {
+    if (!this.pointers.delete(e.pointerId)) return;
+    this.applyHeld();
+  }
+
+  onKey(e, down) {
+    const code = e.code;
+    if (down && !e.repeat) {
+      if (code === 'KeyP' || code === 'Escape') {
+        this.setPaused(this.state === 'PLAYING');
+        return;
+      }
+      if (code === 'KeyM') {
+        this.toggleAudio();
+        return;
+      }
+      if (code === 'Enter' && this.state !== 'PLAYING' && this.state !== 'PAUSED') {
         this.startGame();
         return;
       }
+      if (this.state === 'PLAYING') {
+        if (code === 'KeyX') this.table.nudge(-1);
+        if (code === 'KeyN') this.table.nudge(1);
+      }
     }
-
-    if (code === 'KeyP' || code === 'Escape') {
-      this.togglePause();
-      return;
-    }
-
-    if (code === 'KeyM') {
-      const isMuted = this.audio.toggleMute();
-      document.getElementById('audio-icon').textContent = isMuted ? '🔇' : '🔊';
-      return;
-    }
-
-    if (code === 'KeyC') {
-      this.crtOverlay.classList.toggle('active');
-      return;
-    }
-
-    if (this.state !== 'PLAYING' || this.isTilted) return;
-
-    // Flippers
-    if (code === 'KeyA' || code === 'KeyZ' || code === 'ArrowLeft') {
-      this.leftFlipperPress();
-    }
-    if (code === 'KeyD' || code === 'Slash' || code === 'Period' || code === 'ArrowRight') {
-      this.rightFlipperPress();
-    }
-
-    // Plunger
-    if (code === 'Space' || code === 'ArrowDown') {
-      // If any ball is in plunger lane, charge plunger
-      const ballInPlunger = this.balls.some(b => b.state === 'PLUNGER');
-      if (ballInPlunger) {
-        this.startChargingPlunger();
+    if (['KeyA', 'KeyZ', 'ArrowLeft', 'KeyD', 'Slash', 'ArrowRight', 'Space', 'ArrowDown'].includes(code)) {
+      e.preventDefault();
+      if (e.repeat) return;
+      if (down && this.state === 'PLAYING') {
+        this.audio.init();
+        this.touchUsed = false;
+        this.keysDown.add(code);
       } else {
-        // Space nudges if ball already in play
-        this.nudge(0, -1);
+        this.keysDown.delete(code);
       }
-    }
-
-    // Nudge Keys
-    if (code === 'KeyX') this.nudge(-1, 0);
-    if (code === 'KeyN') this.nudge(1, 0);
-    if (code === 'ArrowUp') this.nudge(0, -1);
-  }
-
-  handleKeyUp(code) {
-    if (code === 'KeyA' || code === 'KeyZ' || code === 'ArrowLeft') {
-      this.leftFlipperRelease();
-    }
-    if (code === 'KeyD' || code === 'Slash' || code === 'Period' || code === 'ArrowRight') {
-      this.rightFlipperRelease();
-    }
-    if (code === 'Space' || code === 'ArrowDown') {
-      if (this.isChargingPlunger) {
-        this.releasePlunger();
-      }
+      this.applyHeld();
     }
   }
 
-  leftFlipperPress() {
-    if (this.isTilted) return;
-    this.leftFlipper.press();
-    this.audio.playFlipperUp();
-    this.cycleTopLanes(-1);
+  // Works out what is held across all fingers and keys, so that lifting one
+  // of two fingers on the same side doesn't drop the flipper
+  applyHeld() {
+    const sides = [...this.pointers.values()];
+    const keys = this.keysDown;
+    const left = sides.includes('left') || keys.has('KeyA') || keys.has('KeyZ') || keys.has('ArrowLeft');
+    const rightTouch = sides.includes('right');
+    const right = rightTouch || keys.has('KeyD') || keys.has('Slash') || keys.has('ArrowRight');
+    const plungerKey = keys.has('Space') || keys.has('ArrowDown');
+    const table = this.table;
+
+    // A finger on the right pulls the plunger while a ball is waiting for it
+    const pulling = plungerKey || (rightTouch && (!!table.plungerBall || table.charging));
+    table.setCharging(pulling);
+    table.setFlipper('left', left);
+    table.setFlipper('right', right && !(rightTouch && pulling));
   }
 
-  leftFlipperRelease() {
-    this.leftFlipper.release();
-    this.audio.playFlipperDown();
-  }
-
-  rightFlipperPress() {
-    if (this.isTilted) return;
-    this.rightFlipper.press();
-    this.upperFlipper.press();
-    this.audio.playFlipperUp();
-    this.cycleTopLanes(1);
-  }
-
-  rightFlipperRelease() {
-    this.rightFlipper.release();
-    this.upperFlipper.release();
-    this.audio.playFlipperDown();
-  }
-
-  startChargingPlunger() {
-    if (this.isChargingPlunger) return;
-    this.isChargingPlunger = true;
-    this.plungerCharge = 0;
-    this.audio.startPlungerCharge();
-  }
-
-  releasePlunger() {
-    if (!this.isChargingPlunger) return;
-    this.isChargingPlunger = false;
-    const power = Math.max(0.2, this.plungerCharge);
-    this.audio.stopPlungerCharge(true);
-
-    // Launch ball in shooter lane
-    const ball = this.balls.find(b => b.state === 'PLUNGER');
-    if (ball) {
-      ball.state = 'FREE';
-      // Impulse upwards: 1150 to 2000 px/s (ensures ball glides smoothly around the arch even on quick tap)
-      ball.vy = -(1150 + power * 850);
-      ball.vx = 0;
-      this.fx.emit(ball.x, ball.y, 16, '#00f3ff', 120);
-
-      // Start Ball Save on fresh launch
-      if (this.ballSaveTimer <= 0) {
-        this.ballSaveTimer = 10;
-        this.setTickerText('BALL SAVE ACTIVE // 10 SECONDS');
-      }
-    }
-
-    this.plungerCharge = 0;
-    this.plungerFill.style.height = '0%';
-  }
-
-  cycleTopLanes(dir) {
-    // Lane change system
-    const states = this.topLanes.map(l => l.lit);
-    if (dir > 0) {
-      // Shift right
-      this.topLanes[0].lit = states[2];
-      this.topLanes[1].lit = states[0];
-      this.topLanes[2].lit = states[1];
-    } else {
-      // Shift left
-      this.topLanes[0].lit = states[1];
-      this.topLanes[1].lit = states[2];
-      this.topLanes[2].lit = states[0];
+  releaseAll() {
+    this.pointers.clear();
+    this.keysDown.clear();
+    this.table.setFlipper('left', false);
+    this.table.setFlipper('right', false);
+    if (this.table.charging) {
+      this.table.charging = false;
+      this.table.charge = 0;
+      this.audio.stopPlungerCharge(false);
     }
   }
 
-  nudge(dx, dy) {
-    if (this.state !== 'PLAYING' || this.isTilted) return;
-    this.tiltCount++;
-    this.audio.playNudge();
-
-    // Table screen jolt
-    this.canvas.style.transform = `translate(${dx * 5}px, ${dy * 5}px)`;
-    setTimeout(() => { this.canvas.style.transform = 'translate(0, 0)'; }, 80);
-
-    // Apply slight impulse to active balls
-    for (const b of this.balls) {
-      if (b.state === 'FREE') {
-        b.vx += dx * 90;
-        b.vy += dy * 90;
-      }
-    }
-
-    if (this.tiltCount >= 3) {
-      this.triggerTilt();
-    } else {
-      this.setTickerText(`WARNING: TILT ${this.tiltCount} / 3`);
-    }
+  toggleAudio() {
+    this.audio.init();
+    const muted = this.audio.toggleMute();
+    document.getElementById('audio-icon').textContent = muted ? '🔇' : '🔊';
+    if (muted) this.audio.stopMusic();
+    else if (this.state === 'PLAYING') this.audio.startMusic();
   }
 
-  triggerTilt() {
-    this.isTilted = true;
-    this.tiltTimer = 4.0;
-    this.audio.playTilt();
-    this.leftFlipper.release();
-    this.rightFlipper.release();
-    this.upperFlipper.release();
-    this.setTickerText('💥 TILT! SYSTEM OFFLINE 💥');
-    this.flashScreen('rgba(255, 0, 80, 0.45)');
-  }
-
-  togglePause() {
-    if (this.state === 'MENU' || this.state === 'GAMEOVER') return;
-    if (this.state === 'PLAYING') {
-      this.state = 'PAUSED';
-      this.pauseModal.classList.add('active');
-    } else if (this.state === 'PAUSED') {
-      this.state = 'PLAYING';
-      this.pauseModal.classList.remove('active');
-      this.lastTime = performance.now();
-    }
-  }
-
-  // ==========================================================================
-  // GAME PROGRESSION & RULES
-  // ==========================================================================
+  // ---- Game flow ----------------------------------------------------------
   startGame() {
-    this.startModal.classList.remove('active');
-    this.gameOverModal.classList.remove('active');
-    this.pauseModal.classList.remove('active');
-
-    this.score = 0;
-    this.multiplier = 1;
-    this.currentBall = 1;
-    this.lockedBallsCount = 0;
-    this.isMultiballActive = false;
-    this.multiballTimer = 0;
-    this.jackpotLit = false;
-    this.jackpotStreak = 0;
-    this.ballSaveTimer = 10;
-    this.tiltCount = 0;
-    this.isTilted = false;
-    this.stats = { jackpots: 0, rampLoops: 0, bumperHits: 0, spins: 0 };
+    this.audio.init();
+    this.releaseAll();
+    this.table.newGame();
+    this.particles = [];
+    this.popups = [];
+    this.shownScore = -1;
+    this.accumulator = 0;
     this.state = 'PLAYING';
-
-    this.resetTargets();
-    this.resetBallsForPlunge();
-
-    this.audio.startMusic();
+    this.hideModals();
+    this.updateHud();
     this.audio.setMultiballMode(false);
-    this.updateHUD();
-    this.setTickerText('MISSION: LOCK 3 BALLS TO UNLEASH MULTI-BALL!');
+    if (!this.audio.muted) this.audio.startMusic();
+    this.say(this.launchHint());
   }
 
-  resetBallsForPlunge() {
-    for (let i = 0; i < this.balls.length; i++) {
-      if (i === 0) {
-        this.balls[i].reset(this.plungerX, this.plungerY, 'PLUNGER');
-      } else {
-        this.balls[i].reset(this.plungerX, this.plungerY, 'DRAINED');
-      }
-    }
-    this.ballSaveTimer = 10;
-  }
-
-  resetTargets() {
-    for (const dt of this.dropTargets) {
-      dt.dropped = false;
-    }
-    this.matrixLockLit = false;
-  }
-
-  addScore(pts, popupX, popupY, popupText) {
-    const finalPts = pts * this.multiplier;
-    this.score += finalPts;
-    if (this.score > this.highScore) {
-      this.highScore = this.score;
-      localStorage.setItem('cyber_pinball_highscore', this.highScore.toString());
-      this.dmdHigh.textContent = this.formatScore(this.highScore);
-    }
-    this.dmdScore.textContent = this.formatScore(this.score);
-
-    if (popupX && popupY) {
-      const txt = popupText || `+${this.formatScore(finalPts)}`;
-      this.fx.addFloatingText(popupX, popupY, txt, pts >= 100000 ? '#ffe600' : '#00f3ff');
+  setPaused(paused) {
+    if (paused && this.state === 'PLAYING') {
+      this.state = 'PAUSED';
+      this.releaseAll();
+      this.audio.stopMusic();
+      this.modals.pause.classList.add('active');
+    } else if (!paused && this.state === 'PAUSED') {
+      this.state = 'PLAYING';
+      this.lastTime = 0;
+      this.hideModals();
+      if (!this.audio.muted) this.audio.startMusic();
     }
   }
 
-  flashScreen(color) {
-    this.flashOverlay.style.background = color;
-    setTimeout(() => {
-      this.flashOverlay.style.background = 'rgba(255, 255, 255, 0)';
-    }, 90);
+  autoPause() {
+    this.setPaused(true);
   }
 
-  setTickerText(txt) {
-    this.dmdTicker.textContent = txt;
+  hideModals() {
+    Object.values(this.modals).forEach((m) => m.classList.remove('active'));
   }
 
-  // --- DROP TARGETS & LOCKS ---
-  hitDropTarget(dt) {
-    if (dt.dropped) return;
-    dt.dropped = true;
-    this.audio.playDropTarget();
-    this.fx.emit(dt.x + dt.w / 2, dt.y + dt.h / 2, 10, '#00f3ff', 100);
-    this.addScore(10000, dt.x + 35, dt.y, `TARGET ${dt.letter}!`);
-
-    // Check if entire bank is down
-    const allDropped = this.dropTargets.every(t => t.dropped);
-    if (allDropped) {
-      this.matrixLockLit = true;
-      this.audio.playTargetBankReset();
-      this.addScore(50000, 180, 290, 'MATRIX LOCK LIT!');
-      this.setTickerText('★ MATRIX LOCK LIT! SHOOT CENTER SCOOP ★');
-      this.flashScreen('rgba(0, 243, 255, 0.25)');
-
-      setTimeout(() => {
-        for (const t of this.dropTargets) t.dropped = false;
-      }, 1200);
-    }
+  launchHint() {
+    return this.touchUsed ? 'HOLD RIGHT SIDE, LET GO TO LAUNCH' : 'HOLD SPACE, LET GO TO LAUNCH';
   }
 
-  // --- CENTER SCOOP & BALL LOCK ---
-  handleScoopCapture(ball) {
-    if (this.isMultiballActive) {
-      this.audio.playJackpot();
-      this.addScore(100000, ball.x, ball.y, 'SCOOP JACKPOT: 100,000!');
-      this.fx.emitRing(this.scoop.x, this.scoop.y, '#ffe600', 70);
-      ball.x = this.scoop.x;
-      ball.y = this.scoop.y + this.scoop.r + ball.radius + 8;
-      ball.vy = 420;
-      ball.vx = (Math.random() - 0.5) * 180;
-      return;
-    }
-
-    if (!this.matrixLockLit) {
-      // Normal scoop bounce award
-      this.audio.playSlingshot();
-      this.addScore(15000, ball.x, ball.y, 'CYBER SCOOP: 15,000');
-      ball.x = this.scoop.x;
-      ball.y = this.scoop.y + this.scoop.r + ball.radius + 8;
-      ball.vy = 360;
-      ball.vx = (Math.random() - 0.5) * 120;
-      return;
-    }
-
-    if (this.matrixLockLit) {
-      ball.state = 'LOCKED';
-      ball.vx = 0;
-      ball.vy = 0;
-      this.lockedBallsCount++;
-      this.audio.playBallLockChime(this.lockedBallsCount);
-      this.fx.emitRing(this.scoop.x, this.scoop.y, '#00f3ff', 65);
-      this.addScore(50000, this.scoop.x, this.scoop.y, `BALL ${this.lockedBallsCount} LOCKED!`);
-
-      if (this.lockedBallsCount === 1) {
-        this.setTickerText('BALL 1 LOCKED! RELAUNCH PLUNGER');
-        this.launchNewPlungerBall();
-      } else if (this.lockedBallsCount === 2) {
-        this.setTickerText('BALL 2 LOCKED! ONE MORE FOR MULTI-BALL');
-        this.launchNewPlungerBall();
-      } else if (this.lockedBallsCount >= 3) {
-        // TRIGGER CYBER MULTI-BALL!
-        this.triggerMultiball();
-      }
-    }
+  say(text) {
+    this.ui.ticker.textContent = text;
   }
 
-  launchNewPlungerBall() {
-    setTimeout(() => {
-      if (this.state !== 'PLAYING') return;
-      const freeBall = this.balls.find(b => b.state === 'DRAINED');
-      if (freeBall) {
-        freeBall.reset(this.plungerX, this.plungerY, 'PLUNGER');
-        this.ballSaveTimer = 10;
-      }
-    }, 800);
-  }
-
-  triggerMultiball() {
-    this.isMultiballActive = true;
-    this.multiballTimer = 25; // 25s multi-ball
-    this.ballSaveTimer = 15; // 15s ball save during multi-ball
-    this.jackpotLit = true;
-    this.jackpotStreak = 0;
-
-    this.audio.setMultiballMode(true);
-    this.audio.playMultiballSiren();
-    this.flashScreen('rgba(255, 0, 127, 0.45)');
-    this.fx.emitRing(this.width / 2, this.height / 2, '#ff007f', 120);
-    this.addScore(250000, this.width / 2, 400, '⚡ CYBER MULTI-BALL! ⚡');
-    this.setTickerText('🚨 CYBER MULTI-BALL ACTIVATED! JACKPOTS LIT! 🚨');
-
-    // Eject all 3 locked balls from scoop with high speed spread!
-    setTimeout(() => {
-      let angle = -Math.PI / 2 - 0.4;
-      for (const b of this.balls) {
-        b.state = 'FREE';
-        b.x = this.scoop.x + (Math.random() - 0.5) * 20;
-        b.y = this.scoop.y + 10;
-        b.vx = Math.cos(angle) * 380;
-        b.vy = Math.sin(angle) * 380;
-        angle += 0.4;
-      }
-    }, 400);
-  }
-
-  // --- JACKPOT MECHANIC ---
-  awardJackpot(rampName) {
-    this.stats.jackpots++;
-    this.jackpotStreak++;
-
-    let pts = 500000;
-    let title = '★ JACKPOT! 500,000 ★';
-
-    if (this.jackpotStreak >= 2) {
-      pts = 1000000;
-      title = '🔥 SUPER JACKPOT! 1,000,000! 🔥';
-      this.audio.playSuperJackpot();
-      this.flashScreen('rgba(255, 230, 0, 0.6)');
-      this.fx.emitRing(this.width / 2, 300, '#ffe600', 140);
-    } else {
-      this.audio.playJackpot();
-      this.flashScreen('rgba(0, 243, 255, 0.45)');
-      this.fx.emitRing(this.width / 2, 300, '#00f3ff', 90);
-    }
-
-    this.addScore(pts, this.width / 2, 300, title);
-    this.setTickerText(`💥 ${title} 💥`);
-  }
-
-  // --- RAMPS ---
-  handleRampEntry(ball, ramp) {
-    if (ball.state === 'RAMP') return;
-    ball.state = 'RAMP';
-    ball.currentRamp = ramp;
-    ball.rampProgress = 0;
-    this.audio.playRampWhoosh();
-    this.stats.rampLoops++;
-
-    if (ramp.name === 'LEFT_WARP') {
-      this.leftRamp.comboCount++;
-      const comboMult = Math.min(this.leftRamp.comboCount, 5);
-      this.addScore(30000 * comboMult, 105, 380, `WARP LOOP x${comboMult}!`);
-    } else if (ramp.name === 'RIGHT_MATRIX') {
-      if (this.isMultiballActive && this.jackpotLit) {
-        this.awardJackpot('RIGHT_MATRIX');
-      } else {
-        this.addScore(35000, 395, 360, 'MATRIX OVERDRIVE: 35,000');
-      }
-    }
-  }
-
-  updateRampBall(ball, dt) {
-    const ramp = ball.currentRamp;
-    if (!ramp) {
-      ball.state = 'FREE';
-      return;
-    }
-
-    // Advance smoothly along ramp spline (duration approx 0.8s)
-    ball.rampProgress += dt * 1.35;
-
-    if (ball.rampProgress >= 1.0) {
-      // Exit ramp cleanly into inlane wireform
-      ball.state = 'FREE';
-      ball.x = ramp.wireformExit.x;
-      ball.y = ramp.wireformExit.y;
-      ball.vx = ramp.wireformExit.vx;
-      ball.vy = ramp.wireformExit.vy;
-      ball.currentRamp = null;
-      ball.rampProgress = 0;
-      this.fx.emit(ball.x, ball.y, 8, '#00f3ff', 80);
-      return;
-    }
-
-    // Spline curve interpolation
-    const t = ball.rampProgress;
-    let pos;
-    if (t < 0.5) {
-      pos = cubicBezier(ramp.p0, ramp.p1, ramp.p2, ramp.p3, t * 2);
-    } else {
-      pos = cubicBezier(ramp.p3, ramp.p4, ramp.p5, ramp.p5, (t - 0.5) * 2);
-    }
-
-    ball.x = pos.x;
-    ball.y = pos.y;
-    ball.vx = 0;
-    ball.vy = 0;
-  }
-
-  // --- DRAIN & BALL LOSS ---
-  handleBallDrain(ball) {
-    if (ball.state === 'DRAINED') return;
-
-    // Check if Ball Save is active
-    if (this.ballSaveTimer > 0) {
-      this.audio.playBallSaved();
-      this.fx.emit(ball.x, ball.y, 18, '#05ffa1', 140);
-      ball.reset(this.plungerX, this.plungerY, 'PLUNGER');
-      this.setTickerText('🛡️ BALL SAVED! RELAUNCH PLUNGER 🛡️');
-      return;
-    }
-
-    ball.state = 'DRAINED';
-    this.audio.playBallDrain();
-
-    // Count remaining active balls
-    const activeBalls = this.balls.filter(b => b.state === 'FREE' || b.state === 'RAMP' || b.state === 'PLUNGER');
-
-    if (this.isMultiballActive) {
-      if (activeBalls.length <= 1) {
-        // Multi-ball ended
-        this.isMultiballActive = false;
-        this.audio.setMultiballMode(false);
-        this.lockedBallsCount = 0;
-        this.jackpotLit = false;
-        this.setTickerText('MULTI-BALL TERMINATED // RESUME NORMAL PROTOCOLS');
-      }
-      return;
-    }
-
-    // Standard single-ball play drain
-    if (activeBalls.length === 0) {
-      this.endBall();
-    }
-  }
-
-  endBall() {
-    // End of Ball Bonus Rollup
-    const baseBonus = this.stats.bumperHits * 500 + this.stats.rampLoops * 2500 + this.stats.spins * 200;
-    const finalBonus = baseBonus * this.multiplier;
-    this.addScore(finalBonus, this.width / 2, 450, `BALL ${this.currentBall} BONUS: +${this.formatScore(finalBonus)}`);
-
-    if (this.currentBall < this.maxBalls) {
-      this.currentBall++;
-      this.tiltCount = 0;
-      this.isTilted = false;
-      this.setTickerText(`BALL ${this.currentBall} OF ${this.maxBalls} // LAUNCH WHEN READY`);
-      setTimeout(() => {
-        if (this.state === 'PLAYING') {
-          this.resetBallsForPlunge();
-          this.updateHUD();
-        }
-      }, 1500);
-    } else {
-      // GAME OVER
-      this.triggerGameOver();
-    }
-  }
-
-  triggerGameOver() {
-    this.state = 'GAMEOVER';
-    this.audio.stopMusic();
-    this.saveScoreToLeaderboard(this.score);
-
-    document.getElementById('final-score-val').textContent = this.formatScore(this.score);
-    document.getElementById('final-jackpots').textContent = this.stats.jackpots.toString();
-    document.getElementById('final-loops').textContent = this.stats.rampLoops.toString();
-    document.getElementById('final-bumpers').textContent = this.stats.bumperHits.toString();
-    document.getElementById('final-spins').textContent = this.stats.spins.toString();
-
-    this.updateLeaderboardUI();
-    this.gameOverModal.classList.add('active');
-  }
-
-  saveScoreToLeaderboard(score) {
+  readHighScore() {
     try {
-      const records = JSON.parse(localStorage.getItem('cyber_pinball_records') || '[]');
-      records.push({
-        score,
-        date: new Date().toLocaleDateString()
-      });
-      records.sort((a, b) => b.score - a.score);
-      const top5 = records.slice(0, 5);
-      localStorage.setItem('cyber_pinball_records', JSON.stringify(top5));
+      return parseInt(localStorage.getItem('cyber_pinball_highscore') || '0', 10) || 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  readRecords() {
+    try {
+      return JSON.parse(localStorage.getItem('cyber_pinball_records') || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  saveRecord(score) {
+    const records = this.readRecords();
+    records.push({ score, date: new Date().toLocaleDateString() });
+    records.sort((a, b) => b.score - a.score);
+    try {
+      localStorage.setItem('cyber_pinball_records', JSON.stringify(records.slice(0, 5)));
+      localStorage.setItem('cyber_pinball_highscore', String(this.highScore));
     } catch (e) {}
+    return records.slice(0, 5);
   }
 
-  updateLeaderboardUI() {
-    const list = document.getElementById('leaderboard-list');
+  endGame() {
+    const t = this.table;
+    this.state = 'OVER';
+    this.releaseAll();
+    this.audio.stopMusic();
+    this.highScore = Math.max(this.highScore, t.score);
+    const records = this.saveRecord(t.score);
+
+    document.getElementById('final-score').textContent = t.score.toLocaleString();
+    document.getElementById('final-jackpots').textContent = t.jackpots;
+    document.getElementById('final-orbits').textContent = t.orbits;
+    document.getElementById('final-bumpers').textContent = t.bumperHits;
+    document.getElementById('final-spins').textContent = t.spins;
+
+    const list = document.getElementById('records');
     list.innerHTML = '';
-    const records = JSON.parse(localStorage.getItem('cyber_pinball_records') || '[]');
-    if (records.length === 0) {
-      records.push(
-        { score: 1000000, date: 'CYBER-ACE' },
-        { score: 750000, date: 'MATRIX-99' },
-        { score: 500000, date: 'NEO-PILOT' }
-      );
-    }
-    records.slice(0, 5).forEach((rec, idx) => {
+    records.forEach((record) => {
       const li = document.createElement('li');
-      li.className = 'leaderboard-item';
-      li.innerHTML = `<span>#${idx + 1} AGENT ${rec.date}</span> <strong>${this.formatScore(rec.score)} PTS</strong>`;
-      list.appendChild(li);
+      const date = document.createElement('span');
+      const score = document.createElement('strong');
+      date.textContent = record.date;
+      score.textContent = record.score.toLocaleString();
+      li.append(date, score);
+      list.append(li);
     });
+    this.modals.over.classList.add('active');
+    this.updateHud();
   }
 
-  // ==========================================================================
-  // PHYSICS UPDATE & COLLISION DETECTION
-  // ==========================================================================
-  update(dt) {
-    if (this.state !== 'PLAYING') return;
-
-    // Plunger charging
-    if (this.isChargingPlunger) {
-      this.plungerCharge = Math.min(1.0, this.plungerCharge + dt * 0.85);
-      this.plungerFill.style.height = `${this.plungerCharge * 100}%`;
+  updateHud() {
+    const t = this.table;
+    if (t.score !== this.shownScore) {
+      this.shownScore = t.score;
+      this.ui.score.textContent = t.score.toLocaleString();
     }
-
-    // Timers
-    if (this.ballSaveTimer > 0) {
-      this.ballSaveTimer -= dt;
-      if (this.ballSaveTimer <= 0) {
-        this.saveInd.classList.remove('active');
-      } else {
-        this.saveInd.classList.add('active');
-      }
-    }
-
-    if (this.superBumpersTimer > 0) {
-      this.superBumpersTimer -= dt;
-    }
-
-    if (this.isMultiballActive) {
-      this.multiballTimer -= dt;
-      if (this.multiballTimer <= 0) {
-        // Multi-ball time expired, finish out active balls
-        this.jackpotLit = false;
-      }
-    }
-
-    if (this.isTilted) {
-      this.tiltTimer -= dt;
-      if (this.tiltTimer <= 0) {
-        this.isTilted = false;
-        this.tiltCount = 0;
-      }
-    }
-
-    // Anti-Stuck Ball Watchdog
-    for (const ball of this.balls) {
-      if (ball.state === 'FREE') {
-        const speedSq = ball.vx * ball.vx + ball.vy * ball.vy;
-        if (speedSq < 400) { // moving very slowly (< 20 px/s)
-          ball.stuckTime = (ball.stuckTime || 0) + dt;
-          if (ball.stuckTime > 1.8) {
-            // Apply gentle dislodge jiggle pulse
-            ball.vx += (Math.random() - 0.5) * 220;
-            ball.vy -= 180 + Math.random() * 100;
-            this.fx.emit(ball.x, ball.y, 8, '#ffe600', 80);
-            if (ball.stuckTime > 3.8) {
-              // Full safe recovery to mid table
-              ball.x = 270;
-              ball.y = 580;
-              ball.vx = (Math.random() - 0.5) * 100;
-              ball.vy = 120;
-              ball.stuckTime = 0;
-              this.setTickerText('⚡ ANTI-STUCK DISLODGE PULSE ACTIVATED ⚡');
-            }
-          }
-        } else {
-          ball.stuckTime = 0;
-        }
-      } else {
-        ball.stuckTime = 0;
-      }
-    }
-
-    // Update Shooter Gate Flap Swing
-    if (this.shooterGate.swing > 0) {
-      this.shooterGate.swing = Math.max(0, this.shooterGate.swing - dt * 3.5);
-    }
-
-    // Update Spinner Rotation
-    if (this.spinner.angularSpeed > 0) {
-      const prevRev = Math.floor(this.spinner.angle / Math.PI);
-      this.spinner.angle += this.spinner.angularSpeed * dt;
-      const curRev = Math.floor(this.spinner.angle / Math.PI);
-      if (curRev > prevRev) {
-        this.stats.spins++;
-        this.addScore(500);
-        this.audio.playSpinnerTick(Math.min(1.5, this.spinner.angularSpeed / 30));
-      }
-      this.spinner.angularSpeed = Math.max(0, this.spinner.angularSpeed - dt * 25);
-    }
-
-    // Substep Physics Integration
-    const subDt = dt / this.substeps;
-    for (let step = 0; step < this.substeps; step++) {
-      this.physicsSubstep(subDt);
-    }
-
-    // Update Particles
-    this.fx.update(dt);
-
-    // Update HUD
-    this.updateHUD();
+    this.ui.ball.textContent = `${t.ballNum}/${BALLS_PER_GAME}`;
+    this.ui.mult.textContent = `x${t.mult}`;
+    this.ui.high.textContent = Math.max(this.highScore, t.score).toLocaleString();
   }
 
-  physicsSubstep(dt) {
-    // Substep flipper angular rotation in lockstep with ball physics
-    this.leftFlipper.update(dt);
-    this.rightFlipper.update(dt);
-    this.upperFlipper.update(dt);
-
-    for (const ball of this.balls) {
-      if (ball.state === 'DRAINED' || ball.state === 'LOCKED' || ball.state === 'PLUNGER') {
-        continue;
-      }
-
-      if (ball.state === 'RAMP') {
-        this.updateRampBall(ball, dt);
-        ball.updateTrail();
-        continue;
-      }
-
-      // 1. Gravity & Drag
-      ball.vy += this.gravity * dt;
-      ball.vx *= Math.pow(this.airDamping, dt * 60);
-      ball.vy *= Math.pow(this.airDamping, dt * 60);
-
-      // 2. Position Integration
-      ball.x += ball.vx * dt;
-      ball.y += ball.vy * dt;
-      ball.updateTrail();
-
-      // 3. Static Wall Collisions
-      for (const wall of this.walls) {
-        this.checkWallCollision(ball, wall);
-      }
-
-      // 3b. One-Way Shooter Lane Gate:
-      // When ball is launched UP (vy < 0), it opens freely with zero resistance.
-      // If a ball in play tries to fall back DOWN (vy > 0) into the shooter lane from above,
-      // the spring gate deflects it leftwards into the active playfield.
-      if (ball.x >= 492 && ball.x <= 538 && ball.y >= 165 && ball.y <= 215) {
-        if (ball.vy < 0) {
-          this.shooterGate.swing = 1.0;
-        } else if (ball.vy > 0 && ball.y >= 175) {
-          ball.x = 488;
-          ball.vx = -Math.abs(ball.vx || 60) - 70;
-          ball.vy = Math.max(80, ball.vy);
-        }
-      }
-
-      // 4. Flipper Collisions
-      this.checkFlipperCollision(ball, this.leftFlipper);
-      this.checkFlipperCollision(ball, this.rightFlipper);
-      this.checkFlipperCollision(ball, this.upperFlipper);
-
-      // 5. Pop Bumpers
-      for (const bumper of this.bumpers) {
-        this.checkBumperCollision(ball, bumper);
-      }
-
-      // 6. Slingshots
-      this.checkSlingshotCollision(ball, this.leftSling, 1);
-      this.checkSlingshotCollision(ball, this.rightSling, -1);
-
-      // 7. Drop Targets
-      for (const dt of this.dropTargets) {
-        if (!dt.dropped) {
-          this.checkDropTargetCollision(ball, dt);
-        }
-      }
-
-      // 8. Rollover Lanes
-      for (const lane of this.topLanes) {
-        this.checkTopLaneCollision(ball, lane);
-      }
-
-      // 9. Spinner Target
-      this.checkSpinnerCollision(ball);
-
-      // 10. Center Scoop Portal
-      const scoopDist = dist(ball.x, ball.y, this.scoop.x, this.scoop.y);
-      if (scoopDist < this.scoop.r + ball.radius && Math.abs(ball.vy) < 400) {
-        this.handleScoopCapture(ball);
-      }
-
-      // 11. Ramp Entrances
-      if (ball.vy < -40) {
-        // Left ramp entrance check
-        if (ball.x >= this.leftRamp.entrance.x1 && ball.x <= this.leftRamp.entrance.x2 &&
-            Math.abs(ball.y - this.leftRamp.entrance.y1) < 22) {
-          this.handleRampEntry(ball, this.leftRamp);
-        }
-        // Right ramp entrance check
-        if (ball.x >= this.rightRamp.entrance.x1 && ball.x <= this.rightRamp.entrance.x2 &&
-            Math.abs(ball.y - this.rightRamp.entrance.y1) < 22) {
-          this.handleRampEntry(ball, this.rightRamp);
-        }
-      }
-
-      // 12. Left Outlane Cyber-Save Kickback
-      if (this.cyberSaveLit && ball.x < 70 && ball.y > 780 && ball.vy > 0) {
-        this.audio.playBallSaved();
-        this.flashScreen('rgba(5, 255, 161, 0.35)');
-        this.fx.emit(ball.x, ball.y, 16, '#05ffa1', 150);
-        this.addScore(25000, ball.x, ball.y, 'CYBER KICKBACK!');
-        ball.vy = -680;
-        ball.vx = 120;
-        this.cyberSaveLit = false;
-      }
-
-      // 13. Drain Pit check
-      if (ball.y > this.height + ball.radius * 2) {
-        this.handleBallDrain(ball);
-      }
+  // ---- Table events: sound, effects, messages -----------------------------
+  onTableEvent(name, d) {
+    const a = this.audio;
+    switch (name) {
+      case 'score':
+        if (d.x !== undefined) this.addPopup(d.x, d.y, `+${d.total.toLocaleString()}`, COLORS.yellow);
+        break;
+      case 'serve':
+        this.say(this.launchHint());
+        break;
+      case 'flipperUp':
+        a.playFlipperUp();
+        break;
+      case 'flipperDown':
+        a.playFlipperDown();
+        break;
+      case 'chargeStart':
+        a.startPlungerCharge();
+        break;
+      case 'chargeEnd':
+        a.stopPlungerCharge(d.fired);
+        break;
+      case 'launch':
+        a.playPlungerLaunch();
+        this.say('HIT THE C-Y-B TARGETS TO LIGHT THE LOCK');
+        break;
+      case 'nudge':
+        a.playNudge();
+        this.shake = 5;
+        break;
+      case 'bumper':
+        a.playBumperHit(false);
+        this.burst(d.x, d.y, COLORS.pink, 8);
+        this.shake = Math.max(this.shake, 2);
+        break;
+      case 'sling':
+        a.playSlingshot();
+        this.burst(d.x, d.y, COLORS.cyan, 6);
+        break;
+      case 'lane':
+        a.playDropTarget();
+        break;
+      case 'multUp':
+        a.playTargetBankReset();
+        this.say(`N-E-O COMPLETE: MULTIPLIER x${d.mult}`);
+        break;
+      case 'dropTarget':
+        a.playDropTarget();
+        break;
+      case 'lockLit':
+        a.playTargetBankReset();
+        this.say('LOCK LIT: SHOOT THE SCOOP');
+        break;
+      case 'scoop':
+        a.playBallLockChime(1);
+        break;
+      case 'scoopKick':
+        a.playSlingshot();
+        break;
+      case 'lock':
+        a.playBallLockChime(d.locks);
+        this.say(d.locks < 3 ? `BALL ${d.locks} LOCKED: LIGHT THE NEXT LOCK` : 'ALL LOCKED');
+        break;
+      case 'orbit':
+        a.playRampWhoosh();
+        this.say('ORBIT!');
+        break;
+      case 'spin':
+        a.playSpinnerTick(d.rate);
+        break;
+      case 'jackpot':
+        a.playJackpot();
+        this.flash = 1;
+        this.shake = 8;
+        this.say('JACKPOT!');
+        break;
+      case 'multiballStart':
+        a.playMultiballSiren();
+        a.setMultiballMode(true);
+        this.flash = 1;
+        this.say('MULTIBALL: ORBITS AND SCOOP SCORE JACKPOTS');
+        break;
+      case 'multiballEnd':
+        a.setMultiballMode(false);
+        this.say('MULTIBALL OVER');
+        break;
+      case 'ballSaved':
+        a.playBallSaved();
+        this.say('BALL SAVED');
+        break;
+      case 'drain':
+        a.playBallDrain();
+        this.shake = 6;
+        break;
+      case 'gameOver':
+        this.pendingOver = true;
+        break;
+      default:
+        break;
     }
   }
 
-  // --- COLLISION RESOLUTION FUNCTIONS ---
-
-  checkWallCollision(ball, wall) {
-    const cp = closestPointOnSegment(ball.x, ball.y, wall.x1, wall.y1, wall.x2, wall.y2);
-    const d = dist(ball.x, ball.y, cp.x, cp.y);
-
-    if (d < ball.radius) {
-      let nx = (ball.x - cp.x) / (d || 1);
-      let ny = (ball.y - cp.y) / (d || 1);
-
-      // Positional fix
-      const pen = ball.radius - d;
-      ball.x += nx * pen;
-      ball.y += ny * pen;
-
-      // Normal and tangential velocities
-      const vn = ball.vx * nx + ball.vy * ny;
-      if (vn < 0) {
-        const bounce = wall.isRubber ? 0.72 : wall.bounce;
-        ball.vx -= (1 + bounce) * vn * nx;
-        ball.vy -= (1 + bounce) * vn * ny;
-        if (wall.isRubber && Math.abs(vn) > 120) {
-          this.audio.playSlingshot();
-        }
-      }
+  burst(x, y, color, count) {
+    for (let i = 0; i < count && this.particles.length < MAX_PARTICLES; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const speed = 60 + Math.random() * 200;
+      this.particles.push({ x, y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, life: 0.5, color });
     }
   }
 
-  checkFlipperCollision(ball, flipper) {
-    const tip = flipper.getTip();
-    const cp = closestPointOnSegment(ball.x, ball.y, flipper.pivotX, flipper.pivotY, tip.x, tip.y);
-    const flipperR = flipper.r0 + (flipper.r1 - flipper.r0) * cp.t;
-    const Rtotal = ball.radius + flipperR;
-
-    // Normal pointing UPWARDS towards the playfield
-    // For left flipper: (sin theta, -cos theta) has ny < 0
-    // For right flippers: (-sin theta, cos theta) has ny < 0
-    let nTopX, nTopY;
-    if (flipper.side === 'left') {
-      nTopX = Math.sin(flipper.angle);
-      nTopY = -Math.cos(flipper.angle);
-    } else {
-      nTopX = -Math.sin(flipper.angle);
-      nTopY = Math.cos(flipper.angle);
-    }
-
-    // Signed distance along the upward-facing normal from the flipper centerline
-    const h = (ball.x - cp.x) * nTopX + (ball.y - cp.y) * nTopY;
-
-    // Ball is touching or penetrating the flipper top surface (protected from falling through down into drain)
-    if (h < Rtotal && h > -Rtotal * 2.2 && ball.y < 835) {
-      // Positional fix: push ball cleanly onto the top surface
-      const pen = Rtotal - h;
-      ball.x += nTopX * pen;
-      ball.y += nTopY * pen;
-
-      // Contact point linear velocity from flipper rotation: V = omega x r
-      const rx = cp.x - flipper.pivotX;
-      const ry = cp.y - flipper.pivotY;
-      const vFlipperX = -flipper.angularVelocity * ry;
-      const vFlipperY = flipper.angularVelocity * rx;
-
-      const vRelX = ball.vx - vFlipperX;
-      const vRelY = ball.vy - vFlipperY;
-      const vn = vRelX * nTopX + vRelY * nTopY;
-
-      if (vn < 0) {
-        const restitution = 0.5;
-        ball.vx = vFlipperX + (vRelX - (1 + restitution) * vn * nTopX);
-        ball.vy = vFlipperY + (vRelY - (1 + restitution) * vn * nTopY);
-
-        // Active stroke boost when flipper flips up
-        const isFlippingUp = (flipper.side === 'left' && flipper.angularVelocity < -2) ||
-                             (flipper.side === 'right' && flipper.angularVelocity > 2);
-        if (isFlippingUp) {
-          const strokeSpeed = Math.abs(flipper.angularVelocity) * dist(0, 0, rx, ry);
-          ball.vx += nTopX * strokeSpeed * 0.55;
-          ball.vy += nTopY * strokeSpeed * 0.85;
-
-          this.audio.playFlipperUp();
-          this.fx.emit(cp.x, cp.y, 8, flipper.side === 'left' ? '#00f3ff' : '#ff007f', 110);
-        }
-      }
-      return true;
-    }
-    return false;
+  addPopup(x, y, text, color) {
+    if (this.popups.length > 10) this.popups.shift();
+    this.popups.push({ x, y, text, color, life: 0.8 });
   }
 
-  checkBumperCollision(ball, bumper) {
-    const d = dist(ball.x, ball.y, bumper.x, bumper.y);
-    if (d < ball.radius + bumper.r) {
-      let nx = (ball.x - bumper.x) / (d || 1);
-      let ny = (ball.y - bumper.y) / (d || 1);
-
-      // Positional separation
-      const pen = (ball.radius + bumper.r) - d;
-      ball.x += nx * pen;
-      ball.y += ny * pen;
-
-      // High explosive radial rebound
-      const isSuper = this.superBumpersTimer > 0;
-      const kickSpeed = isSuper ? 620 : 490;
-      ball.vx = nx * kickSpeed;
-      ball.vy = ny * kickSpeed;
-
-      // Effects & Score
-      bumper.pulse = 1.0;
-      this.stats.bumperHits++;
-      const pts = isSuper ? 5000 : 1000;
-      this.addScore(pts, bumper.x, bumper.y, isSuper ? 'SUPER BUMPER: 5,000' : 'CORE HIT: 1,000');
-      this.audio.playBumperHit(isSuper);
-      this.fx.emit(bumper.x, bumper.y, 14, bumper.color, 140);
-      this.fx.emitRing(bumper.x, bumper.y, bumper.color, 45);
-
-      if (this.stats.bumperHits % 15 === 0) {
-        this.superBumpersTimer = 20;
-        this.setTickerText('⚡ SUPER BUMPERS ACTIVE (5,000 PTS) ⚡');
-      }
-    }
-  }
-
-  checkSlingshotCollision(ball, sling, dir) {
-    // Face p3 -> p2 is the active front kicking surface
-    const cp = closestPointOnSegment(ball.x, ball.y, sling.p3.x, sling.p3.y, sling.p2.x, sling.p2.y);
-    const d = dist(ball.x, ball.y, cp.x, cp.y);
-
-    if (d < ball.radius + 6) {
-      // Slingshot outward normal (points up and towards table center)
-      const nx = dir * 0.97;
-      const ny = -0.24;
-
-      // Positional fix to prevent clipping
-      ball.x = cp.x + nx * (ball.radius + 8);
-      ball.y = cp.y + ny * (ball.radius + 8);
-
-      ball.vx = nx * 580;
-      ball.vy = ny * 580;
-
-      sling.pulse = 1.0;
-      this.audio.playSlingshot();
-      this.addScore(500, cp.x, cp.y);
-      this.fx.emit(cp.x, cp.y, 10, '#ffe600', 120);
-    }
-  }
-
-  checkDropTargetCollision(ball, dt) {
-    if (dt.dropped) return;
-    const targetRight = dt.x + dt.w;
-    if (ball.x <= targetRight + ball.radius && ball.x >= dt.x - ball.radius &&
-        ball.y >= dt.y - 2 && ball.y <= dt.y + dt.h + 2) {
-      this.hitDropTarget(dt);
-      ball.x = targetRight + ball.radius + 2;
-      ball.vx = Math.abs(ball.vx) * 0.7 + 90;
-    }
-  }
-
-  checkTopLaneCollision(ball, lane) {
-    if (dist(ball.x, ball.y, lane.x, lane.y) < ball.radius + lane.r) {
-      if (!lane.lit) {
-        lane.lit = true;
-        this.audio.playSlingshot();
-        this.fx.emit(lane.x, lane.y, 8, '#ffe600', 70);
-
-        // Check skill shot
-        if (lane.id === this.skillShotLane && ball.vy > 0 && this.ballSaveTimer > 8) {
-          this.addScore(50000, lane.x, lane.y, '🎯 SKILL SHOT! 50,000!');
-          this.setTickerText('🎯 SKILL SHOT COMPLETED! 50,000 PTS 🎯');
-          this.audio.playJackpot();
-        } else {
-          this.addScore(5000, lane.x, lane.y, `LANE ${lane.letter}`);
-        }
-
-        // Check if all lanes lit
-        if (this.topLanes.every(l => l.lit)) {
-          this.multiplier = Math.min(10, this.multiplier + 1);
-          this.addScore(25000, 262, 100, `MULTIPLIER x${this.multiplier}!`);
-          this.setTickerText(`★ MULTIPLIER ADVANCED TO x${this.multiplier}! ★`);
-          setTimeout(() => {
-            for (const l of this.topLanes) l.lit = false;
-          }, 800);
-        }
-      }
-    }
-  }
-
-  checkSpinnerCollision(ball) {
-    if (ball.x >= this.spinner.x - this.spinner.w / 2 && ball.x <= this.spinner.x + this.spinner.w / 2 &&
-        Math.abs(ball.y - this.spinner.y) < 14) {
-      const speed = Math.abs(ball.vy);
-      if (speed > 100) {
-        this.spinner.angularSpeed = Math.min(65, this.spinner.angularSpeed + speed * 0.08);
-      }
-    }
-  }
-
-  updateHUD() {
-    this.dmdScore.textContent = this.formatScore(this.score);
-    this.dmdMult.textContent = `x${this.multiplier}`;
-    this.dmdBall.textContent = `${this.currentBall} / ${this.maxBalls}`;
-
-    // Update Indicators
-    this.lockInd1.className = `dmd-pill lock-pill ${this.lockedBallsCount >= 1 ? 'active' : ''}`;
-    this.lockInd2.className = `dmd-pill lock-pill ${this.lockedBallsCount >= 2 ? 'active' : ''}`;
-    this.lockInd3.className = `dmd-pill lock-pill ${this.lockedBallsCount >= 3 ? 'active' : ''}`;
-
-    this.multiballInd.className = `dmd-pill mode-pill ${this.isMultiballActive ? 'active' : ''}`;
-    this.jackpotInd.className = `dmd-pill jackpot-pill ${this.jackpotLit ? 'active' : ''}`;
-    this.saveInd.className = `dmd-pill save-pill ${this.ballSaveTimer > 0 ? 'active' : ''}`;
-  }
-
-  formatScore(val) {
-    return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  }
-
-  // ==========================================================================
-  // RENDERING PIPELINE
-  // ==========================================================================
-  draw() {
-    const ctx = this.ctx;
-    ctx.clearRect(0, 0, this.width, this.height);
-
-    // 1. Table Floor Art (Neon PCB Traces & Cyber Grid)
-    this.drawPlayfieldArt(ctx);
-
-    // 2. Static Walls & Outer Guides
-    this.drawWalls(ctx);
-    this.drawShooterGate(ctx);
-
-    // 3. Drop Targets & Rollovers
-    this.drawDropTargets(ctx);
-    this.drawTopLanes(ctx);
-
-    // 4. Center Matrix Scoop
-    this.drawScoop(ctx);
-
-    // 5. Turbine Spinner
-    this.drawSpinner(ctx);
-
-    // 6. Pop Bumpers
-    this.drawBumpers(ctx);
-
-    // 7. Slingshots
-    this.drawSlingshots(ctx);
-
-    // 8. Elevated Ramps (with glowing rails and moving energy pulses)
-    this.drawRamps(ctx);
-
-    // 9. Flippers
-    this.leftFlipper.draw(ctx);
-    this.rightFlipper.draw(ctx);
-    this.upperFlipper.draw(ctx);
-
-    // 10. Plunger Spring Visual
-    this.drawPlunger(ctx);
-
-    // 11. Balls (with chromatic glow & comet trails)
-    for (const ball of this.balls) {
-      ball.draw(ctx);
-    }
-
-    // 12. Particles & Floating Scores
-    this.fx.draw(ctx);
-
-    // 13. Tilt Screen Strobe
-    if (this.isTilted) {
-      ctx.save();
-      ctx.fillStyle = 'rgba(255, 0, 80, 0.25)';
-      ctx.fillRect(0, 0, this.width, this.height);
-      ctx.font = '900 36px Orbitron';
-      ctx.fillStyle = '#ff0055';
-      ctx.textAlign = 'center';
-      ctx.shadowColor = '#ff0055';
-      ctx.shadowBlur = 20;
-      ctx.fillText('TILT!', this.width / 2, this.height / 2);
-      ctx.restore();
-    }
-  }
-
-  drawPlayfieldArt(ctx) {
-    // Subtle background cyber grid
-    ctx.save();
-    ctx.strokeStyle = 'rgba(0, 243, 255, 0.05)';
-    ctx.lineWidth = 1;
-    const gridSize = 30;
-    for (let x = 0; x < this.width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, this.height);
-      ctx.stroke();
-    }
-    for (let y = 0; y < this.height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(this.width, y);
-      ctx.stroke();
-    }
-
-    // Glowing Cyber PCB Traces on floor
-    const pulseTime = performance.now() * 0.002;
-    const glowAlpha = 0.3 + 0.15 * Math.sin(pulseTime);
-    ctx.strokeStyle = `rgba(0, 243, 255, ${glowAlpha})`;
-    ctx.lineWidth = 1.5;
-    ctx.shadowColor = '#00f3ff';
-    ctx.shadowBlur = 8;
-
-    // Left circuit trace
-    ctx.beginPath();
-    ctx.moveTo(60, 480);
-    ctx.lineTo(120, 540);
-    ctx.lineTo(120, 620);
-    ctx.stroke();
-
-    // Right circuit trace
-    ctx.beginPath();
-    ctx.moveTo(480, 480);
-    ctx.lineTo(420, 540);
-    ctx.lineTo(420, 620);
-    ctx.stroke();
-
-    // Center table emblem: Cyber Skull / Matrix Overdrive Octagon
-    ctx.beginPath();
-    ctx.arc(this.width / 2, 490, 45, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255, 0, 127, 0.3)';
-    ctx.stroke();
-
-    ctx.font = '700 10px Orbitron';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255, 0, 127, 0.6)';
-    ctx.fillText('MATRIX CORE', this.width / 2, 494);
-
-    ctx.restore();
-  }
-
-  drawWalls(ctx) {
-    ctx.save();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#00f3ff';
-    ctx.shadowColor = '#00f3ff';
-    ctx.shadowBlur = 10;
-
-    for (const wall of this.walls) {
-      ctx.beginPath();
-      ctx.moveTo(wall.x1, wall.y1);
-      ctx.lineTo(wall.x2, wall.y2);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  drawBumpers(ctx) {
-    for (const b of this.bumpers) {
-      if (b.pulse > 0) b.pulse = Math.max(0, b.pulse - 0.05);
-
-      ctx.save();
-      const radius = b.r * (1 + b.pulse * 0.25);
-      ctx.shadowColor = b.color;
-      ctx.shadowBlur = 15 + b.pulse * 25;
-
-      // Outer ring
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = b.pulse > 0 ? '#fff' : 'rgba(15, 8, 30, 0.9)';
-      ctx.fill();
-      ctx.strokeStyle = b.color;
-      ctx.lineWidth = 3 + b.pulse * 3;
-      ctx.stroke();
-
-      // Inner glowing core
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, radius * 0.45, 0, Math.PI * 2);
-      ctx.fillStyle = b.color;
-      ctx.fill();
-
-      // Bumper name / Core indicator
-      ctx.font = '900 8px Orbitron';
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(b.name, b.x, b.y);
-
-      ctx.restore();
-    }
-  }
-
-  drawSlingshots(ctx) {
-    const drawSling = (sling, color) => {
-      if (sling.pulse > 0) sling.pulse = Math.max(0, sling.pulse - 0.05);
-      ctx.save();
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 12 + sling.pulse * 20;
-
-      ctx.beginPath();
-      ctx.moveTo(sling.p1.x, sling.p1.y);
-      ctx.lineTo(sling.p2.x, sling.p2.y);
-      ctx.lineTo(sling.p3.x, sling.p3.y);
-      ctx.closePath();
-
-      ctx.fillStyle = sling.pulse > 0 ? '#fff' : 'rgba(255, 230, 0, 0.15)';
-      ctx.fill();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 3 + sling.pulse * 2;
-      ctx.stroke();
-
-      ctx.restore();
-    };
-
-    drawSling(this.leftSling, '#ffe600');
-    drawSling(this.rightSling, '#ffe600');
-  }
-
-  drawDropTargets(ctx) {
-    for (const dt of this.dropTargets) {
-      if (dt.dropped) continue;
-      ctx.save();
-      ctx.shadowColor = '#00f3ff';
-      ctx.shadowBlur = 10;
-      ctx.fillStyle = '#00f3ff';
-      ctx.fillRect(dt.x, dt.y, dt.w, dt.h);
-
-      ctx.font = '900 11px Orbitron';
-      ctx.fillStyle = '#06020f';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(dt.letter, dt.x + dt.w / 2, dt.y + dt.h / 2);
-      ctx.restore();
-    }
-  }
-
-  drawTopLanes(ctx) {
-    for (const lane of this.topLanes) {
-      ctx.save();
-      const isLit = lane.lit;
-      const color = isLit ? '#ffe600' : 'rgba(255, 230, 0, 0.25)';
-      ctx.shadowColor = '#ffe600';
-      ctx.shadowBlur = isLit ? 16 : 4;
-
-      ctx.beginPath();
-      ctx.arc(lane.x, lane.y, lane.r, 0, Math.PI * 2);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.fillStyle = isLit ? 'rgba(255, 230, 0, 0.25)' : 'rgba(0, 0, 0, 0.4)';
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.font = '900 10px Orbitron';
-      ctx.fillStyle = isLit ? '#fff' : '#888';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(lane.letter, lane.x, lane.y);
-      ctx.restore();
-    }
-  }
-
-  drawScoop(ctx) {
-    ctx.save();
-    const isLit = this.matrixLockLit;
-    const color = isLit ? '#00f3ff' : '#ff007f';
-    const time = performance.now() * 0.003;
-
-    ctx.shadowColor = color;
-    ctx.shadowBlur = isLit ? 22 : 10;
-
-    // Glowing Scoop Ring
-    ctx.beginPath();
-    ctx.arc(this.scoop.x, this.scoop.y, this.scoop.r, 0, Math.PI * 2);
-    ctx.fillStyle = '#06020f';
-    ctx.fill();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Rotating neon vortex aperture
-    ctx.beginPath();
-    ctx.arc(this.scoop.x, this.scoop.y, this.scoop.r * 0.6, time, time + Math.PI * 1.5);
-    ctx.strokeStyle = isLit ? '#fff' : color;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Text label
-    ctx.font = '700 8px Orbitron';
-    ctx.fillStyle = isLit ? '#00f3ff' : '#666';
-    ctx.textAlign = 'center';
-    ctx.fillText(isLit ? 'LOCK LIT' : 'SCOOP', this.scoop.x, this.scoop.y + 32);
-
-    ctx.restore();
-  }
-
-  drawSpinner(ctx) {
-    ctx.save();
-    const w = this.spinner.w;
-    const cosAngle = Math.cos(this.spinner.angle);
-    const renderH = Math.max(2, Math.abs(cosAngle) * 16);
-
-    ctx.translate(this.spinner.x, this.spinner.y);
-    ctx.shadowColor = '#00f3ff';
-    ctx.shadowBlur = 10;
-
-    ctx.fillStyle = cosAngle >= 0 ? '#00f3ff' : '#ff007f';
-    ctx.fillRect(-w / 2, -renderH / 2, w, renderH);
-
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(-w / 2, -renderH / 2, w, renderH);
-
-    ctx.restore();
-  }
-
-  drawRamps(ctx) {
-    const drawRampTrack = (ramp, color) => {
-      ctx.save();
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 12;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2.5;
-
-      // Draw wire rails
-      ctx.beginPath();
-      for (let t = 0; t <= 1; t += 0.05) {
-        let p;
-        if (t < 0.5) p = cubicBezier(ramp.p0, ramp.p1, ramp.p2, ramp.p3, t * 2);
-        else p = cubicBezier(ramp.p3, ramp.p4, ramp.p5, ramp.p5, (t - 0.5) * 2);
-
-        if (t === 0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-      }
-      ctx.stroke();
-
-      // Moving energy pulses along ramp
-      const time = (performance.now() * 0.0015) % 1.0;
-      let pulsePos;
-      if (time < 0.5) pulsePos = cubicBezier(ramp.p0, ramp.p1, ramp.p2, ramp.p3, time * 2);
-      else pulsePos = cubicBezier(ramp.p3, ramp.p4, ramp.p5, ramp.p5, (time - 0.5) * 2);
-
-      ctx.beginPath();
-      ctx.arc(pulsePos.x, pulsePos.y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = '#fff';
-      ctx.shadowBlur = 16;
-      ctx.fill();
-
-      ctx.restore();
-    };
-
-    drawRampTrack(this.leftRamp, '#00f3ff');
-    drawRampTrack(this.rightRamp, this.isMultiballActive ? '#ffe600' : '#ff007f');
-  }
-
-  drawPlunger(ctx) {
-    ctx.save();
-    const springLen = 35 + this.plungerCharge * 25;
-    ctx.strokeStyle = '#ffe600';
-    ctx.lineWidth = 2.5;
-    ctx.shadowColor = '#ffe600';
-    ctx.shadowBlur = 8;
-
-    // Coiled spring rendering
-    ctx.beginPath();
-    ctx.moveTo(this.plungerX, this.plungerY + springLen);
-    const coils = 6;
-    for (let i = 0; i < coils; i++) {
-      const cy = this.plungerY + (i / coils) * springLen;
-      const offset = (i % 2 === 0 ? 6 : -6);
-      ctx.lineTo(this.plungerX + offset, cy);
-    }
-    ctx.lineTo(this.plungerX, this.plungerY);
-    ctx.stroke();
-
-    // Plunger head cap
-    ctx.beginPath();
-    ctx.arc(this.plungerX, this.plungerY, 7, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-
-    ctx.restore();
-  }
-
-  drawShooterGate(ctx) {
-    ctx.save();
-    const g = this.shooterGate;
-    const swingAngle = -this.shooterGate.swing * 0.75; // swings upward when ball launches
-
-    ctx.translate(g.x1, g.y1);
-    ctx.rotate(swingAngle);
-
-    ctx.strokeStyle = '#05ffa1';
-    ctx.lineWidth = 2.5;
-    ctx.shadowColor = '#05ffa1';
-    ctx.shadowBlur = 10;
-
-    // Gate flap wire
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(40, -15);
-    ctx.stroke();
-
-    // Hinge pivot
-    ctx.beginPath();
-    ctx.arc(0, 0, 4, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-
-    // One-way neon arrow icon
-    if (this.shooterGate.swing < 0.25) {
-      ctx.font = '700 9px Orbitron';
-      ctx.fillStyle = '#05ffa1';
-      ctx.textAlign = 'center';
-      ctx.fillText('▲', 20, -10);
-    }
-
-    ctx.restore();
-  }
-
-  // ==========================================================================
-  // MAIN ANIMATION LOOP
-  // ==========================================================================
+  // ---- Main loop ----------------------------------------------------------
   loop(timestamp) {
-    const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
+    requestAnimationFrame((t) => this.loop(t));
+    if (!this.lastTime) this.lastTime = timestamp;
+    const dt = Math.max(0, Math.min(0.05, (timestamp - this.lastTime) / 1000));
     this.lastTime = timestamp;
 
-    this.update(dt);
+    if (this.state === 'PLAYING') {
+      this.accumulator += dt;
+      while (this.accumulator >= STEP) {
+        this.table.step();
+        this.accumulator -= STEP;
+      }
+      if (this.pendingOver) {
+        this.pendingOver = false;
+        this.endGame();
+      }
+      this.updateHud();
+    }
+    this.updateEffects(dt);
     this.draw();
+  }
 
-    requestAnimationFrame((t) => this.loop(t));
+  updateEffects(dt) {
+    for (const ball of this.table.balls) {
+      ball.trail.push(ball.x, ball.y);
+      if (ball.trail.length > 12) ball.trail.splice(0, 2);
+    }
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.life -= dt;
+      if (p.life <= 0) {
+        this.particles.splice(i, 1);
+        continue;
+      }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+    }
+    for (let i = this.popups.length - 1; i >= 0; i--) {
+      const p = this.popups[i];
+      p.life -= dt;
+      p.y -= 40 * dt;
+      if (p.life <= 0) this.popups.splice(i, 1);
+    }
+    this.flash = Math.max(0, this.flash - dt * 2.5);
+    this.shake = Math.max(0, this.shake - dt * 30);
+  }
+
+  // ---- Drawing ------------------------------------------------------------
+  // Walls and artwork are drawn once with glow, because shadowBlur every frame
+  // is what makes canvas games crawl on phones
+  buildStaticLayer() {
+    const layer = document.createElement('canvas');
+    layer.width = this.canvas.width;
+    layer.height = this.canvas.height;
+    const c = layer.getContext('2d');
+    const t = this.table;
+    c.scale(this.scale, this.scale);
+
+    const bg = c.createLinearGradient(0, 0, 0, TABLE_H);
+    bg.addColorStop(0, '#120828');
+    bg.addColorStop(0.55, '#0b0520');
+    bg.addColorStop(1, '#05020c');
+    c.fillStyle = bg;
+    c.fillRect(0, 0, TABLE_W, TABLE_H);
+
+    // Perspective grid across the playfield
+    c.strokeStyle = 'rgba(168, 36, 255, 0.13)';
+    c.lineWidth = 1;
+    c.beginPath();
+    for (let x = 14; x <= 492; x += 40) {
+      c.moveTo(x, 100);
+      c.lineTo(CENTER_X + (x - CENTER_X) * 1.5, TABLE_H);
+    }
+    for (let y = 120, gap = 20; y < TABLE_H; y += gap, gap *= 1.16) {
+      c.moveTo(14, y);
+      c.lineTo(492, y);
+    }
+    c.stroke();
+
+    // Slingshot faces and centre artwork
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.font = '900 30px Orbitron, sans-serif';
+    c.fillStyle = 'rgba(0, 243, 255, 0.1)';
+    c.fillText('CYBER', CENTER_X, 520);
+    c.fillText('PINBALL', CENTER_X, 556);
+
+    const stroke = (list, color, width) => {
+      c.strokeStyle = color;
+      c.shadowColor = color;
+      c.shadowBlur = 12;
+      c.lineWidth = width;
+      c.lineCap = 'round';
+      c.beginPath();
+      for (const s of list) {
+        c.moveTo(s.ax, s.ay);
+        c.lineTo(s.bx, s.by);
+      }
+      c.stroke();
+      c.shadowBlur = 0;
+    };
+    stroke(t.walls, COLORS.purple, 4);
+    stroke(t.kickers, COLORS.pink, 6);
+    stroke(t.gates, COLORS.yellow, 3);
+
+    c.font = '700 11px Orbitron, sans-serif';
+    c.fillStyle = 'rgba(0, 243, 255, 0.55)';
+    c.save();
+    c.translate(36, 500);
+    c.rotate(-Math.PI / 2);
+    c.fillText('ORBIT', 0, 0);
+    c.restore();
+    c.save();
+    c.translate(470, 500);
+    c.rotate(-Math.PI / 2);
+    c.fillText('ORBIT', 0, 0);
+    c.restore();
+
+    this.staticLayer = layer;
+  }
+
+  draw() {
+    const c = this.ctx;
+    const t = this.table;
+    const s = this.scale;
+    const sx = this.shake ? (Math.random() - 0.5) * this.shake : 0;
+    const sy = this.shake ? (Math.random() - 0.5) * this.shake : 0;
+
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.drawImage(this.staticLayer, sx * s, sy * s);
+    c.setTransform(s, 0, 0, s, sx * s, sy * s);
+
+    this.drawLights();
+    this.drawTargets();
+    this.drawBumpers();
+    this.drawSpinner();
+    this.drawPlunger();
+    t.flipperList.forEach((f) => this.drawFlipper(f));
+    t.balls.forEach((ball) => this.drawBall(ball));
+    this.drawEffects();
+
+    if (this.flash > 0) {
+      c.fillStyle = `rgba(255, 0, 127, ${this.flash * 0.3})`;
+      c.fillRect(-10, -10, TABLE_W + 20, TABLE_H + 20);
+    }
+  }
+
+  light(x, y, r, color, on) {
+    const c = this.ctx;
+    if (on) {
+      c.fillStyle = color;
+      c.globalAlpha = 0.25;
+      c.beginPath();
+      c.arc(x, y, r * 1.7, 0, Math.PI * 2);
+      c.fill();
+      c.globalAlpha = 1;
+    }
+    c.fillStyle = on ? color : COLORS.dim;
+    c.beginPath();
+    c.arc(x, y, r, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  drawLights() {
+    const c = this.ctx;
+    const t = this.table;
+    const pulse = 0.5 + 0.5 * Math.sin(t.time * 8);
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+
+    t.laneSensors.forEach((lane, i) => {
+      this.light(lane.x, lane.y, 13, COLORS.cyan, t.lanes[i]);
+      c.font = '900 13px Orbitron, sans-serif';
+      c.fillStyle = t.lanes[i] ? '#05020c' : '#8a7ab0';
+      c.fillText(lane.letter, lane.x, lane.y + 1);
+    });
+
+    // Scoop: bright when it will do something
+    const scoop = t.scoop;
+    const hot = t.lockLit || t.multiball;
+    this.light(scoop.x, scoop.y, 17, hot ? COLORS.pink : COLORS.purple, hot && pulse > 0.4);
+    c.fillStyle = '#05020c';
+    c.beginPath();
+    c.arc(scoop.x, scoop.y, 12, 0, Math.PI * 2);
+    c.fill();
+    c.font = '700 11px Orbitron, sans-serif';
+    c.fillStyle = hot ? COLORS.pink : 'rgba(255, 255, 255, 0.45)';
+    c.fillText(t.multiball ? 'JACKPOT' : 'LOCK', scoop.x, scoop.y + 31);
+
+    // Lock progress and multiplier ladder
+    for (let i = 0; i < 3; i++) this.light(CENTER_X - 24 + i * 24, 600, 7, COLORS.pink, i < t.locks);
+    for (let i = 2; i <= MAX_MULT; i++) {
+      const x = CENTER_X - 80 + (i - 2) * 40;
+      const lit = t.mult >= i;
+      this.light(x, 640, 13, COLORS.yellow, lit);
+      c.font = '700 11px Orbitron, sans-serif';
+      c.fillStyle = lit ? '#05020c' : '#8a7ab0';
+      c.fillText(`x${i}`, x, 641);
+    }
+
+    // Ball save, between the flippers
+    if (t.saveTimer > 0) {
+      const blink = t.saveTimer > 3 || pulse > 0.5;
+      c.font = '900 13px Orbitron, sans-serif';
+      c.fillStyle = blink ? COLORS.green : 'rgba(5, 255, 161, 0.3)';
+      c.fillText('BALL SAVE', CENTER_X, 925);
+    }
+  }
+
+  drawTargets() {
+    const c = this.ctx;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.font = '900 13px Orbitron, sans-serif';
+    for (const target of this.table.dropTargets) {
+      const h = target.by - target.ay;
+      c.fillStyle = target.down ? 'rgba(255, 106, 0, 0.14)' : COLORS.orange;
+      c.fillRect(target.ax - 5, target.ay + 1, 10, h - 2);
+      c.fillStyle = target.down ? 'rgba(255, 255, 255, 0.2)' : '#fff';
+      c.fillText(target.letter, target.ax + 16, target.ay + h / 2);
+    }
+  }
+
+  drawBumpers() {
+    const c = this.ctx;
+    for (const b of this.table.bumpers) {
+      c.fillStyle = b.flash > 0 ? '#fff' : '#3a0a33';
+      c.strokeStyle = COLORS.pink;
+      c.lineWidth = 5;
+      c.beginPath();
+      c.arc(b.x, b.y, b.r + b.flash * 3, 0, Math.PI * 2);
+      c.fill();
+      c.stroke();
+      c.fillStyle = COLORS.cyan;
+      c.beginPath();
+      c.arc(b.x, b.y, 10, 0, Math.PI * 2);
+      c.fill();
+    }
+  }
+
+  drawSpinner() {
+    const c = this.ctx;
+    const s = this.table.spinner;
+    const open = Math.abs(Math.cos(s.angle * Math.PI));
+    const mid = (s.ax + s.bx) / 2;
+    const half = ((s.bx - s.ax) / 2 - 5) * open + 1;
+    c.strokeStyle = COLORS.green;
+    c.lineWidth = 4;
+    c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(mid - half, s.y);
+    c.lineTo(mid + half, s.y);
+    c.stroke();
+  }
+
+  drawPlunger() {
+    const c = this.ctx;
+    const t = this.table;
+    const pull = t.charge * 26;
+    const top = PLUNGER_Y + BALL_R + 2 + pull;
+    c.fillStyle = COLORS.cyan;
+    c.fillRect(LANE_X - 9, top, 18, 6);
+    c.fillStyle = '#556';
+    c.fillRect(LANE_X - 3, top + 6, 6, TABLE_H - top);
+
+    // Charge meter up the lane, and an arrow while a ball is waiting
+    if (t.charging) {
+      const height = 200 * t.charge;
+      c.fillStyle = t.charge >= 1 ? COLORS.green : COLORS.pink;
+      c.fillRect(LANE_X - 3, PLUNGER_Y - 26 - height, 6, height);
+    } else if (t.plungerBall) {
+      const bob = Math.sin(t.time * 6 + performance.now() / 160) * 4;
+      c.fillStyle = COLORS.yellow;
+      c.beginPath();
+      c.moveTo(LANE_X, PLUNGER_Y - 44 + bob);
+      c.lineTo(LANE_X - 9, PLUNGER_Y - 28 + bob);
+      c.lineTo(LANE_X + 9, PLUNGER_Y - 28 + bob);
+      c.fill();
+    }
+  }
+
+  drawFlipper(f) {
+    const c = this.ctx;
+    c.lineCap = 'round';
+    c.strokeStyle = f.held ? '#fff' : COLORS.cyan;
+    c.lineWidth = f.radius * 2;
+    c.beginPath();
+    c.moveTo(f.px, f.py);
+    c.lineTo(f.tipX, f.tipY);
+    c.stroke();
+    c.strokeStyle = COLORS.pink;
+    c.lineWidth = 3;
+    c.stroke();
+    c.fillStyle = '#05020c';
+    c.beginPath();
+    c.arc(f.px, f.py, 4, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  drawBall(ball) {
+    const c = this.ctx;
+    const trail = ball.trail;
+    for (let i = 0; i < trail.length; i += 2) {
+      c.fillStyle = `rgba(0, 243, 255, ${0.04 * (i + 1)})`;
+      c.beginPath();
+      c.arc(trail[i], trail[i + 1], BALL_R * 0.75, 0, Math.PI * 2);
+      c.fill();
+    }
+    const g = c.createRadialGradient(ball.x - 3, ball.y - 4, 1, ball.x, ball.y, BALL_R);
+    g.addColorStop(0, '#fff');
+    g.addColorStop(0.5, '#b8c8dc');
+    g.addColorStop(1, '#46506a');
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  drawEffects() {
+    const c = this.ctx;
+    for (const p of this.particles) {
+      c.globalAlpha = p.life * 2;
+      c.fillStyle = p.color;
+      c.fillRect(p.x - 2, p.y - 2, 4, 4);
+    }
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.font = '700 14px Orbitron, sans-serif';
+    for (const p of this.popups) {
+      c.globalAlpha = Math.min(1, p.life * 2);
+      c.fillStyle = p.color;
+      c.fillText(p.text, Math.max(50, Math.min(450, p.x)), p.y);
+    }
+    c.globalAlpha = 1;
   }
 }
 
-// ============================================================================
-// BOOTSTRAP INITIALIZATION ON PAGE LOAD
-// ============================================================================
-window.addEventListener('DOMContentLoaded', () => {
-  window.cyberPinball = new CyberPinballGame();
+window.addEventListener('load', () => {
+  window.cyberPinball = new PinballGame();
 });

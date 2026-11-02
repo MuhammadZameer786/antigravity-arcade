@@ -196,6 +196,14 @@
     </div>
   </div>
 
+  <!-- Phones held upright: this game needs the width. Rotation-locked phones can skip it. -->
+  <div class="rotate-prompt">
+    <div class="rotate-phone"></div>
+    <div class="rotate-title">ROTATE YOUR PHONE</div>
+    <div class="rotate-sub">NEON RUNNER PLAYS SIDEWAYS</div>
+    <button class="rotate-dismiss" onclick="this.parentElement.remove()">PLAY ANYWAY</button>
+  </div>
+
   <script src="game.js"></script>
 </body>
 </html>

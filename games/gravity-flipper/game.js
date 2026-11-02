@@ -544,6 +544,17 @@ class GravityFlipper {
   }
 
   bindEvents() {
+    // Don't run on while the phone is locked, or behind the rotate prompt
+    const pauseIfPlaying = () => {
+      if (this.state === 'playing') this.togglePause();
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) pauseIfPlaying();
+    });
+    window.matchMedia('(orientation: portrait)').addEventListener('change', (e) => {
+      if (e.matches) pauseIfPlaying();
+    });
+
     // Start / Restart Buttons
     document.getElementById('btn-start').addEventListener('click', () => this.start());
     document.getElementById('btn-restart').addEventListener('click', () => this.start());
@@ -1396,7 +1407,8 @@ class GravityFlipper {
   loop(currentTime) {
     if (this.state !== 'playing') return;
 
-    const dt = Math.min((currentTime - this.lastTime) / 1000, 0.05);
+    // A frame's timestamp can predate the tap that started the run, so never step backwards
+    const dt = Math.max(0, Math.min((currentTime - this.lastTime) / 1000, 0.05));
     this.lastTime = currentTime;
 
     this.update(dt);

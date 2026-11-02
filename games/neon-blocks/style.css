@@ -1169,3 +1169,216 @@ kbd {
     width: 100%;
   }
 }
+
+/* ==========================================================================
+   PHONE LAYOUT
+   The board gets the room: stats become a strip on top, HOLD and NEXT sit
+   beside it, and the buttons grow to thumb size.
+   ========================================================================== */
+@media (max-width: 600px) {
+  :root {
+    --board-w: min(
+      calc(100vw - 122px),
+      calc((100dvh - 262px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) / 2)
+    );
+  }
+
+  .cabinet-header {
+    padding: calc(env(safe-area-inset-top) + 4px) 8px 4px;
+  }
+
+  .neon-badge,
+  #btn-crt-toggle {
+    display: none;
+  }
+
+  .marquee-bar {
+    margin: 0;
+    padding: 0;
+  }
+
+  .cab-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
+  }
+
+  #play-area {
+    display: grid;
+    grid-template-columns: 52px var(--board-w) 52px;
+    grid-template-areas:
+      "vitals vitals vitals"
+      "hold   board  next";
+    justify-content: center;
+    align-content: center;
+    align-items: start;
+    gap: 5px;
+    padding: 4px;
+  }
+
+  .sidebar {
+    display: contents;
+  }
+
+  .hold-panel {
+    grid-area: hold;
+  }
+
+  .next-panel {
+    grid-area: next;
+  }
+
+  .matrix-center {
+    grid-area: board;
+    width: 100%;
+  }
+
+  .hold-panel,
+  .next-panel {
+    width: 100%;
+    padding: 3px;
+  }
+
+  .hold-canvas-box,
+  .next-canvas-box {
+    width: 100%;
+    height: auto;
+    padding: 0;
+  }
+
+  #holdCanvas,
+  #nextCanvas {
+    width: 100%;
+    height: auto;
+  }
+
+  .vitals-panel {
+    grid-area: vitals;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 3px 10px;
+  }
+
+  .vital-item:has(#vital-high),
+  .status-badges {
+    display: none;
+  }
+
+  .vital-row-split {
+    display: flex;
+    gap: 14px;
+  }
+
+  .vital-item {
+    margin: 0;
+  }
+
+  .vital-label {
+    font-size: 8px;
+    white-space: nowrap;
+  }
+
+  .vital-val {
+    font-size: 13px;
+  }
+
+  #canvas-container {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 2;
+  }
+
+  #bgCanvas,
+  #gameCanvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  .cabinet-footer {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .touch-controls {
+    gap: 6px;
+    padding: 6px 8px 8px;
+  }
+
+  .touch-row {
+    gap: 6px;
+  }
+
+  .t-btn {
+    min-height: 54px;
+    padding: 6px 4px;
+    font-size: 13px;
+    touch-action: none;
+  }
+}
+
+/* ==========================================================================
+   ROTATE PROMPT
+   The board needs the height and the buttons only fit upright, so sideways phones are asked to turn back.
+   ========================================================================== */
+.rotate-prompt {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  .rotate-prompt {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    background: #05020c;
+    color: #00f3ff;
+    font-family: 'Orbitron', sans-serif;
+    text-align: center;
+  }
+
+  .rotate-phone {
+    width: 44px;
+    height: 76px;
+    border: 3px solid #00f3ff;
+    border-radius: 8px;
+    box-shadow: 0 0 18px rgba(0, 243, 255, 0.6);
+    animation: rotate-hint 2.4s ease-in-out infinite;
+  }
+
+  .rotate-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
+
+  .rotate-sub {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: #99a0b5;
+  }
+
+  .rotate-dismiss {
+    min-height: 44px;
+    padding: 8px 20px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    color: #c2c8dc;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+}
+
+@keyframes rotate-hint {
+  0%, 25% { transform: rotate(90deg); }
+  60%, 100% { transform: rotate(0deg); }
+}

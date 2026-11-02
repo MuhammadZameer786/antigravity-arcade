@@ -623,9 +623,14 @@ class QuantumBreaker {
     this.audio = new QuantumAudio();
     this.particles = new ParticleEngine();
 
-    // Virtual Game Resolution (16:9 Standard)
+    // Virtual Game Resolution (16:9 Standard, swapped for a tall arena on portrait phones)
+    this.portraitQuery = window.matchMedia('(max-width: 820px) and (orientation: portrait)');
+    this.isTouch = window.matchMedia('(pointer: coarse)').matches;
     this.width = 960;
     this.height = 540;
+    this.renderScale = 1;
+    this.touchGain = 1.4; // paddle travel per unit of finger travel, so thumbs can reach the walls
+    this.drag = null;
 
     // Game States: 'START', 'PLAYING', 'PAUSED', 'STAGECLEAR', 'GAMEOVER', 'VICTORY'
     this.state = 'START';
@@ -694,6 +699,9 @@ class QuantumBreaker {
     this.keys = {};
     this.mouse = { x: this.width / 2, active: false };
 
+    this.applyWorldSize();
+    this.paddle.x = this.paddle.targetX = this.mouse.x = this.width / 2;
+
     // Starfield Background
     this.stars = [];
     this.initStars();
@@ -721,10 +729,63 @@ class QuantumBreaker {
 
     // Wire up listeners
     this.setupEvents();
+    this.resizeCanvas();
     this.updateHUD();
 
     // Kick off animation loop
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  // Same 12 x 8 brick grid in both shapes, so every sector layout still works
+  applyWorldSize() {
+    const portrait = this.portraitQuery.matches;
+    this.width = portrait ? 540 : 960;
+    this.height = portrait ? 960 : 540;
+
+    this.brickWidth = portrait ? 37 : 66;
+    this.brickHeight = portrait ? 26 : 20;
+    this.brickPadding = portrait ? 4 : 8;
+    this.brickOffsetLeft = (this.width - (this.brickCols * (this.brickWidth + this.brickPadding) - this.brickPadding)) / 2;
+
+    this.paddle.y = this.height - 40;
+    this.paddle.baseWidth = portrait ? 100 : 120;
+    this.paddle.width = this.paddle.baseWidth * (this.paddle.isExtend ? 1.5 : 1);
+  }
+
+  resizeCanvas() {
+    // Size the buffer for the screen so the neon stays sharp on high-density phones
+    const cssW = this.canvas.getBoundingClientRect().width || this.width;
+    const density = (cssW * (window.devicePixelRatio || 1)) / this.width;
+    this.renderScale = Math.max(1, Math.min(1.5, density));
+    this.canvas.width = Math.round(this.width * this.renderScale);
+    this.canvas.height = Math.round(this.height * this.renderScale);
+  }
+
+  // Phone rotated: rebuild the arena around the bricks and balls already in play
+  handleOrientationChange() {
+    const oldW = this.width;
+    const oldH = this.height;
+    this.applyWorldSize();
+    this.resizeCanvas();
+    if (this.width === oldW) return;
+
+    const sx = this.width / oldW;
+    const sy = this.height / oldH;
+    for (const b of this.bricks) {
+      b.x = this.brickOffsetLeft + b.col * (this.brickWidth + this.brickPadding);
+      b.y = this.brickOffsetTop + b.row * (this.brickHeight + this.brickPadding);
+      b.w = this.brickWidth;
+      b.h = this.brickHeight;
+    }
+    for (const item of [...this.balls, ...this.powerups, ...this.lasers]) {
+      item.x *= sx;
+      item.y *= sy;
+    }
+    this.paddle.x *= sx;
+    this.paddle.targetX *= sx;
+    this.mouse.x *= sx;
+    this.initStars();
+    this.pauseGame();
   }
 
   initStars() {
@@ -780,41 +841,44 @@ class QuantumBreaker {
       this.mouse.active = true;
     };
 
-    window.addEventListener('mousemove', (e) => {
-      updatePointerPos(e.clientX);
+    // Touch Support for Mobile / Tablets: a finger slides the paddle from wherever it
+    // lands (anywhere on screen), and tapping launches the ball or fires lasers
+    window.addEventListener('pointerdown', (e) => {
+      this.audio.init();
+      if (this.state !== 'PLAYING' || e.target.closest('button, a')) return;
+      this.handleLaunchOrFire();
+      if (e.pointerType !== 'mouse') {
+        this.drag = { id: e.pointerId, lastX: e.clientX };
+        this.mouse.x = this.paddle.x;
+        this.mouse.active = true;
+      }
     });
 
-    // Touch Support for Mobile / Tablets & Window-wide touch tracking
-    const handleTouchInput = (e) => {
-      if (this.state === 'PLAYING' && e.touches.length > 0) {
-        e.preventDefault();
-        updatePointerPos(e.touches[0].clientX);
-      }
-    };
-
-    this.canvas.addEventListener('touchmove', handleTouchInput, { passive: false });
-    window.addEventListener('touchmove', handleTouchInput, { passive: false });
-
-    const handleTouchStart = (e) => {
-      this.audio.init();
-      if (this.state === 'PLAYING' && e.touches.length > 0) {
-        const target = e.target;
-        if (!target.closest('button') && !target.closest('a')) {
-          this.handleLaunchOrFire();
-          updatePointerPos(e.touches[0].clientX);
-        }
-      }
-    };
-
-    this.canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-
-    this.canvas.addEventListener('pointerdown', () => {
-      this.audio.init();
-      if (this.state === 'PLAYING') {
-        this.handleLaunchOrFire();
+    window.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'mouse') {
+        updatePointerPos(e.clientX);
+      } else if (this.drag && this.drag.id === e.pointerId) {
+        const scaleX = this.width / this.canvas.getBoundingClientRect().width;
+        const halfW = this.paddle.width / 2;
+        const target = this.mouse.x + (e.clientX - this.drag.lastX) * scaleX * this.touchGain;
+        this.mouse.x = Math.max(20 + halfW, Math.min(this.width - 20 - halfW, target));
+        this.drag.lastX = e.clientX;
       }
     });
+
+    const endDrag = (e) => {
+      if (this.drag && this.drag.id === e.pointerId) this.drag = null;
+    };
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+
+    // Don't let the ball run on while the phone is locked or another app is open
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.pauseGame();
+    });
+
+    window.addEventListener('resize', () => this.handleOrientationChange());
+    this.portraitQuery.addEventListener('change', () => this.handleOrientationChange());
 
     // UI Buttons
     document.getElementById('btn-start').addEventListener('click', () => this.startGame());
@@ -1134,7 +1198,7 @@ class QuantumBreaker {
   triggerMultiBall() {
     this.audio.playMultiBallSplit();
     this.particles.spawnShockwave(this.paddle.x, this.paddle.y, '#00f3ff', 160);
-    this.particles.spawnText('✦ MULTI-BALL ACTIVATED! ✦', this.width / 2, 260, '#00f3ff', 22);
+    this.particles.spawnText('✦ MULTI-BALL ACTIVATED! ✦', this.width / 2, this.height * 0.48, '#00f3ff', 22);
     this.showBanner('QUANTUM MULTI-BALL ENGAGED');
     this.shakeAmount = 8;
 
@@ -1248,7 +1312,7 @@ class QuantumBreaker {
       case 'LIFE':
         if (this.lives < this.maxLives) {
           this.lives++;
-          this.particles.spawnText('♥ +1 SHIELD CORE!', this.width / 2, 320, '#ff007f', 20);
+          this.particles.spawnText('♥ +1 SHIELD CORE!', this.width / 2, this.height * 0.59, '#ff007f', 20);
           this.showBanner('♥ +1 QUANTUM CORE ACQUIRED');
         }
         break;
@@ -1281,7 +1345,12 @@ class QuantumBreaker {
       return false;
     }
 
-    // Brick destroyed!
+    // Brick destroyed! Remove it first so a neighbouring explosive can't hit it again
+    const idx = this.bricks.indexOf(brick);
+    if (idx !== -1) {
+      this.bricks.splice(idx, 1);
+    }
+
     this.bricksDestroyed++;
     const pts = brick.points * this.combo;
     this.score += pts;
@@ -1339,23 +1408,17 @@ class QuantumBreaker {
       const bx = brick.x + brick.w / 2;
       const by = brick.y + brick.h / 2;
 
-      for (let i = this.bricks.length - 1; i >= 0; i--) {
-        const other = this.bricks[i];
-        if (other === brick || other.type === 'UNBREAKABLE') continue;
+      // Fixed list: the chain removes bricks from this.bricks as it spreads
+      const nearby = this.bricks.filter(other => {
+        if (other.type === 'UNBREAKABLE') return false;
         const ox = other.x + other.w / 2;
         const oy = other.y + other.h / 2;
-        const dist = Math.hypot(ox - bx, oy - by);
+        return Math.hypot(ox - bx, oy - by) <= radius;
+      });
 
-        if (dist <= radius) {
-          this.hitBrick(other, null);
-        }
+      for (const other of nearby) {
+        if (other.hp > 0) this.hitBrick(other, null);
       }
-    }
-
-    // Remove from array
-    const idx = this.bricks.indexOf(brick);
-    if (idx !== -1) {
-      this.bricks.splice(idx, 1);
     }
 
     this.checkStageClear();
@@ -1364,6 +1427,9 @@ class QuantumBreaker {
   }
 
   checkStageClear() {
+    // A chain reaction lands here once per brick; only the first clear counts
+    if (this.state !== 'PLAYING') return;
+
     // Check if any breakable bricks remain
     const breakables = this.bricks.filter(b => b.type !== 'UNBREAKABLE');
     if (breakables.length === 0) {
@@ -1507,6 +1573,11 @@ class QuantumBreaker {
     if (this.paddle.isLaser) {
       this.paddle.laserTimer -= dt;
       this.paddle.laserCooldown -= dt;
+      // The steering thumb can't tap as well, so a held finger keeps firing
+      if (this.drag && this.paddle.laserCooldown <= 0) {
+        this.fireLasers();
+        this.paddle.laserCooldown = 0.18;
+      }
       if (this.paddle.laserTimer <= 0) {
         this.paddle.isLaser = false;
       }
@@ -1777,6 +1848,7 @@ class QuantumBreaker {
   // ==========================================================================
   draw() {
     this.ctx.save();
+    this.ctx.setTransform(this.renderScale, 0, 0, this.renderScale, 0, 0);
 
     // Screen Shake Offset
     if (this.shakeAmount > 0) {
@@ -1832,7 +1904,7 @@ class QuantumBreaker {
   drawBackground() {
     this.ctx.save();
     // Perspective Grid floor in the lower half
-    const horizonY = 320;
+    const horizonY = Math.round(this.height * 16 / 27);
     this.ctx.strokeStyle = 'rgba(157, 0, 255, 0.12)';
     this.ctx.lineWidth = 1;
 

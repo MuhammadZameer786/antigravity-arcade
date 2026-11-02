@@ -77,7 +77,7 @@
           <p class="subtitle">HIGH-VELOCITY CURVE RALLY</p>
 
           <!-- Mode Selector -->
-          <div class="mode-select-group">
+          <div class="mode-select-group" id="mode-group">
             <span class="group-title">SELECT GAME MODE</span>
             <div class="btn-group">
               <button class="toggle-btn active" id="btn-mode-1p" data-mode="1p">
@@ -101,7 +101,7 @@
           </div>
 
           <!-- Match Goal Selector -->
-          <div class="mode-select-group">
+          <div class="mode-select-group" id="length-group">
             <span class="group-title">MATCH LENGTH (FIRST TO)</span>
             <div class="btn-group points-group">
               <button class="pts-btn" data-pts="5">5 PTS</button>
@@ -112,17 +112,26 @@
 
           <!-- Controls Breakdown -->
           <div class="instructions-panel">
-            <div class="control-row">
+            <div class="control-row keys-only">
               <span class="key-badge">PLAYER 1 (LEFT)</span>
               <span>[W] UP / [S] DOWN (or Drag Left Screen)</span>
             </div>
-            <div class="control-row" id="p2-control-row">
+            <div class="control-row keys-only" id="p2-control-row">
               <span class="key-badge">PLAYER 2 (RIGHT)</span>
               <span>[↑] UP / [↓] DOWN (or Drag Right Screen)</span>
             </div>
+            <div class="control-row touch-only">
+              <span class="key-badge">MOVE</span>
+              <span>Drag anywhere to slide your paddle</span>
+            </div>
+            <div class="control-row touch-only">
+              <span class="key-badge">2 PLAYERS</span>
+              <span>Each player drags on their own half</span>
+            </div>
             <div class="control-row">
               <span class="key-badge">CURVE & SMASH</span>
-              <span>Hit with moving paddle edges to slice & accelerate the ball!</span>
+              <span class="keys-only">Hit with moving paddle edges to slice & accelerate the ball!</span>
+              <span class="touch-only">Swipe as the ball meets your paddle's edge!</span>
             </div>
           </div>
 
@@ -159,7 +168,7 @@
 
           <div class="modal-buttons">
             <button id="btn-restart" class="neon-btn primary-btn">
-              <span>REMATCH [R]</span>
+              <span>REMATCH<span class="keys-only"> [R]</span></span>
             </button>
             <a href="../../index.html" class="neon-btn secondary-btn">
               <span>ARCADE HUB</span>
@@ -172,7 +181,7 @@
       <div id="pause-screen" class="game-modal">
         <div class="modal-card mini-card">
           <h2 class="pause-title">MATCH PAUSED</h2>
-          <p class="pause-sub">PRESS [P] OR CLICK RESUME</p>
+          <p class="pause-sub keys-only">PRESS [P] OR CLICK RESUME</p>
           <div class="modal-buttons">
             <button id="btn-resume" class="neon-btn primary-btn">
               <span>RESUME</span>
@@ -187,10 +196,11 @@
         </div>
       </div>
 
-      <!-- Touch Zones for Mobile / Tablet -->
-      <div id="touch-left-zone" class="touch-paddle-zone touch-left"></div>
-      <div id="touch-right-zone" class="touch-paddle-zone touch-right"></div>
     </div>
+
+    <!-- Touch Zones for Mobile / Tablet (full screen, so thumbs can rest off the court) -->
+    <div id="touch-p1-zone" class="touch-paddle-zone touch-p1"></div>
+    <div id="touch-p2-zone" class="touch-paddle-zone touch-p2"></div>
   </div>
 
   <script src="game.js"></script>

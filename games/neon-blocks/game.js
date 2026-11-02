@@ -1905,6 +1905,17 @@
        USER INPUT HANDLING (KEYBOARD & TOUCH)
        ========================================================================== */
     bindInputs() {
+      // Don't run on while the phone is locked, or behind the rotate prompt
+      const pauseIfPlaying = () => {
+        if (this.state === 'PLAYING') this.pauseGame();
+      };
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) pauseIfPlaying();
+      });
+      window.matchMedia('(orientation: landscape)').addEventListener('change', (e) => {
+        if (e.matches) pauseIfPlaying();
+      });
+
       window.addEventListener('keydown', (e) => {
         // Prevent window scrolling on arrow keys and space
         if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
@@ -2058,6 +2069,7 @@
             e.preventDefault();
             onUp();
           });
+          el.addEventListener('touchcancel', onUp);
           el.addEventListener('mouseup', (e) => {
             e.preventDefault();
             onUp();
@@ -2065,12 +2077,29 @@
         }
       };
 
-      addTouchListener('touch-left', () => {
-        if (this.state === 'PLAYING') this.movePiece(-1);
-      });
-      addTouchListener('touch-right', () => {
-        if (this.state === 'PLAYING') this.movePiece(1);
-      });
+      // Holding LEFT / RIGHT auto-repeats exactly like holding the arrow keys
+      addTouchListener('touch-left',
+        () => {
+          if (this.state === 'PLAYING') {
+            this.movePiece(-1);
+            this.keyState['ArrowLeft'] = true;
+          }
+        },
+        () => {
+          this.keyState['ArrowLeft'] = false;
+        }
+      );
+      addTouchListener('touch-right',
+        () => {
+          if (this.state === 'PLAYING') {
+            this.movePiece(1);
+            this.keyState['ArrowRight'] = true;
+          }
+        },
+        () => {
+          this.keyState['ArrowRight'] = false;
+        }
+      );
       addTouchListener('touch-soft', 
         () => {
           if (this.state === 'PLAYING') {

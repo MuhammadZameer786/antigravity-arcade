@@ -1308,6 +1308,17 @@ class NeonRunnerGame {
   }
 
   bindEvents() {
+    // Don't run on while the phone is locked, or behind the rotate prompt
+    const pauseIfPlaying = () => {
+      if (this.state === 'PLAYING') this.togglePause();
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) pauseIfPlaying();
+    });
+    window.matchMedia('(orientation: portrait)').addEventListener('change', (e) => {
+      if (e.matches) pauseIfPlaying();
+    });
+
     // Keyboard Controls
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;

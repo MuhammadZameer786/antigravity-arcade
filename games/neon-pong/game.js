@@ -366,6 +366,13 @@ class NeonPong {
     this.topBound = 16;
     this.bottomBound = this.height - 16;
 
+    // Phones: the portrait view turns this same court a quarter turn (see render)
+    this.portraitQuery = window.matchMedia('(max-width: 820px) and (orientation: portrait)');
+    this.isPortrait = this.portraitQuery.matches;
+    this.isTouch = window.matchMedia('(pointer: coarse)').matches;
+    this.renderScale = 1;
+    this.touchGain = 1.4; // paddle travel per unit of finger travel, so thumbs can reach the walls
+
     // Game Config & Modes
     this.mode = '1p'; // '1p' or '2p'
     this.difficulty = 'normal'; // 'easy', 'normal', 'hard', 'impossible'
@@ -397,7 +404,9 @@ class NeonPong {
       speed: 560,
       color: '#00f3ff',
       isP1: true,
-      powerTimer: 0
+      powerTimer: 0,
+      drag: null,
+      targetY: 0
     };
 
     this.p2 = {
@@ -410,6 +419,8 @@ class NeonPong {
       color: '#ff007f',
       isP1: false,
       powerTimer: 0,
+      drag: null,
+      targetY: 0,
       // AI targeting
       aiTargetY: (this.height - 96) / 2,
       aiLastPredictTime: 0
@@ -417,6 +428,8 @@ class NeonPong {
 
     // Balls (support multi-ball)
     this.balls = [];
+    this.serveTimer = 0;
+    this.serveDir = 1;
 
     // Floating Power-Up
     this.powerUp = null;
@@ -537,50 +550,70 @@ class NeonPong {
       this.keys[e.code] = false;
     });
 
-    // Touch & pointer controls: dragging on left or right zones (or anywhere in 1P mode)
-    const handleTouch = (paddle, clientY) => {
-      if (this.state !== 'playing') return;
-      const rect = this.canvas.getBoundingClientRect();
-      const scaleY = this.height / rect.height;
-      const targetY = (clientY - rect.top) * scaleY - paddle.h / 2;
-      paddle.y = Math.max(this.topBound, Math.min(this.bottomBound - paddle.h, targetY));
-    };
-
-    const leftZone = document.getElementById('touch-left-zone');
-    const rightZone = document.getElementById('touch-right-zone');
-
+    // Touch & pointer controls: each finger slides its paddle from wherever it lands,
+    // so the paddle never jumps and the thumb never has to sit on top of the action.
     const bindZone = (zone, getPaddle) => {
-      const onMove = (e) => {
+      zone.addEventListener('pointerdown', (e) => {
         if (this.state !== 'playing') return;
         const paddle = getPaddle();
-        if (!paddle) return;
-        if (e.touches && e.touches.length > 0) {
-          e.preventDefault();
-          handleTouch(paddle, e.touches[0].clientY);
-        } else if (e.clientY !== undefined && (e.buttons > 0 || e.pointerType === 'touch')) {
-          e.preventDefault();
-          handleTouch(paddle, e.clientY);
-        }
-      };
+        paddle.targetY = paddle.y;
+        paddle.drag = { id: e.pointerId, last: this.fingerPos(e) };
+      });
 
-      zone.addEventListener('touchstart', onMove, { passive: false });
-      zone.addEventListener('touchmove', onMove, { passive: false });
-      zone.addEventListener('pointerdown', onMove);
-      zone.addEventListener('pointermove', onMove);
+      zone.addEventListener('pointermove', (e) => {
+        const paddle = getPaddle();
+        if (!paddle.drag || paddle.drag.id !== e.pointerId) return;
+        const pos = this.fingerPos(e);
+        paddle.targetY += (pos - paddle.drag.last) * this.touchGain;
+        paddle.targetY = Math.max(this.topBound, Math.min(this.bottomBound - paddle.h, paddle.targetY));
+        paddle.drag.last = pos;
+      });
+
+      const release = (e) => {
+        const paddle = getPaddle();
+        if (paddle.drag && paddle.drag.id === e.pointerId) paddle.drag = null;
+      };
+      zone.addEventListener('pointerup', release);
+      zone.addEventListener('pointercancel', release);
     };
 
-    // In 1P mode, both left and right screen touches control Player 1!
-    // In 2P mode, left zone controls P1, right zone controls P2!
-    bindZone(leftZone, () => this.p1);
-    bindZone(rightZone, () => (this.mode === '2p' ? this.p2 : this.p1));
+    // In 1P mode, a finger anywhere on screen controls Player 1!
+    // In 2P mode, each player owns the half of the screen nearest their paddle!
+    bindZone(document.getElementById('touch-p1-zone'), () => this.p1);
+    bindZone(document.getElementById('touch-p2-zone'), () => (this.mode === '2p' ? this.p2 : this.p1));
+
+    // Don't let the rally run on while the phone is locked or another app is open
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.state === 'playing') this.togglePause();
+    });
 
     window.addEventListener('resize', () => this.resizeCanvas());
+    this.portraitQuery.addEventListener('change', () => this.resizeCanvas());
     this.resizeCanvas();
   }
 
+  // Finger position along the paddle's axis of travel, in court units
+  fingerPos(e) {
+    const rect = this.canvas.getBoundingClientRect();
+    return this.isPortrait
+      ? e.clientX * (this.height / rect.width)
+      : e.clientY * (this.height / rect.height);
+  }
+
   resizeCanvas() {
-    this.canvas.width = this.width;
-    this.canvas.height = this.height;
+    this.isPortrait = this.portraitQuery.matches;
+    const courtW = this.isPortrait ? this.height : this.width;
+    const courtH = this.isPortrait ? this.width : this.height;
+
+    // Size the buffer for the screen so the neon stays sharp on high-density phones
+    const cssW = this.canvas.getBoundingClientRect().width || courtW;
+    const density = (cssW * (window.devicePixelRatio || 1)) / courtW;
+    this.renderScale = Math.max(1, Math.min(1.5, density));
+    this.canvas.width = Math.round(courtW * this.renderScale);
+    this.canvas.height = Math.round(courtH * this.renderScale);
+
+    // Resizing wipes the canvas, so redraw a paused or finished match
+    if (this.state !== 'start') this.render();
   }
 
   startMatch() {
@@ -605,15 +638,17 @@ class NeonPong {
 
     // Reset balls
     this.balls = [];
+    this.serveTimer = 0;
     this.spawnBall(Math.random() > 0.5 ? 1 : -1);
 
     // Update labels
+    this.p1Label.textContent = this.isTouch ? 'PLAYER 1' : 'PLAYER 1 [W/S]';
     if (this.mode === '1p') {
       const diffNames = { easy: 'CASUAL', normal: 'CYBER', hard: 'OVERLORD', impossible: 'INSANE' };
-      this.p2Label.textContent = `AI [${diffNames[this.difficulty]}]`;
+      this.p2Label.textContent = this.isTouch ? 'AI' : `AI [${diffNames[this.difficulty]}]`;
       this.modeTagDisplay.textContent = `1P VS AI (${diffNames[this.difficulty]})`;
     } else {
-      this.p2Label.textContent = 'PLAYER 2 [↑/↓]';
+      this.p2Label.textContent = this.isTouch ? 'PLAYER 2' : 'PLAYER 2 [↑/↓]';
       this.modeTagDisplay.textContent = '2P LOCAL VERSUS';
     }
 
@@ -625,7 +660,7 @@ class NeonPong {
     this.gameoverScreen.classList.remove('active');
     this.pauseScreen.classList.remove('active');
 
-    this.showBanner('MATCH COMMENCED');
+    this.showBanner(this.isTouch ? 'DRAG TO MOVE' : 'MATCH COMMENCED');
     this.updateHUD();
 
     this.lastTime = performance.now();
@@ -651,6 +686,7 @@ class NeonPong {
     paddle.y = (this.height - paddle.h) / 2;
     paddle.vy = 0;
     paddle.powerTimer = 0;
+    paddle.drag = null;
   }
 
   spawnBall(direction = 1) {
@@ -717,13 +753,10 @@ class NeonPong {
       this.showBanner('★ MATCH POINT ★');
     }
 
-    // Spawn ball after short delay towards scorer
+    // Spawn ball after short delay towards scorer (counted in update so pausing can't lose it)
     this.balls = [];
-    setTimeout(() => {
-      if (this.state === 'playing') {
-        this.spawnBall(isP1 ? -1 : 1);
-      }
-    }, 600);
+    this.serveTimer = 0.6;
+    this.serveDir = isP1 ? -1 : 1;
   }
 
   endMatch(isP1Won) {
@@ -773,6 +806,12 @@ class NeonPong {
     // Update Power-ups
     this.updatePowerUp(dt);
 
+    // Serve the next ball
+    if (this.serveTimer > 0) {
+      this.serveTimer -= dt;
+      if (this.serveTimer <= 0) this.spawnBall(this.serveDir);
+    }
+
     // Update Balls
     this.updateBalls(dt);
 
@@ -784,36 +823,42 @@ class NeonPong {
   }
 
   updatePlayerPaddles(dt) {
-    const p1 = this.p1;
     let p1Dir = 0;
     if (this.keys['KeyW']) p1Dir -= 1;
     if (this.keys['KeyS']) p1Dir += 1;
-
-    p1.vy = p1Dir * p1.speed;
-    p1.y += p1.vy * dt;
-    p1.y = Math.max(this.topBound, Math.min(this.bottomBound - p1.h, p1.y));
-
-    // Power-up duration countdown
-    if (p1.powerTimer > 0) {
-      p1.powerTimer -= dt;
-      if (p1.powerTimer <= 0) p1.h = 96;
-    }
+    this.movePaddle(this.p1, p1Dir, dt);
 
     // 2P Mode: Player 2 keyboard input
     if (this.mode === '2p') {
-      const p2 = this.p2;
       let p2Dir = 0;
       if (this.keys['ArrowUp']) p2Dir -= 1;
       if (this.keys['ArrowDown']) p2Dir += 1;
+      this.movePaddle(this.p2, p2Dir, dt);
+    }
+  }
 
-      p2.vy = p2Dir * p2.speed;
-      p2.y += p2.vy * dt;
-      p2.y = Math.max(this.topBound, Math.min(this.bottomBound - p2.h, p2.y));
+  movePaddle(paddle, dir, dt) {
+    const minY = this.topBound;
+    const maxY = this.bottomBound - paddle.h;
 
-      if (p2.powerTimer > 0) {
-        p2.powerTimer -= dt;
-        if (p2.powerTimer <= 0) p2.h = 96;
-      }
+    if (paddle.drag && dir === 0) {
+      const prevY = paddle.y;
+      paddle.y = Math.max(minY, Math.min(maxY, paddle.targetY));
+
+      // Finger speed becomes paddle speed, so touch players can smash and add spin too
+      const fingerVy = dt > 0 ? (paddle.y - prevY) / dt : 0;
+      paddle.vy += (fingerVy - paddle.vy) * 0.5;
+      paddle.vy = Math.max(-paddle.speed, Math.min(paddle.speed, paddle.vy));
+    } else {
+      paddle.vy = dir * paddle.speed;
+      paddle.y += paddle.vy * dt;
+      paddle.y = Math.max(minY, Math.min(maxY, paddle.y));
+    }
+
+    // Power-up duration countdown
+    if (paddle.powerTimer > 0) {
+      paddle.powerTimer -= dt;
+      if (paddle.powerTimer <= 0) paddle.h = 96;
     }
   }
 
@@ -1087,9 +1132,17 @@ class NeonPong {
   // RENDER PIPELINE
   // ==========================================================================
   render() {
-    const { ctx, width, height } = this;
+    const { ctx, width, height, renderScale: s } = this;
 
     ctx.save();
+
+    // Everything below draws in court units. Portrait maps the court's left edge to
+    // the bottom of the phone, which puts Player 1 under the player's thumb.
+    if (this.isPortrait) {
+      ctx.setTransform(0, -s, s, 0, 0, width * s);
+    } else {
+      ctx.setTransform(s, 0, 0, s, 0, 0);
+    }
 
     // Camera Shake
     if (this.shake > 0) {
@@ -1255,7 +1308,7 @@ class NeonPong {
     ctx.font = 'bold 12px Orbitron';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.rotate(-time);
+    ctx.rotate(-time + (this.isPortrait ? Math.PI / 2 : 0)); // keep the icon upright
     const icon = p.type === 'turbo' ? '⚡' : (p.type === 'expand' ? '⬡' : '✦');
     ctx.fillText(icon, 0, 0);
 

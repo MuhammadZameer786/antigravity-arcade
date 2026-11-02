@@ -67,6 +67,13 @@ html, body {
   display: block;
 }
 
+/* Fingers steer the paddle here, so the browser must not treat drags as scrolling */
+html, body, .game-wrapper, #game-container, #gameCanvas {
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
+}
+
 /* CRT Scanlines */
 .crt-overlay {
   position: absolute;
@@ -562,211 +569,364 @@ html, body {
 .neon-orange { color: var(--neon-orange); text-shadow: 0 0 10px var(--neon-orange); }
 
 /* ==========================================================================
-   MOBILE RESPONSIVE ADAPTATIONS (PORTRAIT & LANDSCAPE)
+   MOBILE LAYOUTS
+   Portrait switches to a tall 540x960 arena (see applyWorldSize() in game.js),
+   so the HUD sits above the bricks instead of on top of them.
    ========================================================================== */
 
-@media (max-width: 820px) and (orientation: portrait), (max-aspect-ratio: 1/1) and (max-width: 820px) {
+.touch-only {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .keys-only {
+    display: none;
+  }
+
+  .touch-only {
+    display: inline;
+  }
+
+  .control-row.touch-only {
+    display: flex;
+  }
+}
+
+@media (max-width: 820px) and (orientation: portrait) {
+  :root {
+    --hud-h: calc(58px + env(safe-area-inset-top));
+    /* Largest 9:16 arena that fits under the HUD and leaves a strip for thumbs */
+    --arena-w: min(100vw, calc((100dvh - var(--hud-h) - 28px) * 9 / 16));
+  }
+
   .game-wrapper {
     padding: 0;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    overflow: hidden;
   }
 
   #game-container {
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    max-height: 100dvh;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    background: transparent;
+    border: none;
     border-radius: 0;
-    border-left: none;
-    border-right: none;
-    aspect-ratio: unset;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
     box-shadow: none;
   }
 
-  #gameCanvas {
-    width: 100vw;
-    max-width: 100%;
-    aspect-ratio: 16 / 9;
-    height: auto;
-    max-height: 52dvh;
-    object-fit: contain;
-  }
-
+  #gameCanvas,
   .crt-overlay {
     position: absolute;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    width: 100vw;
-    aspect-ratio: 16 / 9;
-    max-height: 52dvh;
+    top: var(--hud-h);
+    right: auto;
+    bottom: auto;
+    left: 50%;
+    width: var(--arena-w);
+    height: auto;
+    aspect-ratio: 9 / 16;
+    transform: translateX(-50%);
   }
 
+  /* HUD: one slim bar above the arena */
   .overlay-hud {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    width: 100vw;
-    aspect-ratio: 16 / 9;
-    max-height: 52dvh;
-    padding: 8px 10px;
+    bottom: auto;
+    height: var(--hud-h);
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 6px;
+    padding: env(safe-area-inset-top) 8px 0;
   }
 
   .hud-top {
+    flex: 1;
+    min-width: 0;
     gap: 4px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .hud-box {
-    min-width: 50px;
-    padding: 2px 6px;
+    flex: 1;
+    min-width: 0;
+    padding: 3px 4px;
+    backdrop-filter: none;
+  }
+
+  .sector-box,
+  .balls-box,
+  .highscore-box {
+    display: none;
+  }
+
+  .lives-box {
+    flex: 1.3;
   }
 
   .hud-label {
-    font-size: 7.5px;
-    letter-spacing: 0.8px;
+    font-size: 8px;
+    letter-spacing: 0;
+    white-space: nowrap;
   }
 
   .hud-val {
-    font-size: 13px;
+    font-size: 15px;
+  }
+
+  .hud-bottom {
+    flex: none;
   }
 
   .hud-controls-hint {
-    gap: 6px;
+    gap: 4px;
   }
 
   .neon-icon-btn {
-    width: 34px;
-    height: 34px;
-    font-size: 14px;
+    width: 40px;
+    height: 44px;
   }
 
   .powerups-bar {
-    top: 48px;
-    gap: 6px;
-  }
-
-  .game-modal {
     position: absolute;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    padding: 16px;
-    z-index: 50;
-    display: none;
-    align-items: center;
+    top: calc(var(--hud-h) + 6px);
+    left: 0;
+    right: 0;
+    margin: 0;
     justify-content: center;
+    flex-wrap: wrap;
   }
 
-  .game-modal.active {
-    display: flex;
+  .shield-indicator {
+    position: fixed;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom) + 4px);
+    transform: translateX(-50%);
+  }
+
+  .banner-notification {
+    top: 46dvh;
+    padding: 6px 16px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  /* Menus */
+  .game-modal {
+    padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px);
   }
 
   .modal-card {
-    width: min(440px, 94vw);
-    max-height: 85dvh;
+    width: min(460px, 100%);
+    max-height: 100%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     padding: 18px 16px;
   }
 
+  .mini-card {
+    max-width: 340px;
+  }
+
   .glitch-title {
-    font-size: 22px;
+    font-size: 26px;
     letter-spacing: 2px;
   }
 
-  .instructions-panel {
-    gap: 6px;
+  .subtitle {
+    font-size: 11px;
     margin-bottom: 12px;
+  }
+
+  .instructions-panel {
+    margin: 10px 0 12px;
     padding: 8px 10px;
   }
 
   .control-row {
-    font-size: 10px;
+    font-size: 12px;
+    gap: 8px;
+  }
+
+  .control-row.touch-only {
+    justify-content: flex-start;
   }
 
   .key-badge {
-    font-size: 8.5px;
-    padding: 2px 5px;
-  }
-
-  .powerup-showcase {
-    gap: 5px;
-    margin-bottom: 14px;
-  }
-
-  .p-item {
-    min-width: 50px;
+    font-size: 9px;
     padding: 3px 5px;
   }
 
-  .p-name {
-    font-size: 8px;
+  .touch-only .key-badge,
+  .control-row.touch-only .key-badge {
+    min-width: 52px;
+    text-align: center;
   }
 
-  .primary-btn {
-    padding: 12px 24px;
-    font-size: 13px;
-    width: 100%;
+  .powerup-showcase {
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
   }
 
   .results-grid {
-    gap: 6px;
+    gap: 8px;
+    margin: 14px 0;
   }
 
   .res-val {
-    font-size: 15px;
+    font-size: 20px;
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .neon-btn {
+    width: 100%;
+    min-height: 48px;
+    font-size: 14px;
+  }
+}
+
+/* Short phones: keep the start button on screen without scrolling */
+@media (max-width: 820px) and (orientation: portrait) and (max-height: 640px) {
+  .powerup-showcase {
+    display: none;
   }
 }
 
 @media (orientation: landscape) and (max-height: 600px) {
   .game-wrapper {
-    padding: 4px;
-    height: 100vh;
-    height: 100dvh;
+    padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
   }
 
   #game-container {
-    width: min(960px, 96vw, calc((100dvh - 8px) * 16 / 9));
-    height: calc(100dvh - 8px);
-    aspect-ratio: 16 / 9;
+    width: min(100%, calc(100dvh * 16 / 9));
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* HUD: one thin row above the bricks, with the buttons clear of the paddle */
+  .overlay-hud {
+    bottom: auto;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 4px 8px;
+  }
+
+  .hud-top {
+    flex: 1;
+    min-width: 0;
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+
+  .hud-box {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    background: rgba(12, 6, 26, 0.45);
+    backdrop-filter: none;
+  }
+
+  .balls-box,
+  .highscore-box {
+    display: none;
+  }
+
+  .hud-label {
+    font-size: 8px;
+    white-space: nowrap;
+  }
+
+  .hud-val {
+    font-size: 14px;
+  }
+
+  .hud-bottom {
+    flex: none;
+  }
+
+  .hud-controls-hint {
+    opacity: 0.8;
+  }
+
+  .neon-icon-btn {
+    width: 40px;
+    height: 36px;
+  }
+
+  .shield-indicator {
+    position: absolute;
+    top: calc(100dvh - 26px);
+    left: 8px;
+  }
+
+  .powerups-bar {
+    position: absolute;
+    top: 42px;
+    left: 8px;
+    right: 8px;
+    margin: 0;
+  }
+
+  .banner-notification {
+    top: 40%;
+    padding: 5px 16px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  /* Menus */
+  .game-modal {
+    padding: 8px;
   }
 
   .modal-card {
-    max-height: 90dvh;
+    max-width: 640px;
+    max-height: 100%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     padding: 12px 18px;
   }
 
+  .mini-card {
+    max-width: 480px;
+  }
+
   .glitch-title {
-    font-size: 20px;
+    font-size: 22px;
     margin-bottom: 2px;
   }
 
   .subtitle {
-    margin-bottom: 6px;
-    font-size: 9.5px;
+    margin-bottom: 8px;
+    font-size: 10px;
   }
 
   .instructions-panel {
     display: none;
   }
 
-  .overlay-hud {
-    padding: 6px 12px;
+  .powerup-showcase {
+    margin-bottom: 10px;
   }
 
-  .hud-val {
-    font-size: 13px;
+  .results-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 8px 0 10px;
+  }
+
+  .neon-btn {
+    min-height: 44px;
+    padding: 8px 18px;
+    white-space: nowrap;
   }
 }
