@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON PONG // Cyberpunk Curve Rally</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="game-wrapper">
+    <div id="game-container">
+      <!-- Main Game Canvas -->
+      <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+      <!-- Retro CRT Scanline Overlay -->
+      <div class="crt-overlay"></div>
+
+      <!-- In-Game HUD -->
+      <div id="hud" class="overlay-hud">
+        <div class="hud-top">
+          <!-- P1 Side -->
+          <div class="hud-player-box p1-box">
+            <span class="hud-label" id="p1-label">PLAYER 1 [W/S]</span>
+            <span id="p1-score" class="hud-score neon-cyan">0</span>
+          </div>
+
+          <!-- Center Rally & Match Goal -->
+          <div class="hud-center-info">
+            <div class="hud-box rally-box">
+              <span class="hud-label">RALLY</span>
+              <span id="rally-count" class="hud-val">0</span>
+            </div>
+            <div class="hud-box">
+              <span class="hud-label">FIRST TO</span>
+              <span id="target-score-display" class="hud-val">7</span>
+            </div>
+            <div class="hud-box best-rally-box">
+              <span class="hud-label">BEST RALLY</span>
+              <span id="best-rally-display" class="hud-val">0</span>
+            </div>
+          </div>
+
+          <!-- P2 Side -->
+          <div class="hud-player-box p2-box">
+            <span class="hud-label" id="p2-label">AI [CYBER]</span>
+            <span id="p2-score" class="hud-score neon-pink">0</span>
+          </div>
+        </div>
+
+        <div class="hud-bottom">
+          <div class="mode-tag-display" id="mode-tag-display">1P VS AI (NORMAL)</div>
+
+          <div class="hud-controls-hint">
+            <a href="../../index.html" class="neon-icon-btn" title="Exit to Arcade Hub">
+              <span>🏠</span>
+            </a>
+            <button id="btn-audio-toggle" class="neon-icon-btn" title="Toggle Sound & Music [M]">
+              <span id="audio-icon">🔊</span>
+            </button>
+            <button id="btn-pause" class="neon-icon-btn" title="Pause Match [P]">
+              <span id="pause-icon">⏸</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Notification Banner (Smash, Power-up, Match Point) -->
+        <div id="banner-notification" class="banner-notification">MATCH START</div>
+      </div>
+
+      <!-- Start Screen Modal -->
+      <div id="start-screen" class="game-modal active">
+        <div class="modal-card">
+          <div class="glitch-title" data-text="NEON PONG">NEON PONG</div>
+          <p class="subtitle">HIGH-VELOCITY CURVE RALLY</p>
+
+          <!-- Mode Selector -->
+          <div class="mode-select-group">
+            <span class="group-title">SELECT GAME MODE</span>
+            <div class="btn-group">
+              <button class="toggle-btn active" id="btn-mode-1p" data-mode="1p">
+                <span>🤖 1P VS AI</span>
+              </button>
+              <button class="toggle-btn" id="btn-mode-2p" data-mode="2p">
+                <span>👥 2P LOCAL VERSUS</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- AI Difficulty Selector (Visible only in 1P mode) -->
+          <div class="mode-select-group" id="difficulty-group">
+            <span class="group-title">AI DIFFICULTY</span>
+            <div class="btn-group diff-group">
+              <button class="diff-btn" data-diff="easy">CASUAL</button>
+              <button class="diff-btn active" data-diff="normal">CYBER</button>
+              <button class="diff-btn" data-diff="hard">OVERLORD</button>
+              <button class="diff-btn" data-diff="impossible">INSANE</button>
+            </div>
+          </div>
+
+          <!-- Match Goal Selector -->
+          <div class="mode-select-group">
+            <span class="group-title">MATCH LENGTH (FIRST TO)</span>
+            <div class="btn-group points-group">
+              <button class="pts-btn" data-pts="5">5 PTS</button>
+              <button class="pts-btn active" data-pts="7">7 PTS</button>
+              <button class="pts-btn" data-pts="11">11 PTS</button>
+            </div>
+          </div>
+
+          <!-- Controls Breakdown -->
+          <div class="instructions-panel">
+            <div class="control-row">
+              <span class="key-badge">PLAYER 1 (LEFT)</span>
+              <span>[W] UP / [S] DOWN (or Drag Left Screen)</span>
+            </div>
+            <div class="control-row" id="p2-control-row">
+              <span class="key-badge">PLAYER 2 (RIGHT)</span>
+              <span>[↑] UP / [↓] DOWN (or Drag Right Screen)</span>
+            </div>
+            <div class="control-row">
+              <span class="key-badge">CURVE & SMASH</span>
+              <span>Hit with moving paddle edges to slice & accelerate the ball!</span>
+            </div>
+          </div>
+
+          <button id="btn-start" class="neon-btn primary-btn pulse-glow">
+            <span>START MATCH</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Match Over Modal -->
+      <div id="gameover-screen" class="game-modal">
+        <div class="modal-card">
+          <h2 id="winner-title" class="gameover-title">PLAYER 1 WINS!</h2>
+          <p id="winner-sub" class="gameover-sub">MATCH CONCLUDED</p>
+
+          <div class="results-grid">
+            <div class="result-item">
+              <span class="res-label" id="res-p1-label">PLAYER 1</span>
+              <span id="res-p1-score" class="res-val neon-cyan">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label" id="res-p2-label">PLAYER 2</span>
+              <span id="res-p2-score" class="res-val neon-pink">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">MAX RALLY</span>
+              <span id="res-max-rally" class="res-val neon-yellow">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">ALL-TIME BEST RALLY</span>
+              <span id="res-best-rally" class="res-val neon-green">0</span>
+            </div>
+          </div>
+
+          <div class="modal-buttons">
+            <button id="btn-restart" class="neon-btn primary-btn">
+              <span>REMATCH [R]</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn">
+              <span>ARCADE HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pause Screen Modal -->
+      <div id="pause-screen" class="game-modal">
+        <div class="modal-card mini-card">
+          <h2 class="pause-title">MATCH PAUSED</h2>
+          <p class="pause-sub">PRESS [P] OR CLICK RESUME</p>
+          <div class="modal-buttons">
+            <button id="btn-resume" class="neon-btn primary-btn">
+              <span>RESUME</span>
+            </button>
+            <button id="btn-pause-restart" class="neon-btn secondary-btn">
+              <span>RESTART</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn">
+              <span>EXIT TO HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Touch Zones for Mobile / Tablet -->
+      <div id="touch-left-zone" class="touch-paddle-zone touch-left"></div>
+      <div id="touch-right-zone" class="touch-paddle-zone touch-right"></div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

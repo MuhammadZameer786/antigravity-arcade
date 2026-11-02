@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>STAR VOYAGER // 3D Procedural Space Flight Simulator</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="game-wrapper">
+    <div id="game-container">
+      <!-- 3D Three.js WebGL Rendering Canvas -->
+      <canvas id="webgl-canvas"></canvas>
+
+      <!-- Vignette and Cockpit Frame Overlay -->
+      <div class="vignette-overlay"></div>
+
+      <!-- Flight Simulation HUD Overlay -->
+      <div id="hud-overlay">
+        <!-- Top Status Bar -->
+        <header class="hud-header">
+          <div class="hud-panel">
+            <div class="hud-title-tag">
+              <span class="pulse-dot"></span> SECTOR COORDINATES
+            </div>
+            <div class="hud-main-val" id="hud-sector">SEC [0, 0, 0]</div>
+            <div class="hud-sub-val" id="hud-system-name">CYGNUS-9 EXPEDITION</div>
+          </div>
+
+          <div class="hud-top-right">
+            <div class="hud-panel">
+              <div class="hud-title-tag">ORE HARVESTED</div>
+              <div class="hud-main-val" id="hud-ore">0 CARGO</div>
+              <div class="hud-sub-val" id="hud-score">SCORE: 00000</div>
+            </div>
+
+            <div class="hud-panel">
+              <div class="hud-title-tag">WARP DRIVE</div>
+              <div class="hud-main-val" id="hud-warp-status" style="color: var(--neon-cyan);">READY [J]</div>
+              <div class="hud-sub-val" id="hud-warp-cooldown">100% CHARGED</div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Central Crosshair & Reticle -->
+        <div class="reticle-container">
+          <div class="reticle-circle"></div>
+          <div class="reticle-crosshair-h"></div>
+          <div class="reticle-crosshair-v"></div>
+          <div class="reticle-dot"></div>
+        </div>
+
+        <!-- 3D Target Lock Bracket (Projects onto focused asteroids) -->
+        <div id="target-bracket">
+          <div class="target-info-label" id="target-label">ASTEROID // 840m</div>
+        </div>
+
+        <!-- Notification Banner -->
+        <div id="hud-alert">HYPERSPACE WARP ENGAGED</div>
+
+        <!-- Bottom Flight Dashboard -->
+        <footer class="hud-footer">
+          <!-- Left: Speedometer & Throttle Meters -->
+          <div class="flight-meters">
+            <div class="meter-group">
+              <div class="meter-label-row">
+                <span>VELOCITY</span>
+                <span id="val-speed">000 KM/S</span>
+              </div>
+              <div class="meter-bar-frame">
+                <div id="bar-speed" class="meter-bar-fill"></div>
+              </div>
+            </div>
+
+            <div class="meter-group">
+              <div class="meter-label-row">
+                <span>BOOST [SHIFT]</span>
+                <span id="val-boost">100%</span>
+              </div>
+              <div class="meter-bar-frame">
+                <div id="bar-boost" class="meter-bar-fill boost" style="width: 100%;"></div>
+              </div>
+            </div>
+
+            <div class="systems-meters">
+              <div class="system-pill">
+                <span class="system-title">SHIELDS</span>
+                <span class="system-val" id="val-shields">100%</span>
+              </div>
+              <div class="system-pill">
+                <span class="system-title">BLASTERS</span>
+                <span class="system-val" id="val-lasers" style="color: var(--neon-pink);">READY</span>
+              </div>
+              <div class="system-pill">
+                <span class="system-title">CAMERA</span>
+                <span class="system-val" id="val-cam-mode">CHASE</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Center: Controls Reference Hint -->
+          <div class="flight-hints">
+            <div><span class="key-badge">W / S</span> Pitch &bull; <span class="key-badge">A / D</span> Roll &bull; <span class="key-badge">Q / E</span> Yaw</div>
+            <div><span class="key-badge">SPACE</span> Throttle &bull; <span class="key-badge">SHIFT</span> Afterburners &bull; <span class="key-badge">CLICK / F</span> Fire Lasers</div>
+            <div><span class="key-badge">J</span> Warp Jump &bull; <span class="key-badge">C</span> Toggle Cockpit / Chase &bull; <span class="key-badge">M</span> Audio</div>
+          </div>
+
+          <!-- Right: Navigational Radar & Tool Buttons -->
+          <div class="hud-right-deck">
+            <!-- 2D Orbital Radar Scanner -->
+            <div class="radar-container" title="360° Proximity Sensor Radar">
+              <div class="radar-tag">SENSORS</div>
+              <div class="radar-sweep"></div>
+              <div class="radar-ring radar-ring-1"></div>
+              <div class="radar-ring radar-ring-2"></div>
+              <canvas id="radar-canvas" width="110" height="110" class="radar-blips-layer"></canvas>
+              <div class="radar-center-blip"></div>
+            </div>
+
+            <!-- Action Buttons Stack -->
+            <div class="hud-btn-stack">
+              <a href="../../index.html" class="hud-btn" title="Return to Arcade Hub">🏠</a>
+              <button id="btn-audio" class="hud-btn" title="Toggle Synthesizer Sound [M]">🔊</button>
+              <button id="btn-camera" class="hud-btn" title="Switch Camera Mode [C]">🎥</button>
+              <button id="btn-fullscreen" class="hud-btn" title="Toggle Fullscreen">⛶</button>
+              <button id="btn-pause" class="hud-btn" title="Pause Flight [P]">⏸</button>
+            </div>
+          </div>
+        </footer>
+      </div>
+
+      <!-- Touch Overlay for Mobile / Tablet -->
+      <div class="mobile-controls">
+        <div id="touch-flight-stick" class="touch-stick-zone"></div>
+        <div class="touch-btn-cluster">
+          <button id="touch-btn-fire" class="touch-btn" style="border-color: var(--neon-pink); color: var(--neon-pink);">FIRE</button>
+          <button id="touch-btn-boost" class="touch-btn">BOOST</button>
+          <button id="touch-btn-warp" class="touch-btn" style="border-color: var(--neon-amber); color: var(--neon-amber);">WARP</button>
+        </div>
+      </div>
+
+      <!-- Modal: Mission Briefing / Start Screen -->
+      <div id="modal-start" class="modal-layer active">
+        <div class="modal-content-card">
+          <div class="modal-badge"><span class="pulse-dot"></span> PROCEDURAL 3D SPACE FLIGHT SIM</div>
+          <h1 class="modal-title">STAR VOYAGER</h1>
+          <p class="modal-desc">
+            Pilot a deep-space interceptor through procedurally generated asteroid belts, planetary systems, and cosmic sectors. Mine rare minerals, test sub-light thrust, and engage hyperspace warp drive.
+          </p>
+
+          <div class="controls-grid">
+            <div class="control-item">
+              <span class="control-item-label">Pitch / Flight Elevators</span>
+              <span class="key-badge">W / S</span>
+            </div>
+            <div class="control-item">
+              <span class="control-item-label">Roll & Steering</span>
+              <span class="key-badge">A / D</span>
+            </div>
+            <div class="control-item">
+              <span class="control-item-label">Rudder Yaw</span>
+              <span class="key-badge">Q / E</span>
+            </div>
+            <div class="control-item">
+              <span class="control-item-label">Sub-Light Throttle</span>
+              <span class="key-badge">SPACE / UP</span>
+            </div>
+            <div class="control-item">
+              <span class="control-item-label">Ion Afterburners</span>
+              <span class="key-badge">LEFT SHIFT</span>
+            </div>
+            <div class="control-item">
+              <span class="control-item-label">Dual Plasma Cannons</span>
+              <span class="key-badge">LEFT CLICK / F</span>
+            </div>
+            <div class="control-item">
+              <span class="control-item-label">Hyperspace Warp Jump</span>
+              <span class="key-badge">J</span>
+            </div>
+            <div class="control-item">
+              <span class="control-item-label">Camera Perspective</span>
+              <span class="key-badge">C (Chase / Cockpit)</span>
+            </div>
+          </div>
+
+          <button id="btn-launch-game" class="btn-primary-launch">ENGAGE THRUSTERS ▶</button>
+          <a href="../../index.html" class="btn-secondary" style="display: block; text-decoration: none; margin-top: 10px;">Return to Arcade Hub</a>
+        </div>
+      </div>
+
+      <!-- Modal: Flight Paused -->
+      <div id="modal-pause" class="modal-layer">
+        <div class="modal-content-card" style="max-width: 480px;">
+          <div class="modal-badge">FLIGHT SUSPENDED</div>
+          <h2 class="modal-title" style="font-size: 2rem;">AUTOPILOT HOLD</h2>
+          <p class="modal-desc">Flight computers paused. Sensors active on background telemetry.</p>
+          <button id="btn-resume-game" class="btn-primary-launch">RESUME FLIGHT ▶</button>
+          <button id="btn-pause-audio" class="btn-secondary" style="margin-top: 12px;">Toggle Audio (M)</button>
+          <a href="../../index.html" class="btn-secondary" style="display: block; text-decoration: none; margin-top: 8px;">Exit to Arcade Hub</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js 3D Engine (Local file with CDN fallback) -->
+  <script src="three.min.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      console.warn("Local three.min.js not detected; loading CDN fallback...");
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    }
+  </script>
+
+  <!-- Star Voyager Simulation Engine -->
+  <script src="game.js"></script>
+</body>
+</html>

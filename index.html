@@ -1,0 +1,1971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANTIGRAVITY ARCADE // Mini-Games Playground</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --neon-cyan: #00f3ff;
+      --neon-pink: #ff007f;
+      --neon-purple: #9d00ff;
+      --neon-yellow: #ffe600;
+      --neon-green: #05ffa1;
+      --bg-dark: #07040d;
+      --bg-surface: rgba(18, 12, 34, 0.75);
+      --border-glow: rgba(0, 243, 255, 0.25);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(157, 0, 255, 0.2) 0%, transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(0, 243, 255, 0.12) 0%, transparent 50%),
+        linear-gradient(to bottom, #07040d, #050209);
+      color: #fff;
+      font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 60px;
+    }
+
+    /* Ambient animated grid */
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      background-size: 50px 50px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 243, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 243, 255, 0.04) 1px, transparent 1px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header */
+    header {
+      padding: 50px 0 35px;
+      text-align: center;
+      position: relative;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 243, 255, 0.1);
+      border: 1px solid rgba(0, 243, 255, 0.35);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--neon-cyan);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--neon-green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--neon-green);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    h1.hero-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 900;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #fff 20%, var(--neon-cyan) 60%, var(--neon-pink) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 35px rgba(0, 243, 255, 0.45);
+      margin-bottom: 12px;
+    }
+
+    p.hero-subtitle {
+      font-size: 1.15rem;
+      color: #9da3b4;
+      max-width: 620px;
+      margin: 0 auto 28px;
+      letter-spacing: 1px;
+    }
+
+    /* Stats Quick Bar */
+    .quick-stats {
+      display: inline-flex;
+      background: rgba(14, 9, 28, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      border-radius: 12px;
+      padding: 10px 24px;
+      gap: 30px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #798099;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .stat-val {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--neon-cyan);
+    }
+
+    /* Section Headers */
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin: 40px 0 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-title .icon {
+      color: var(--neon-pink);
+    }
+
+    .section-tag {
+      font-size: 12px;
+      color: #798099;
+      letter-spacing: 1px;
+    }
+
+    /* Grid Layout */
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 28px;
+    }
+
+    /* Game Card */
+    .game-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-radius: 16px;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .game-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--neon-cyan);
+      box-shadow: 
+        0 12px 35px rgba(0, 0, 0, 0.6),
+        0 0 25px rgba(0, 243, 255, 0.35);
+    }
+
+    /* Card Banner / Visual */
+    .card-banner {
+      position: relative;
+      height: 190px;
+      overflow: hidden;
+      background: #0d061c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Specific Art Canvas / Preview */
+    .neon-runner-art {
+      position: absolute;
+      inset: 0;
+      background: 
+        linear-gradient(to bottom, #11052c 0%, #2b0b4e 50%, #ff007f 78%, #03010a 80%),
+        radial-gradient(circle at 50% 55%, #ffe600 0%, #ff007f 35%, transparent 60%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .sun {
+      position: absolute;
+      bottom: 40px;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: linear-gradient(to top, #ff007f, #ffe600);
+      box-shadow: 0 0 45px rgba(255, 0, 127, 0.7);
+    }
+
+    .sun-slice {
+      position: absolute;
+      width: 100%;
+      height: 4px;
+      background: #2b0b4e;
+    }
+
+    .wireframe-floor {
+      position: absolute;
+      bottom: 0;
+      left: -20%;
+      right: -20%;
+      height: 44px;
+      background: 
+        linear-gradient(to bottom, transparent, rgba(0, 243, 255, 0.15)),
+        repeating-linear-gradient(90deg, transparent 0, transparent 30px, var(--neon-cyan) 30px, var(--neon-cyan) 32px);
+      transform: perspective(100px) rotateX(60deg);
+      border-top: 2px solid var(--neon-cyan);
+      box-shadow: 0 -5px 15px rgba(0, 243, 255, 0.5);
+    }
+
+    /* Gravity Flipper Art */
+    .gravity-flipper-art {
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 50% 50%, rgba(0, 243, 255, 0.22) 0%, rgba(157, 0, 255, 0.2) 50%, #06020f 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .ceiling-beam {
+      position: absolute;
+      top: 18px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 15px var(--neon-cyan);
+    }
+
+    .floor-beam {
+      position: absolute;
+      bottom: 18px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 15px var(--neon-cyan);
+    }
+
+    .gravity-cube {
+      width: 44px;
+      height: 44px;
+      border: 2px solid var(--neon-cyan);
+      background: rgba(14, 8, 28, 0.85);
+      border-radius: 6px;
+      box-shadow: 0 0 25px rgba(0, 243, 255, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: floatRotate 3.2s infinite ease-in-out;
+      z-index: 2;
+    }
+
+    .cube-core {
+      width: 16px;
+      height: 16px;
+      background: var(--neon-pink);
+      box-shadow: 0 0 15px var(--neon-pink);
+      border-radius: 3px;
+    }
+
+    .gravity-arrows {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+      color: rgba(0, 243, 255, 0.35);
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    @keyframes floatRotate {
+      0%, 100% { transform: translateY(-16px) rotate(0deg); }
+      50% { transform: translateY(16px) rotate(180deg); }
+    }
+
+    /* Neon Pong Art Banner */
+    .neon-pong-art {
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 50% 50%, rgba(255, 0, 127, 0.18) 0%, rgba(0, 243, 255, 0.14) 50%, #05020c 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 45px;
+      overflow: hidden;
+    }
+
+    .art-net {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.3) 0, rgba(255, 255, 255, 0.3) 10px, transparent 10px, transparent 20px);
+    }
+
+    .art-paddle {
+      width: 12px;
+      height: 60px;
+      border-radius: 4px;
+      z-index: 2;
+    }
+
+    .art-p1 {
+      background: var(--neon-cyan);
+      box-shadow: 0 0 20px var(--neon-cyan);
+      animation: paddleFloat1 2.8s infinite ease-in-out;
+    }
+
+    .art-p2 {
+      background: var(--neon-pink);
+      box-shadow: 0 0 20px var(--neon-pink);
+      animation: paddleFloat2 2.8s infinite ease-in-out;
+    }
+
+    .art-ball {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 0 20px var(--neon-cyan), 0 0 35px var(--neon-pink);
+      animation: ballBounce 2.8s infinite ease-in-out;
+      z-index: 2;
+    }
+
+    @keyframes paddleFloat1 {
+      0%, 100% { transform: translateY(-16px); }
+      50% { transform: translateY(16px); }
+    }
+
+    @keyframes paddleFloat2 {
+      0%, 100% { transform: translateY(16px); }
+      50% { transform: translateY(-16px); }
+    }
+
+    @keyframes ballBounce {
+      0% { top: 38%; left: 68px; }
+      50% { top: 62%; left: calc(100% - 78px); }
+      100% { top: 38%; left: 68px; }
+    }
+
+    /* Cyber Jetpack Art Banner */
+    .cyber-jetpack-art {
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 60% 50%, rgba(255, 0, 127, 0.22) 0%, rgba(0, 243, 255, 0.16) 45%, #06020e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .art-laser-beam {
+      position: absolute;
+      right: 25%;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--neon-pink);
+      box-shadow: 0 0 16px var(--neon-pink), 0 0 30px var(--neon-pink);
+      animation: laserPulse 1.8s infinite ease-in-out;
+    }
+
+    .art-jetpack-pilot {
+      position: absolute;
+      left: 32%;
+      width: 32px;
+      height: 42px;
+      background: #0f0724;
+      border: 2px solid var(--neon-cyan);
+      border-radius: 6px;
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      animation: jetpackFly 2.5s infinite ease-in-out;
+      z-index: 2;
+    }
+
+    .art-visor {
+      width: 14px;
+      height: 6px;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 10px var(--neon-cyan);
+      border-radius: 2px;
+      margin-bottom: 4px;
+    }
+
+    .art-thruster-flame {
+      position: absolute;
+      bottom: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 18px;
+      background: linear-gradient(to bottom, #ffffff, #ffe600, #ff007f);
+      border-radius: 0 0 6px 6px;
+      box-shadow: 0 0 15px #ffe600, 0 0 25px #ff007f;
+      animation: thrusterFlicker 0.15s infinite alternate;
+    }
+
+    @keyframes jetpackFly {
+      0%, 100% { transform: translateY(-12px) rotate(-6deg); }
+      50% { transform: translateY(14px) rotate(8deg); }
+    }
+
+    @keyframes thrusterFlicker {
+      from { height: 16px; opacity: 0.9; }
+      to { height: 22px; opacity: 1.0; }
+    }
+
+    @keyframes laserPulse {
+      0%, 100% { opacity: 0.6; box-shadow: 0 0 12px var(--neon-pink); }
+      50% { opacity: 1; box-shadow: 0 0 26px var(--neon-pink), 0 0 40px #fff; }
+    }
+
+    /* Star Voyager 3D Art Banner */
+    .star-voyager-art {
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 75% 30%, rgba(0, 243, 255, 0.28) 0%, rgba(157, 0, 255, 0.22) 40%, #03020a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .art-star-field {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        radial-gradient(1px 1px at 20px 30px, #eee, rgba(0,0,0,0)),
+        radial-gradient(1.5px 1.5px at 120px 80px, #00f3ff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 240px 150px, #ff007f, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 310px 40px, #fff, rgba(0,0,0,0)),
+        radial-gradient(1.5px 1.5px at 70px 170px, #fff, rgba(0,0,0,0));
+      background-repeat: repeat;
+      background-size: 350px 200px;
+      animation: warpStars 12s linear infinite;
+    }
+
+    @keyframes warpStars {
+      from { transform: scale(0.9) rotate(0deg); }
+      to { transform: scale(1.15) rotate(4deg); }
+    }
+
+    .art-planet-ring {
+      position: absolute;
+      right: 18%;
+      top: 22%;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #00f3ff 0%, #150836 70%);
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+    }
+
+    .art-planet-ring::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 76px;
+      height: 18px;
+      border: 2px solid rgba(0, 243, 255, 0.5);
+      border-radius: 50%;
+      transform: translate(-50%, -50%) rotate(-25deg);
+    }
+
+    .art-spaceship {
+      position: absolute;
+      left: 32%;
+      width: 0;
+      height: 0;
+      border-left: 16px solid transparent;
+      border-right: 16px solid transparent;
+      border-bottom: 38px solid #00f3ff;
+      filter: drop-shadow(0 0 16px rgba(0, 243, 255, 0.8));
+      transform: rotate(55deg);
+      animation: shipFloat 3s infinite ease-in-out;
+    }
+
+    .art-ship-flame {
+      position: absolute;
+      bottom: -16px;
+      left: -4px;
+      width: 8px;
+      height: 16px;
+      background: linear-gradient(to bottom, #ffffff, #00f3ff, #ff007f);
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 0 15px #00f3ff, 0 0 25px #ff007f;
+      animation: thrusterFlicker 0.12s infinite alternate;
+    }
+
+    @keyframes shipFloat {
+      0%, 100% { transform: rotate(55deg) translateY(-5px); }
+      50% { transform: rotate(55deg) translateY(6px); }
+    }
+
+    /* Quantum Breaker Banner Art */
+    .quantum-breaker-art {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 30%, #15062a 0%, #06020f 80%);
+      overflow: hidden;
+    }
+
+    .art-breaker-grid {
+      position: absolute;
+      top: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 82%;
+    }
+
+    .art-brick-row {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    .art-qbrick {
+      height: 10px;
+      flex: 1;
+      border-radius: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .art-qbrick.pink {
+      background: var(--neon-pink);
+      box-shadow: 0 0 10px var(--neon-pink);
+    }
+
+    .art-qbrick.cyan {
+      background: var(--neon-cyan);
+      box-shadow: 0 0 10px var(--neon-cyan);
+    }
+
+    .art-qbrick.yellow {
+      background: var(--neon-yellow);
+      box-shadow: 0 0 10px var(--neon-yellow);
+    }
+
+    .art-qbrick.purple {
+      background: var(--neon-purple);
+      box-shadow: 0 0 10px var(--neon-purple);
+    }
+
+    .art-qpaddle {
+      position: absolute;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90px;
+      height: 10px;
+      background: var(--neon-cyan);
+      border-radius: 5px;
+      box-shadow: 0 0 16px var(--neon-cyan);
+      animation: paddleFloat 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes paddleFloat {
+      0% { transform: translateX(-68%); }
+      100% { transform: translateX(-32%); }
+    }
+
+    .art-qball {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 14px var(--neon-pink);
+      animation: ballRicochet 3s infinite ease-in-out;
+    }
+
+    .art-qball-2 {
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 14px var(--neon-cyan);
+      animation: ballRicochet2 2.6s infinite ease-in-out;
+    }
+
+    @keyframes ballRicochet {
+      0% { left: 45%; top: 70%; }
+      35% { left: 75%; top: 32%; }
+      70% { left: 30%; top: 38%; }
+      100% { left: 45%; top: 70%; }
+    }
+
+    @keyframes ballRicochet2 {
+      0% { left: 55%; top: 68%; }
+      40% { left: 25%; top: 30%; }
+      75% { left: 68%; top: 40%; }
+      100% { left: 55%; top: 68%; }
+    }
+
+    /* Cyber Pinball Banner Art */
+    .cyber-pinball-art {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 40%, #160628 0%, #090315 70%, #03010a 100%);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .art-pinball-table {
+      position: relative;
+      width: 150px;
+      height: 100%;
+      border-left: 2px solid rgba(0, 243, 255, 0.4);
+      border-right: 2px solid rgba(0, 243, 255, 0.4);
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.15);
+    }
+
+    .art-bumper {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+    }
+
+    .art-bumper.b1 {
+      top: 25px;
+      left: 32px;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 12px var(--neon-cyan);
+      animation: bumperPulse 2s infinite ease-in-out;
+    }
+
+    .art-bumper.b2 {
+      top: 25px;
+      right: 32px;
+      background: var(--neon-pink);
+      box-shadow: 0 0 12px var(--neon-pink);
+      animation: bumperPulse 2s infinite 0.7s ease-in-out;
+    }
+
+    .art-bumper.b3 {
+      top: 55px;
+      left: 65px;
+      background: var(--neon-yellow);
+      box-shadow: 0 0 12px var(--neon-yellow);
+      animation: bumperPulse 2s infinite 1.4s ease-in-out;
+    }
+
+    @keyframes bumperPulse {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.15); filter: brightness(1.4); }
+    }
+
+    .art-flipper-l {
+      position: absolute;
+      bottom: 24px;
+      left: 25px;
+      width: 42px;
+      height: 7px;
+      background: var(--neon-cyan);
+      border-radius: 4px;
+      box-shadow: 0 0 10px var(--neon-cyan);
+      transform-origin: left center;
+      animation: flipperFlipL 2.4s infinite ease-in-out;
+    }
+
+    .art-flipper-r {
+      position: absolute;
+      bottom: 24px;
+      right: 25px;
+      width: 42px;
+      height: 7px;
+      background: var(--neon-pink);
+      border-radius: 4px;
+      box-shadow: 0 0 10px var(--neon-pink);
+      transform-origin: right center;
+      animation: flipperFlipR 2.4s infinite ease-in-out 0.2s;
+    }
+
+    @keyframes flipperFlipL {
+      0%, 80%, 100% { transform: rotate(25deg); }
+      85%, 95% { transform: rotate(-30deg); }
+    }
+
+    @keyframes flipperFlipR {
+      0%, 75%, 100% { transform: rotate(-25deg); }
+      80%, 90% { transform: rotate(30deg); }
+    }
+
+    .art-pin-ball {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 14px var(--neon-cyan);
+      animation: pinballPath 2.4s infinite ease-in-out;
+    }
+
+    @keyframes pinballPath {
+      0% { left: 40px; top: 110px; }
+      25% { left: 45px; top: 35px; }
+      50% { left: 95px; top: 35px; }
+      75% { left: 75px; top: 75px; }
+      100% { left: 40px; top: 110px; }
+    }
+
+    /* Cyber Snake Banner Art */
+    .cyber-snake-art {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, #071524 0%, #030812 70%, #01040a 100%);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .art-snake-grid {
+      position: absolute;
+      inset: 0;
+      background-size: 24px 24px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 243, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 243, 255, 0.08) 1px, transparent 1px);
+    }
+
+    .art-snake-serpent {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .art-snake-seg {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 12px var(--neon-cyan);
+      border: 1px solid #fff;
+    }
+
+    .art-snake-head {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      background: #ffffff;
+      box-shadow: 0 0 18px var(--neon-cyan), 0 0 30px var(--neon-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: snakeHeadSlither 4s infinite ease-in-out;
+    }
+
+    .art-snake-head::after {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 8px #fff;
+    }
+
+    .art-snake-food {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: var(--neon-yellow);
+      box-shadow: 0 0 16px var(--neon-yellow);
+      transform: rotate(45deg);
+      border: 1px solid #fff;
+      animation: foodPulse 1.8s infinite ease-in-out;
+    }
+
+    @keyframes foodPulse {
+      0%, 100% { transform: rotate(45deg) scale(0.9); box-shadow: 0 0 10px var(--neon-yellow); }
+      50% { transform: rotate(45deg) scale(1.25); box-shadow: 0 0 24px var(--neon-yellow); }
+    }
+
+    @keyframes snakeHeadSlither {
+      0% { top: 60px; left: 160px; }
+      25% { top: 60px; left: 210px; }
+      50% { top: 110px; left: 210px; }
+      75% { top: 110px; left: 160px; }
+      100% { top: 60px; left: 160px; }
+    }
+
+    .badge-live {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(5, 255, 161, 0.15);
+      border: 1px solid var(--neon-green);
+      color: var(--neon-green);
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 2;
+    }
+
+    .card-body {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+
+    .card-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .card-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+
+    .card-desc {
+      color: #9da3b4;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      margin-bottom: 18px;
+      flex-grow: 1;
+    }
+
+    .tags-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+
+    .game-tag {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #c0c6dc;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .card-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 12px;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .meta-label {
+      color: #697086;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .meta-val {
+      font-family: 'Orbitron', monospace;
+      color: var(--neon-yellow);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .play-btn {
+      flex: 1;
+      background: var(--neon-cyan);
+      color: #030109;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 12px 18px;
+      border-radius: 8px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.35);
+      border: none;
+      cursor: pointer;
+    }
+
+    .play-btn:hover {
+      background: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 0 25px rgba(0, 243, 255, 0.7);
+    }
+
+    .icon-action-btn {
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font-size: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .icon-action-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: #fff;
+    }
+
+    /* Ideas / Planned Cards */
+    .idea-card {
+      background: rgba(14, 10, 26, 0.45);
+      border: 1px dashed rgba(255, 255, 255, 0.16);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.25s ease;
+    }
+
+    .idea-card:hover {
+      border-color: var(--neon-pink);
+      background: rgba(20, 12, 38, 0.7);
+      transform: translateY(-3px);
+    }
+
+    .idea-icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .idea-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .idea-desc {
+      color: #8c93a8;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      margin-bottom: 16px;
+      flex-grow: 1;
+    }
+
+    .prompt-btn {
+      background: rgba(255, 0, 127, 0.15);
+      border: 1px solid rgba(255, 0, 127, 0.4);
+      color: #ff55a3;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-align: center;
+      justify-content: center;
+    }
+
+    .prompt-btn:hover {
+      background: var(--neon-pink);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(255, 0, 127, 0.5);
+    }
+
+    /* Helper Guide Banner */
+    .guide-box {
+      margin-top: 50px;
+      background: linear-gradient(135deg, rgba(20, 12, 40, 0.8), rgba(9, 5, 20, 0.95));
+      border: 1px solid rgba(157, 0, 255, 0.3);
+      border-radius: 14px;
+      padding: 24px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .guide-text h3 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.15rem;
+      color: var(--neon-purple);
+      margin-bottom: 6px;
+    }
+
+    .guide-text p {
+      color: #9da3b4;
+      font-size: 0.92rem;
+    }
+
+    .guide-code {
+      font-family: monospace;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--neon-cyan);
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(12, 6, 26, 0.95);
+      border: 1px solid var(--neon-green);
+      color: var(--neon-green);
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-family: 'Orbitron', monospace;
+      font-size: 12px;
+      letter-spacing: 1px;
+      box-shadow: 0 0 20px rgba(5, 255, 161, 0.4);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Neon Matrix Blocks Banner Art */
+    .neon-blocks-art {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, #17072d 0%, #080312 70%, #020106 100%);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .art-tetris-matrix {
+      position: relative;
+      width: 140px;
+      height: 100%;
+      border-left: 1px dashed rgba(0, 243, 255, 0.3);
+      border-right: 1px dashed rgba(0, 243, 255, 0.3);
+      background: 
+        linear-gradient(90deg, rgba(0, 243, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(0, 243, 255, 0.04) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    .art-tetromino {
+      position: absolute;
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .art-tet-cell {
+      width: 18px;
+      height: 18px;
+      border-radius: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .art-t-piece {
+      top: 20px;
+      left: 36px;
+      width: 54px;
+      height: 36px;
+      animation: tetFloat 3.2s infinite ease-in-out;
+    }
+
+    .art-t-piece .art-tet-cell {
+      background: var(--neon-purple);
+      color: var(--neon-purple);
+    }
+
+    .art-i-piece {
+      top: 65px;
+      left: 18px;
+      width: 72px;
+      height: 18px;
+      animation: tetFloat 3.2s infinite ease-in-out 1.2s;
+    }
+
+    .art-i-piece .art-tet-cell {
+      background: var(--neon-cyan);
+      color: var(--neon-cyan);
+    }
+
+    .art-o-piece {
+      bottom: 18px;
+      left: 45px;
+      width: 36px;
+      height: 36px;
+      animation: tetFloat 3.2s infinite ease-in-out 0.6s;
+    }
+
+    .art-o-piece .art-tet-cell {
+      background: var(--neon-yellow);
+      color: var(--neon-yellow);
+    }
+
+    @keyframes tetFloat {
+      0%, 100% { transform: translateY(0); filter: brightness(1); }
+      50% { transform: translateY(-5px); filter: brightness(1.3); }
+    }
+
+    @media (max-width: 600px) {
+      .games-grid {
+        grid-template-columns: 1fr;
+      }
+      .quick-stats {
+        width: 100%;
+        justify-content: space-around;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="header-badge">
+        <span class="status-dot"></span>
+        <span>Game Station Ready</span>
+      </div>
+      <h1 class="hero-title">Antigravity Arcade</h1>
+      <p class="hero-subtitle">Your personal mini-games playground for quick breaks & pass-times. Pick a game below or ask to build a new one anytime!</p>
+
+      <div class="quick-stats">
+        <div class="stat-item">
+          <span class="stat-label">Active Games</span>
+          <span class="stat-val" id="stat-game-count">9</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Audio Engine</span>
+          <span class="stat-val">Web Audio</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Status</span>
+          <span class="stat-val" style="color: var(--neon-green);">ALL SYSTEMS GO</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Playable Games Section -->
+    <div class="section-head">
+      <div class="section-title">
+        <span class="icon">⚡</span> Playable Games
+      </div>
+      <div class="section-tag">Direct Play (No Install)</div>
+    </div>
+
+    <div class="games-grid">
+      <!-- Neon Runner Card -->
+      <div class="game-card">
+        <div class="card-banner">
+          <div class="neon-runner-art">
+            <div class="sun">
+              <div class="sun-slice" style="bottom: 22px;"></div>
+              <div class="sun-slice" style="bottom: 34px;"></div>
+              <div class="sun-slice" style="bottom: 48px;"></div>
+            </div>
+            <div class="wireframe-floor"></div>
+          </div>
+          <div class="badge-live">
+            <span class="status-dot"></span> READY
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 class="card-title">Neon Runner</h2>
+          </div>
+          <p class="card-desc">
+            80s Synthwave / Cyberpunk endless runner. Jump over lasers, slide under drones, collect energy shards, and trigger Hyper Overdrive rampage!
+          </p>
+
+          <div class="tags-row">
+            <span class="game-tag">Canvas 2D</span>
+            <span class="game-tag">Synthwave</span>
+            <span class="game-tag">Procedural Audio</span>
+            <span class="game-tag">Mobile + Desktop</span>
+          </div>
+
+          <div class="card-meta-row">
+            <div class="meta-item">
+              <span class="meta-label">Local High Score</span>
+              <span class="meta-val" id="card-highscore-display">0 PTS</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Controls</span>
+              <span style="font-size: 11px; color:#aaa;">Space / W / Arrows / Touch</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="games/neon-runner/index.html" class="play-btn">
+              <span>▶ LAUNCH GAME</span>
+            </a>
+            <a href="games/neon-runner/README.md" class="icon-action-btn" title="View Instructions">
+              <span>📖</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gravity Flipper Card -->
+      <div class="game-card">
+        <div class="card-banner">
+          <div class="gravity-flipper-art">
+            <div class="ceiling-beam"></div>
+            <div class="gravity-arrows">
+              <span>▲</span>
+              <span>▼</span>
+            </div>
+            <div class="gravity-cube">
+              <div class="cube-core"></div>
+            </div>
+            <div class="floor-beam"></div>
+          </div>
+          <div class="badge-live">
+            <span class="status-dot"></span> READY
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 class="card-title">Gravity Flipper</h2>
+          </div>
+          <p class="card-desc">
+            Fast-paced quantum inversion runner. Invert gravity between ceiling and floor, execute mid-air rescue flips, and chain Graviton Orbs for up to 8x multiplier!
+          </p>
+
+          <div class="tags-row">
+            <span class="game-tag">Canvas 2D</span>
+            <span class="game-tag">Reflex Runner</span>
+            <span class="game-tag">Web Audio Music</span>
+            <span class="game-tag">One-Tap / Click</span>
+          </div>
+
+          <div class="card-meta-row">
+            <div class="meta-item">
+              <span class="meta-label">Local High Score</span>
+              <span class="meta-val" id="gravity-highscore-display">0 PTS</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Controls</span>
+              <span style="font-size: 11px; color:#aaa;">Space / Up / Click / Tap</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="games/gravity-flipper/index.html" class="play-btn">
+              <span>▶ LAUNCH GAME</span>
+            </a>
+            <a href="games/gravity-flipper/README.md" class="icon-action-btn" title="View Instructions">
+              <span>📖</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Neon Pong Card -->
+      <div class="game-card">
+        <div class="card-banner">
+          <div class="neon-pong-art">
+            <div class="art-net"></div>
+            <div class="art-paddle art-p1"></div>
+            <div class="art-ball"></div>
+            <div class="art-paddle art-p2"></div>
+          </div>
+          <div class="badge-live">
+            <span class="status-dot"></span> READY
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 class="card-title">Neon Pong</h2>
+          </div>
+          <p class="card-desc">
+            High-velocity cyberpunk paddle rally. Play solo against adaptive AI (4 difficulty tiers) or battle a friend in 2P local split keyboard play with curve spin physics!
+          </p>
+
+          <div class="tags-row">
+            <span class="game-tag">Canvas 2D</span>
+            <span class="game-tag">1P vs AI</span>
+            <span class="game-tag">2P Local Versus</span>
+            <span class="game-tag">Curve Physics</span>
+          </div>
+
+          <div class="card-meta-row">
+            <div class="meta-item">
+              <span class="meta-label">All-Time Best Rally</span>
+              <span class="meta-val" id="pong-rally-display">0 HITS</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Controls</span>
+              <span style="font-size: 11px; color:#aaa;">P1: W/S | P2: ↑/↓ | Touch</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="games/neon-pong/index.html" class="play-btn">
+              <span>▶ LAUNCH GAME</span>
+            </a>
+            <a href="games/neon-pong/README.md" class="icon-action-btn" title="View Instructions">
+              <span>📖</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cyber Jetpack Card -->
+      <div class="game-card">
+        <div class="card-banner">
+          <div class="cyber-jetpack-art">
+            <div class="art-laser-beam"></div>
+            <div class="art-jetpack-pilot">
+              <div class="art-visor"></div>
+              <div class="art-thruster-flame"></div>
+            </div>
+          </div>
+          <div class="badge-live">
+            <span class="status-dot"></span> READY
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 class="card-title">Cyber Jetpack</h2>
+          </div>
+          <p class="card-desc">
+            One-touch thrust arcade runner. Fire plasma thrusters, weave through lethal oscillating laser grids and homing missiles, activate shields, and blast through in Hyper Overdrive!
+          </p>
+
+          <div class="tags-row">
+            <span class="game-tag">Canvas 2D</span>
+            <span class="game-tag">One-Touch Thrust</span>
+            <span class="game-tag">Laser Matrix</span>
+            <span class="game-tag">Procedural Audio</span>
+          </div>
+
+          <div class="card-meta-row">
+            <div class="meta-item">
+              <span class="meta-label">Local High Score</span>
+              <span class="meta-val" id="jetpack-highscore-display">0 PTS</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Controls</span>
+              <span style="font-size: 11px; color:#aaa;">Space / W / Click / Touch</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="games/cyber-jetpack/index.html" class="play-btn">
+              <span>▶ LAUNCH GAME</span>
+            </a>
+            <a href="games/cyber-jetpack/README.md" class="icon-action-btn" title="View Instructions">
+              <span>📖</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Star Voyager Card (3D Procedural Space) -->
+      <div class="game-card">
+        <div class="card-banner">
+          <div class="star-voyager-art">
+            <div class="art-star-field"></div>
+            <div class="art-planet-ring"></div>
+            <div class="art-spaceship">
+              <div class="art-ship-flame"></div>
+            </div>
+          </div>
+          <div class="badge-live">
+            <span class="status-dot"></span> 3D READY
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 class="card-title">Star Voyager</h2>
+          </div>
+          <p class="card-desc">
+            3D procedural space flight simulator. Pilot an interceptor through infinite asteroid belts, mine crystal ore with plasma lasers, scan planets, and trigger hyperspace FTL warp jumps!
+          </p>
+
+          <div class="tags-row">
+            <span class="game-tag">Three.js 3D</span>
+            <span class="game-tag">Procedural World</span>
+            <span class="game-tag">6DOF Flight</span>
+            <span class="game-tag">FTL Warp Jump</span>
+            <span class="game-tag">Web Audio Synth</span>
+          </div>
+
+          <div class="card-meta-row">
+            <div class="meta-item">
+              <span class="meta-label">Camera Modes</span>
+              <span class="meta-val">Chase & Cockpit</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Controls</span>
+              <span style="font-size: 11px; color:#aaa;">W/S/A/D/Q/E, Space, Shift, J, Click</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="games/star-voyager/index.html" class="play-btn">
+              <span>▶ LAUNCH GAME</span>
+            </a>
+            <a href="games/star-voyager/README.md" class="icon-action-btn" title="View Instructions">
+              <span>📖</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quantum Breaker Card -->
+      <div class="game-card">
+        <div class="card-banner">
+          <div class="quantum-breaker-art">
+            <div class="art-breaker-grid">
+              <div class="art-brick-row">
+                <div class="art-qbrick pink"></div>
+                <div class="art-qbrick pink"></div>
+                <div class="art-qbrick cyan"></div>
+                <div class="art-qbrick cyan"></div>
+                <div class="art-qbrick yellow"></div>
+                <div class="art-qbrick yellow"></div>
+              </div>
+              <div class="art-brick-row">
+                <div class="art-qbrick cyan"></div>
+                <div class="art-qbrick yellow"></div>
+                <div class="art-qbrick purple"></div>
+                <div class="art-qbrick purple"></div>
+                <div class="art-qbrick cyan"></div>
+                <div class="art-qbrick pink"></div>
+              </div>
+            </div>
+            <div class="art-qball"></div>
+            <div class="art-qball-2"></div>
+            <div class="art-qpaddle"></div>
+          </div>
+          <div class="badge-live">
+            <span class="status-dot"></span> READY
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 class="card-title">Quantum Breaker</h2>
+          </div>
+          <p class="card-desc">
+            Neon Matrix Breakout / Arkanoid. Stack explosive multi-balls, mount twin plasma laser cannons, shatter armored bricks, and chain huge combo scores with musical synth notes!
+          </p>
+
+          <div class="tags-row">
+            <span class="game-tag">Canvas 2D</span>
+            <span class="game-tag">Multi-Ball Madness</span>
+            <span class="game-tag">Laser Cannons</span>
+            <span class="game-tag">Musical Pentatonic</span>
+            <span class="game-tag">Procedural Audio</span>
+          </div>
+
+          <div class="card-meta-row">
+            <div class="meta-item">
+              <span class="meta-label">Local High Score</span>
+              <span class="meta-val" id="breaker-highscore-display">0 PTS</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Controls</span>
+              <span style="font-size: 11px; color:#aaa;">Mouse / Arrows / A-D, Space / Click</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="games/quantum-breaker/index.html" class="play-btn">
+              <span>▶ LAUNCH GAME</span>
+            </a>
+            <a href="games/quantum-breaker/README.md" class="icon-action-btn" title="View Instructions">
+              <span>📖</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cyber Snake Card -->
+      <div class="game-card">
+        <div class="card-banner">
+          <div class="cyber-snake-art">
+            <div class="art-snake-grid"></div>
+            <div class="art-snake-serpent">
+              <div class="art-snake-seg" style="top: 100px; left: 70px; opacity: 0.35;"></div>
+              <div class="art-snake-seg" style="top: 100px; left: 95px; opacity: 0.55;"></div>
+              <div class="art-snake-seg" style="top: 100px; left: 120px; opacity: 0.75;"></div>
+              <div class="art-snake-seg" style="top: 75px; left: 120px; opacity: 0.85;"></div>
+              <div class="art-snake-seg" style="top: 50px; left: 120px; opacity: 0.95;"></div>
+              <div class="art-snake-head" style="top: 50px; left: 145px;"></div>
+            </div>
+            <div class="art-snake-food" style="top: 50px; left: 230px;"></div>
+          </div>
+          <div class="badge-live">
+            <span class="status-dot"></span> READY
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 class="card-title">Cyber Snake</h2>
+            <span class="genre-tag neon">NEON OVERDRIVE</span>
+          </div>
+
+          <p class="card-desc">
+            High-speed cyberpunk serpent runner on an electrified matrix! Feast on memory data packets and golden crypto cores, deploy Phase Shift cloak and Chrono Slow-Mo, and trigger Overdrive Turbo boosts with dynamic procedural synthwave audio.
+          </p>
+
+          <div class="card-tags">
+            <span class="tag">60 FPS Interpolation</span>
+            <span class="tag">Overdrive Turbo</span>
+            <span class="tag">Phase & Chrono</span>
+            <span class="tag">Warp Portals</span>
+            <span class="tag">Synthwave BGM</span>
+            <span class="tag">Themes</span>
+          </div>
+
+          <div class="card-meta">
+            <div class="meta-item">
+              <span class="meta-label">Category</span>
+              <span>Futuristic Arcade</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Modes</span>
+              <span>Classic / Hazards / Time Surge</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">All-Time High</span>
+              <span class="meta-val" id="snake-highscore-display">0 PTS</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Controls</span>
+              <span style="font-size: 11px; color:#aaa;">WASD / Arrows, Space Turbo, Touch</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="games/cyber-snake/index.html" class="play-btn">
+              <span>▶ LAUNCH GAME</span>
+            </a>
+            <a href="games/cyber-snake/README.md" class="icon-action-btn" title="View Instructions">
+              <span>📖</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cyber Pinball Card -->
+      <div class="game-card">
+        <div class="card-banner">
+          <div class="cyber-pinball-art">
+            <div class="art-pinball-table">
+              <div class="art-bumper b1"></div>
+              <div class="art-bumper b2"></div>
+              <div class="art-bumper b3"></div>
+              <div class="art-pin-ball"></div>
+              <div class="art-flipper-l"></div>
+              <div class="art-flipper-r"></div>
+            </div>
+          </div>
+          <div class="badge-live">
+            <span class="status-dot"></span> READY
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 class="card-title">Cyber Pinball</h2>
+            <span class="genre-tag neon">MATRIX OVERDRIVE</span>
+          </div>
+
+          <p class="card-desc">
+            Electrifying retro-futuristic pinball table with dual flippers, warp ramps, pop bumper cores, slingshots, and multi-ball jackpots! Lock 3 balls into the cyber scoop to trigger 3-ball Multi-Ball mayhem and score massive 1,000,000 Super Jackpots.
+          </p>
+
+          <div class="card-tags">
+            <span class="tag">Physics Substeps</span>
+            <span class="tag">Warp Loops</span>
+            <span class="tag">Multi-Ball (3x)</span>
+            <span class="tag">Jackpots & Super</span>
+            <span class="tag">DMD Screen</span>
+            <span class="tag">Synthesizer BGM</span>
+          </div>
+
+          <div class="card-meta">
+            <div class="meta-item">
+              <span class="meta-label">Category</span>
+              <span>Cyberpunk Pinball</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Modes</span>
+              <span>1P / Multi-Ball Overdrive</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Local High Score</span>
+              <span class="meta-val" id="pinball-highscore-display">500,000 PTS</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Controls</span>
+              <span style="font-size: 11px; color:#aaa;">A/Z, D//, Space Plunger, Nudge</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="games/cyber-pinball/index.html" class="play-btn">
+              <span>▶ LAUNCH GAME</span>
+            </a>
+            <a href="games/cyber-pinball/README.md" class="icon-action-btn" title="View Instructions">
+              <span>📖</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Neon Matrix Blocks Card -->
+      <div class="game-card">
+        <div class="card-banner">
+          <div class="neon-blocks-art">
+            <div class="art-tetris-matrix">
+              <div class="art-tetromino art-t-piece">
+                <div class="art-tet-cell" style="margin-left: 18px;"></div>
+                <div style="display: flex; width: 100%;">
+                  <div class="art-tet-cell"></div>
+                  <div class="art-tet-cell"></div>
+                  <div class="art-tet-cell"></div>
+                </div>
+              </div>
+              <div class="art-tetromino art-i-piece">
+                <div class="art-tet-cell"></div>
+                <div class="art-tet-cell"></div>
+                <div class="art-tet-cell"></div>
+                <div class="art-tet-cell"></div>
+              </div>
+              <div class="art-tetromino art-o-piece">
+                <div style="display: flex;">
+                  <div class="art-tet-cell"></div>
+                  <div class="art-tet-cell"></div>
+                </div>
+                <div style="display: flex;">
+                  <div class="art-tet-cell"></div>
+                  <div class="art-tet-cell"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="badge-live">
+            <span class="status-dot"></span> READY
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 class="card-title">Neon Matrix Blocks</h2>
+            <span class="genre-tag neon">CYBERPUZZLE</span>
+          </div>
+
+          <p class="card-desc">
+            Esports-grade falling polyomino puzzle with Super Rotation System (SRS), holographic ghost projections, laser line clears, hard drop shockwaves, and procedural Web Audio synthwave soundtrack.
+          </p>
+
+          <div class="card-tags">
+            <span class="tag">SRS Wall Kicks</span>
+            <span class="tag">Holo Ghost</span>
+            <span class="tag">7-Bag Random</span>
+            <span class="tag">Laser Clears</span>
+            <span class="tag">Back-to-Back</span>
+            <span class="tag">T-Spins</span>
+            <span class="tag">Synthwave BGM</span>
+          </div>
+
+          <div class="card-meta">
+            <div class="meta-item">
+              <span class="meta-label">Category</span>
+              <span>Polyomino Block Puzzle</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Modes</span>
+              <span>Marathon / Sprint / Ultra</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Local High Score</span>
+              <span class="meta-val" id="blocks-highscore-display">0 PTS</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Controls</span>
+              <span style="font-size: 11px; color:#aaa;">Arrows/WASD, Space, C Hold, Touch</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="games/neon-blocks/index.html" class="play-btn">
+              <span>▶ LAUNCH GAME</span>
+            </a>
+            <a href="games/neon-blocks/README.md" class="icon-action-btn" title="View Instructions">
+              <span>📖</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suggested Games to Build Section -->
+    <div class="section-head" style="margin-top: 55px;">
+      <div class="section-title">
+        <span class="icon">💡</span> Pass-Time Ideas to Build Next
+      </div>
+      <div class="section-tag">Click to copy request prompt</div>
+    </div>
+
+    <div class="games-grid">
+      <!-- Idea 1: Neon Cyber Drift -->
+      <div class="idea-card">
+        <div class="idea-icon">🏎️</div>
+        <h3 class="idea-title">Neon Cyber Drift</h3>
+        <p class="idea-desc">
+          Top-down retro arcade racer with vector drift physics, turbo boosts, neon checkpoints, and synthwave beats.
+        </p>
+        <button class="prompt-btn" onclick="copyPrompt('Please build a top-down Neon Cyber Drift racing game in games/cyber-drift with vector momentum, drift trails, and time trials.')">
+          📋 Copy Prompt
+        </button>
+      </div>
+
+      <!-- Idea 2: Starfall Shooter -->
+      <div class="idea-card">
+        <div class="idea-icon">🚀</div>
+        <h3 class="idea-title">Starfall Defender</h3>
+        <p class="idea-desc">
+          Retro vertical space shooter with waves of cyber drones, multi-directional weapon upgrades, and boss encounters.
+        </p>
+        <button class="prompt-btn" onclick="copyPrompt('Please build a top-down retro space shooter in games/starfall-defender with weapon upgrades and particle effects.')">
+          📋 Copy Prompt
+        </button>
+      </div>
+
+      <!-- Idea 3: Cyber Pinball -->
+      <div class="idea-card">
+        <div class="idea-icon">⚡</div>
+        <h3 class="idea-title">Neon Pinball / Cyber Flipper</h3>
+        <p class="idea-desc">
+          High-voltage cyberpunk pinball table with dual flippers, magnetic bumpers, skill-shot ramps, and multi-ball jackpots.
+        </p>
+        <button class="prompt-btn" onclick="copyPrompt('Please build a neon Cyber Pinball game in games/cyber-pinball with flippers, ramps, and multi-ball jackpots.')">
+          📋 Copy Prompt
+        </button>
+      </div>
+
+      <!-- Idea 4: Cyber Drop / Polyomino -->
+      <div class="idea-card">
+        <div class="idea-icon">🧩</div>
+        <h3 class="idea-title">Quantum Drop / Neon Tetris</h3>
+        <p class="idea-desc">
+          Retro block stacking puzzle with neon glowing tetrominoes, hard drops, combo line clears, and synth beats.
+        </p>
+        <button class="prompt-btn" onclick="copyPrompt('Please build a Neon Tetris / Block Stacking puzzle game in games/quantum-drop with synthwave music.')">
+          📋 Copy Prompt
+        </button>
+      </div>
+
+      <!-- Idea 5: Neon Asteroids / Space Drift -->
+      <div class="idea-card">
+        <div class="idea-icon">☄️</div>
+        <h3 class="idea-title">Neon Asteroids / Drift</h3>
+        <p class="idea-desc">
+          Vector space drift combat with shattering crystalline asteroids, inertia momentum physics, particle thrusters, and defense turrets.
+        </p>
+        <button class="prompt-btn" onclick="copyPrompt('Please build a Neon Asteroids space shooter in games/neon-asteroids with inertia vector physics and particle explosions.')">
+          📋 Copy Prompt
+        </button>
+      </div>
+
+      <!-- Idea 6: Custom Request -->
+      <div class="idea-card">
+        <div class="idea-icon">✨</div>
+        <h3 class="idea-title">Any Custom Idea!</h3>
+        <p class="idea-desc">
+          Have a favorite classic or custom mechanic (Tetris, Flappy, Minesweeper, Roguelike, Rhythm game)? Just name it!
+        </p>
+        <button class="prompt-btn" onclick="copyPrompt('Please build a new simple pass-time game: [describe your game idea here]')">
+          📋 Custom Request
+        </button>
+      </div>
+    </div>
+
+    <!-- Workspace Structure Guide Banner -->
+    <div class="guide-box">
+      <div class="guide-text">
+        <h3>📁 Clean Architecture</h3>
+        <p>Every game lives independently inside its own folder in <span class="guide-code">games/&lt;game-name&gt;/</span>. You can open any game directly or through this hub.</p>
+      </div>
+      <div>
+        <a href="templates/game-template/README.md" class="play-btn" style="background: rgba(157, 0, 255, 0.2); border: 1px solid var(--neon-purple); color: #fff; box-shadow: none;">
+          <span>📦 View Starter Template</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast">Prompt copied to clipboard!</div>
+
+  <script>
+    // Load local high scores & records for all active games
+    document.addEventListener('DOMContentLoaded', () => {
+      const runnerScore = localStorage.getItem('neonrunner_highscore') || '0';
+      document.getElementById('card-highscore-display').textContent = Number(runnerScore).toLocaleString() + ' PTS';
+
+      const gravityScore = localStorage.getItem('gravity_flipper_highscore') || '0';
+      document.getElementById('gravity-highscore-display').textContent = Number(gravityScore).toLocaleString() + ' PTS';
+
+      const pongRally = localStorage.getItem('neon_pong_best_rally') || '0';
+      document.getElementById('pong-rally-display').textContent = pongRally + ' HITS';
+
+      const jetpackScore = localStorage.getItem('cyber_jetpack_highscore') || '0';
+      document.getElementById('jetpack-highscore-display').textContent = Number(jetpackScore).toLocaleString() + ' PTS';
+
+      const breakerScore = localStorage.getItem('quantum_breaker_highscore') || '0';
+      const breakerEl = document.getElementById('breaker-highscore-display');
+      if (breakerEl) breakerEl.textContent = Number(breakerScore).toLocaleString() + ' PTS';
+
+      const snakeScore = Math.max(
+        parseInt(localStorage.getItem('cyber_snake_hi_arcade') || '0', 10),
+        parseInt(localStorage.getItem('cyber_snake_hi_hazards') || '0', 10),
+        parseInt(localStorage.getItem('cyber_snake_hi_time') || '0', 10)
+      );
+      const snakeEl = document.getElementById('snake-highscore-display');
+      if (snakeEl) snakeEl.textContent = Number(snakeScore).toLocaleString() + ' PTS';
+
+      const pinballScore = localStorage.getItem('cyber_pinball_highscore') || '500000';
+      const pinballEl = document.getElementById('pinball-highscore-display');
+      if (pinballEl) pinballEl.textContent = Number(pinballScore).toLocaleString() + ' PTS';
+
+      const blocksScore = localStorage.getItem('neon_blocks_highscore_marathon') || '0';
+      const blocksEl = document.getElementById('blocks-highscore-display');
+      if (blocksEl) blocksEl.textContent = Number(blocksScore).toLocaleString() + ' PTS';
+    });
+
+    // Copy prompt helper
+    function copyPrompt(text) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('Prompt copied to clipboard! Paste it here anytime.');
+        }).catch(() => {
+          showToast('Prompt ready: ' + text);
+        });
+      } else {
+        showToast('Prompt ready: ' + text);
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

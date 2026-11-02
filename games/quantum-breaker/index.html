@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>QUANTUM BREAKER // Neon Matrix Arkanoid</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="game-wrapper">
+    <div id="game-container">
+      <!-- Main Game Canvas (960x540 16:9 Standard) -->
+      <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+      <!-- Retro CRT Scanline Atmosphere -->
+      <div class="crt-overlay"></div>
+
+      <!-- In-Game HUD -->
+      <div id="hud" class="overlay-hud">
+        <div class="hud-top">
+          <div class="hud-box">
+            <span class="hud-label">SCORE</span>
+            <span id="score-display" class="hud-val neon-pink">0</span>
+          </div>
+
+          <div class="hud-box multiplier-box">
+            <span class="hud-label">COMBO</span>
+            <span id="combo-display" class="hud-val mult-active">x1</span>
+          </div>
+
+          <div class="hud-box sector-box">
+            <span class="hud-label">SECTOR</span>
+            <span id="sector-display" class="hud-val sector-name">01</span>
+          </div>
+
+          <div class="hud-box balls-box">
+            <span class="hud-label">BALLS IN PLAY</span>
+            <span id="balls-display" class="hud-val neon-cyan">1</span>
+          </div>
+
+          <div class="hud-box lives-box">
+            <span class="hud-label">SHIELD CORES</span>
+            <div id="lives-display" class="lives-container">
+              <span class="heart active">◆</span>
+              <span class="heart active">◆</span>
+              <span class="heart active">◆</span>
+            </div>
+          </div>
+
+          <div class="hud-box highscore-box">
+            <span class="hud-label">HIGH SCORE</span>
+            <span id="hud-highscore" class="hud-val">0</span>
+          </div>
+        </div>
+
+        <!-- Active Powerup Badges Row -->
+        <div id="powerups-active-bar" class="powerups-bar"></div>
+
+        <div class="hud-bottom">
+          <!-- Safety Net indicator -->
+          <div id="shield-indicator" class="shield-indicator hidden">
+            <span class="shield-icon">🛡️</span>
+            <span class="shield-text">SAFETY GRID ACTIVE</span>
+          </div>
+
+          <!-- Bottom controls bar -->
+          <div class="hud-controls-hint">
+            <a href="../../index.html" class="neon-icon-btn" title="Exit to Arcade Hub">
+              <span>🏠</span>
+            </a>
+            <button id="btn-audio-toggle" class="neon-icon-btn" title="Toggle Sound & Synth [M]">
+              <span id="audio-icon">🔊</span>
+            </button>
+            <button id="btn-pause" class="neon-icon-btn" title="Pause Game [P]">
+              <span id="pause-icon">⏸</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Notification Banner -->
+        <div id="banner-notification" class="banner-notification">SECTOR 01: GENESIS MATRIX</div>
+      </div>
+
+      <!-- Start Screen Modal -->
+      <div id="start-screen" class="game-modal active">
+        <div class="modal-card">
+          <div class="glitch-title" data-text="QUANTUM BREAKER">QUANTUM BREAKER</div>
+          <p class="subtitle">NEON MATRIX MULTI-BALL BREAKOUT</p>
+
+          <div class="instructions-panel">
+            <div class="control-row">
+              <span class="key-badge">MOUSE / TOUCH / A-D / ← →</span>
+              <span>MOVE QUANTUM PADDLE</span>
+            </div>
+            <div class="control-row">
+              <span class="key-badge">SPACE / UP / CLICK / TAP</span>
+              <span>LAUNCH BALL / FIRE LASER BLOCKED</span>
+            </div>
+            <div class="control-row">
+              <span class="key-badge">POWERUPS</span>
+              <span>MULTIBALL (3x), LASER, EXPAND, PIERCE, CHRONO, SHIELD</span>
+            </div>
+            <div class="control-row">
+              <span class="key-badge">P / ESC & M</span>
+              <span>PAUSE GAME & MUTE AUDIO</span>
+            </div>
+          </div>
+
+          <!-- Powerup Showcase Icons -->
+          <div class="powerup-showcase">
+            <div class="p-item" title="Multi-Ball: Triples all active balls!">
+              <span class="p-icon cyan">✦</span>
+              <span class="p-name">MULTI-BALL</span>
+            </div>
+            <div class="p-item" title="Laser Cannon: Dual blasters to disintegrate bricks!">
+              <span class="p-icon pink">⚡</span>
+              <span class="p-name">LASER</span>
+            </div>
+            <div class="p-item" title="Plasma Pierce: Burns straight through bricks without bouncing!">
+              <span class="p-icon orange">🔥</span>
+              <span class="p-name">PIERCE</span>
+            </div>
+            <div class="p-item" title="Wide Paddle: Expands paddle beam width!">
+              <span class="p-icon green">↔</span>
+              <span class="p-name">EXPAND</span>
+            </div>
+            <div class="p-item" title="Safety Grid: Electric floor prevents balls falling!">
+              <span class="p-icon blue">🛡️</span>
+              <span class="p-name">GRID</span>
+            </div>
+          </div>
+
+          <button id="btn-start" class="neon-btn primary-btn pulse-glow">
+            <span>ENGAGE MATRIX</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sector / Stage Clear Modal -->
+      <div id="stage-clear-screen" class="game-modal">
+        <div class="modal-card">
+          <h2 class="stage-clear-title">SECTOR CLEARED!</h2>
+          <p id="stage-clear-subtitle" class="subtitle">MATRIX PURIFIED</p>
+
+          <div class="results-grid">
+            <div class="result-item">
+              <span class="res-label">SECTOR BONUS</span>
+              <span id="res-stage-bonus" class="res-val neon-green">+1,500</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">TOTAL SCORE</span>
+              <span id="res-stage-total" class="res-val neon-cyan">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">BALLS SAVED</span>
+              <span id="res-stage-balls" class="res-val neon-pink">3</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">MAX COMBO</span>
+              <span id="res-stage-combo" class="res-val neon-yellow">x8</span>
+            </div>
+          </div>
+
+          <button id="btn-next-sector" class="neon-btn primary-btn pulse-glow">
+            <span>NEXT SECTOR ▶</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Game Over Modal -->
+      <div id="gameover-screen" class="game-modal">
+        <div class="modal-card">
+          <h2 class="gameover-title">SYSTEM FAILURE</h2>
+          <p class="subtitle">ALL QUANTUM CORES LOST</p>
+
+          <div class="results-grid">
+            <div class="result-item">
+              <span class="res-label">FINAL SCORE</span>
+              <span id="res-score" class="res-val neon-pink">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">BEST SCORE</span>
+              <span id="res-highscore" class="res-val neon-green">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">SECTORS CLEARED</span>
+              <span id="res-sectors" class="res-val neon-cyan">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">BRICKS DESTROYED</span>
+              <span id="res-bricks" class="res-val neon-yellow">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">PEAK BALLS IN PLAY</span>
+              <span id="res-max-balls" class="res-val neon-purple">1</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">MAX COMBO</span>
+              <span id="res-max-combo" class="res-val neon-orange">x1</span>
+            </div>
+          </div>
+
+          <div class="modal-buttons">
+            <button id="btn-restart" class="neon-btn primary-btn">
+              <span>RETRY MATRIX [R]</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn">
+              <span>ARCADE HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Victory / Game Complete Screen -->
+      <div id="victory-screen" class="game-modal">
+        <div class="modal-card">
+          <h2 class="victory-title">MATRIX OVERLOAD!</h2>
+          <p class="subtitle">ALL MASTER QUANTUM SECTORS PURIFIED</p>
+
+          <div class="results-grid">
+            <div class="result-item">
+              <span class="res-label">CHAMPION SCORE</span>
+              <span id="res-vic-score" class="res-val neon-green">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">TOTAL BRICKS SMASHED</span>
+              <span id="res-vic-bricks" class="res-val neon-yellow">0</span>
+            </div>
+          </div>
+
+          <p style="margin: 15px 0; color: #a5d8ff; font-size: 14px;">
+            You have unlocked <strong>Endless Overdrive Mode</strong>! The matrix will now procedurally generate infinite high-speed challenge sectors.
+          </p>
+
+          <div class="modal-buttons">
+            <button id="btn-continue-endless" class="neon-btn primary-btn pulse-glow">
+              <span>ENTER ENDLESS VOID ▶</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn">
+              <span>ARCADE HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pause Screen Modal -->
+      <div id="pause-screen" class="game-modal">
+        <div class="modal-card mini-card">
+          <h2 class="pause-title">QUANTUM STASIS</h2>
+          <p class="subtitle">GAME PAUSED</p>
+          <div class="modal-buttons">
+            <button id="btn-resume" class="neon-btn primary-btn">
+              <span>RESUME [P]</span>
+            </button>
+            <button id="btn-pause-restart" class="neon-btn secondary-btn">
+              <span>RESTART [R]</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn">
+              <span>ARCADE HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

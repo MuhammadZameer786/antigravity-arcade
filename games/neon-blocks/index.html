@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON MATRIX BLOCKS // Cyberpunk Tetromino Puzzle</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&family=VT323&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="cabinet-outer">
+    <!-- Main Matrix Cabinet Container -->
+    <div id="tetris-cabinet">
+
+      <!-- Marquee Bar Header -->
+      <header class="cabinet-header">
+        <div class="marquee-bar">
+          <div class="marquee-title">
+            <span class="neon-badge cyan">NEON</span>
+            <span class="title-text">MATRIX BLOCKS</span>
+            <span class="neon-badge pink">POLYOMINO</span>
+          </div>
+          <div class="marquee-actions">
+            <a href="../../index.html" class="cab-btn" title="Exit to Arcade Hub">
+              <span>🏠</span>
+            </a>
+            <button id="btn-audio-toggle" class="cab-btn" title="Toggle Sound / Synth [M]">
+              <span id="audio-icon">🔊</span>
+            </button>
+            <button id="btn-crt-toggle" class="cab-btn active" title="Toggle CRT Scanlines [C]">
+              <span>📺</span>
+            </button>
+            <button id="btn-pause" class="cab-btn" title="Pause Game [P]">
+              <span id="pause-icon">⏸</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Cyber Ticker Display -->
+        <div class="marquee-ticker">
+          <div id="ticker-text" class="ticker-text">
+            SYSTEM READY // CLEAR ROWS TO RECHARGE MATRIX CORE // SRS ROTATION ONLINE
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Game Play Area -->
+      <div id="play-area">
+
+        <!-- Left Sidebar: Hold Piece & Match Stats -->
+        <aside class="sidebar sidebar-left">
+          <!-- Hold Box -->
+          <div class="cyber-panel hold-panel">
+            <div class="panel-header">
+              <span class="panel-title">HOLD</span>
+              <span class="panel-key-hint">[C / SHIFT]</span>
+            </div>
+            <div class="canvas-box hold-canvas-box">
+              <canvas id="holdCanvas" width="120" height="100"></canvas>
+            </div>
+          </div>
+
+          <!-- Mode Info -->
+          <div class="cyber-panel mode-panel">
+            <div class="panel-header">
+              <span class="panel-title">GAME MODE</span>
+            </div>
+            <div id="current-mode-display" class="mode-badge glow-cyan">MARATHON</div>
+            <div id="mode-stat-label" class="mode-sublabel">TARGET: LEVEL 15</div>
+          </div>
+
+          <!-- Statistics Panel -->
+          <div class="cyber-panel stats-panel">
+            <div class="panel-header">
+              <span class="panel-title">STATS</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-name">TETRIS (x4)</span>
+              <span id="stat-tetris" class="stat-val glow-cyan">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-name">T-SPINS</span>
+              <span id="stat-tspins" class="stat-val glow-purple">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-name">SINGLES</span>
+              <span id="stat-singles" class="stat-val">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-name">DOUBLES</span>
+              <span id="stat-doubles" class="stat-val">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-name">TRIPLES</span>
+              <span id="stat-triples" class="stat-val">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-name">MAX COMBO</span>
+              <span id="stat-max-combo" class="stat-val glow-yellow">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-name">PIECES / MIN</span>
+              <span id="stat-ppm" class="stat-val glow-green">0</span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Center: Matrix Canvas Playfield -->
+        <main class="matrix-center">
+          <div id="canvas-container">
+            <!-- Background Matrix Rain & Ambience Canvas -->
+            <canvas id="bgCanvas" width="300" height="600"></canvas>
+            
+            <!-- Main Game Playfield Canvas (10 cols x 20 rows, 30px per tile) -->
+            <canvas id="gameCanvas" width="300" height="600"></canvas>
+
+            <!-- Screen Shake / Flash Layer -->
+            <div id="flash-overlay" class="flash-overlay"></div>
+
+            <!-- Danger Zone Alert Border (pulses when blocks near top) -->
+            <div id="danger-overlay" class="danger-overlay">
+              <div class="danger-header">DANGER // OVERFLOW IMMINENT</div>
+            </div>
+
+            <!-- In-game Floating Text Container -->
+            <div id="float-text-layer" class="float-text-layer"></div>
+
+            <!-- CRT Scanlines Overlay -->
+            <div id="crt-overlay" class="crt-overlay active"></div>
+
+            <!-- Mode Selection / Start Overlay Modal -->
+            <div id="modal-start" class="game-modal active">
+              <div class="modal-box">
+                <div class="modal-badge">NEON CYBERPUZZLE</div>
+                <h1 class="modal-title">MATRIX BLOCKS</h1>
+                <p class="modal-desc">
+                  Falling polyomino matrix puzzle with Super Rotation System, holographic ghost projections, laser clears, and live Web Audio synthwave.
+                </p>
+
+                <div class="mode-select-group">
+                  <div class="mode-option selected" data-mode="marathon">
+                    <div class="mode-opt-title">⚡ MARATHON</div>
+                    <div class="mode-opt-desc">Classic 15-level progression with escalating speed and high scores.</div>
+                  </div>
+                  <div class="mode-option" data-mode="sprint">
+                    <div class="mode-opt-title">⏱️ SPRINT (40 LINES)</div>
+                    <div class="mode-opt-desc">Race against the clock to clear 40 lines as fast as possible.</div>
+                  </div>
+                  <div class="mode-option" data-mode="ultra">
+                    <div class="mode-opt-title">🔥 ULTRA (2 MIN)</div>
+                    <div class="mode-opt-desc">Score as many points as humanly possible in 120 adrenaline seconds.</div>
+                  </div>
+                </div>
+
+                <div class="modal-controls-summary">
+                  <div class="ctrl-chip"><span>← →</span> Move</div>
+                  <div class="ctrl-chip"><span>↑ / X</span> Rotate CW</div>
+                  <div class="ctrl-chip"><span>Z</span> Rotate CCW</div>
+                  <div class="ctrl-chip"><span>↓</span> Soft Drop</div>
+                  <div class="ctrl-chip"><span>Space</span> Hard Drop</div>
+                  <div class="ctrl-chip"><span>C / Shift</span> Hold</div>
+                </div>
+
+                <button id="btn-start-game" class="neon-primary-btn">
+                  <span>INITIALIZE MATRIX</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Pause Modal -->
+            <div id="modal-pause" class="game-modal">
+              <div class="modal-box">
+                <h2 class="modal-title">SYSTEM PAUSED</h2>
+                <p class="modal-desc">Matrix cycle suspended. Press [P] or click Resume to continue.</p>
+                <div class="modal-btn-stack">
+                  <button id="btn-resume-game" class="neon-primary-btn">RESUME CYCLE</button>
+                  <button id="btn-restart-game" class="neon-secondary-btn">RESTART GAME</button>
+                  <button id="btn-menu-game" class="neon-secondary-btn">CHANGE MODE</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Game Over / Victory Modal -->
+            <div id="modal-gameover" class="game-modal">
+              <div class="modal-box">
+                <div id="go-badge" class="modal-badge red">MATRIX OVERFLOW</div>
+                <h2 id="go-title" class="modal-title">GAME OVER</h2>
+                
+                <div class="go-stats-grid">
+                  <div class="go-stat-card">
+                    <span class="go-stat-lbl">FINAL SCORE</span>
+                    <span id="go-score" class="go-stat-val glow-cyan">0</span>
+                  </div>
+                  <div class="go-stat-card">
+                    <span class="go-stat-lbl">HIGH SCORE</span>
+                    <span id="go-high" class="go-stat-val glow-green">0</span>
+                  </div>
+                  <div class="go-stat-card">
+                    <span class="go-stat-lbl">LINES CLEARED</span>
+                    <span id="go-lines" class="go-stat-val">0</span>
+                  </div>
+                  <div class="go-stat-card">
+                    <span class="go-stat-lbl">LEVEL REACHED</span>
+                    <span id="go-level" class="go-stat-val glow-yellow">1</span>
+                  </div>
+                  <div class="go-stat-card">
+                    <span class="go-stat-lbl">TIME ELAPSED</span>
+                    <span id="go-time" class="go-stat-val">00:00.00</span>
+                  </div>
+                  <div class="go-stat-card">
+                    <span class="go-stat-lbl">TETRIS CLEARS</span>
+                    <span id="go-tetris" class="go-stat-val glow-pink">0</span>
+                  </div>
+                </div>
+
+                <div id="go-new-record" class="new-record-banner">
+                  ⭐ NEW PERSONAL RECORD SET! ⭐
+                </div>
+
+                <div class="modal-btn-stack">
+                  <button id="btn-play-again" class="neon-primary-btn">PLAY AGAIN</button>
+                  <button id="btn-go-menu" class="neon-secondary-btn">MAIN MENU</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </main>
+
+        <!-- Right Sidebar: Next Queue & Match Vitals -->
+        <aside class="sidebar sidebar-right">
+          <!-- Next Queue Box -->
+          <div class="cyber-panel next-panel">
+            <div class="panel-header">
+              <span class="panel-title">NEXT</span>
+              <span class="panel-key-hint">QUEUE</span>
+            </div>
+            <div class="canvas-box next-canvas-box">
+              <canvas id="nextCanvas" width="120" height="240"></canvas>
+            </div>
+          </div>
+
+          <!-- Score & Multiplier -->
+          <div class="cyber-panel vitals-panel">
+            <div class="vital-item">
+              <div class="vital-label">SCORE</div>
+              <div id="vital-score" class="vital-val glow-cyan">000,000</div>
+            </div>
+            <div class="vital-item">
+              <div class="vital-label">HIGH SCORE</div>
+              <div id="vital-high" class="vital-val glow-green">000,000</div>
+            </div>
+            <div class="vital-row-split">
+              <div class="vital-item">
+                <div class="vital-label">LEVEL</div>
+                <div id="vital-level" class="vital-val glow-yellow">1</div>
+              </div>
+              <div class="vital-item">
+                <div class="vital-label">LINES</div>
+                <div id="vital-lines" class="vital-val glow-pink">0</div>
+              </div>
+            </div>
+            <div class="vital-item">
+              <div class="vital-label">TIME / TIMER</div>
+              <div id="vital-timer" class="vital-val">00:00.0</div>
+            </div>
+            
+            <!-- Dynamic Badges -->
+            <div class="status-badges">
+              <div id="badge-b2b" class="neon-pill b2b-pill">BACK-TO-BACK</div>
+              <div id="badge-combo" class="neon-pill combo-pill">COMBO x0</div>
+            </div>
+          </div>
+        </aside>
+
+      </div>
+
+      <!-- Bottom Desktop Keyboard Bar -->
+      <footer class="cabinet-footer">
+        <div class="desktop-controls-bar">
+          <span class="ctrl-item"><kbd>←</kbd><kbd>→</kbd> Move</span>
+          <span class="ctrl-item"><kbd>↓</kbd> Soft Drop</span>
+          <span class="ctrl-item"><kbd>Space</kbd> Hard Drop</span>
+          <span class="ctrl-item"><kbd>↑</kbd> / <kbd>X</kbd> Rotate CW</span>
+          <span class="ctrl-item"><kbd>Z</kbd> Rotate CCW</span>
+          <span class="ctrl-item"><kbd>C</kbd> / <kbd>Shift</kbd> Hold</span>
+          <span class="ctrl-item"><kbd>P</kbd> Pause</span>
+          <span class="ctrl-item"><kbd>M</kbd> Audio</span>
+        </div>
+
+        <!-- Mobile Touch Gamepad (Visible only on mobile/touch screens) -->
+        <div id="touch-controls" class="touch-controls">
+          <div class="touch-row">
+            <button id="touch-hold" class="t-btn t-fn" aria-label="Hold Piece">HOLD</button>
+            <button id="touch-rot-ccw" class="t-btn t-rot" aria-label="Rotate Counter-Clockwise">↺ CCW</button>
+            <button id="touch-rot-cw" class="t-btn t-rot" aria-label="Rotate Clockwise">↻ CW</button>
+            <button id="touch-hard" class="t-btn t-drop" aria-label="Hard Drop">⚡ DROP</button>
+          </div>
+          <div class="touch-row">
+            <button id="touch-left" class="t-btn t-nav" aria-label="Move Left">◀ LEFT</button>
+            <button id="touch-soft" class="t-btn t-nav" aria-label="Soft Drop">▼ DOWN</button>
+            <button id="touch-right" class="t-btn t-nav" aria-label="Move Right">RIGHT ▶</button>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

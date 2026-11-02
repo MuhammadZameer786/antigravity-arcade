@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON RUNNER // Cyberpunk Endless Runner</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="game-wrapper">
+    <!-- Main Game Canvas Container -->
+    <div id="game-container">
+      <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+      <!-- Scanline & Vignette Overlay -->
+      <div class="crt-overlay"></div>
+
+      <!-- In-Game HUD Overlay -->
+      <div id="hud" class="overlay-hud">
+        <div class="hud-top">
+          <div class="hud-box score-box">
+            <span class="hud-label">SCORE</span>
+            <span id="score-display" class="hud-val">000000</span>
+          </div>
+
+          <div class="hud-box dist-box">
+            <span class="hud-label">DISTANCE</span>
+            <span id="dist-display" class="hud-val">0m</span>
+          </div>
+
+          <div class="hud-box mult-box">
+            <span class="hud-label">MULTIPLIER</span>
+            <span id="mult-display" class="hud-val mult-active">x1</span>
+          </div>
+
+          <div class="hud-box highscore-box">
+            <span class="hud-label">BEST</span>
+            <span id="hud-highscore" class="hud-val">000000</span>
+          </div>
+        </div>
+
+        <!-- Overdrive / Dash Meter -->
+        <div class="hud-bottom">
+          <div class="overdrive-container">
+            <div class="overdrive-header">
+              <span class="hud-label">OVERDRIVE [SHIFT]</span>
+              <span id="overdrive-status" class="overdrive-text">CHARGING...</span>
+            </div>
+            <div class="overdrive-bar-bg">
+              <div id="overdrive-bar-fill" class="overdrive-bar-fill"></div>
+            </div>
+          </div>
+
+          <div class="hud-controls-hint">
+            <a href="../../index.html" class="neon-icon-btn" title="Exit to Arcade Hub" style="text-decoration: none;">
+              <span>🏠</span>
+            </a>
+            <button id="btn-audio-toggle" class="neon-icon-btn" title="Toggle Sound [M]">
+              <span id="audio-icon">🔊</span>
+            </button>
+            <button id="btn-pause" class="neon-icon-btn" title="Pause Game [P]">
+              <span id="pause-icon">⏸</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Notification Banner (Speed Up, Overdrive Ready, etc.) -->
+        <div id="banner-notification" class="banner-notification">SPEED UP!</div>
+      </div>
+
+      <!-- Start Screen Overlay -->
+      <div id="start-screen" class="game-modal active">
+        <div class="modal-card">
+          <div class="glitch-title" data-text="NEON RUNNER">NEON RUNNER</div>
+          <p class="subtitle">SYNTHWAVE CYBER-ODYSSEY</p>
+
+          <div class="instructions-panel">
+            <div class="control-row">
+              <div class="key-badge">SPACE / ↑ / W</div>
+              <span>JUMP (TAP AGAIN FOR DOUBLE JUMP)</span>
+            </div>
+            <div class="control-row">
+              <div class="key-badge">↓ / S</div>
+              <span>SLIDE / FAST FALL</span>
+            </div>
+            <div class="control-row">
+              <div class="key-badge">SHIFT / E</div>
+              <span>ACTIVATE HYPER OVERDRIVE</span>
+            </div>
+            <div class="control-row">
+              <div class="key-badge">P / ESC</div>
+              <span>PAUSE</span>
+            </div>
+          </div>
+
+          <div class="item-legend">
+            <div class="legend-item">
+              <span class="legend-icon shard-icon">◆</span>
+              <span>Energy Shards (+Points & Dash)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-icon shield-icon">⬡</span>
+              <span>Cyber Shield (1-Hit Guard)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-icon dash-icon">⚡</span>
+              <span>Hyper Dash (Instant Rampage)</span>
+            </div>
+          </div>
+
+          <button id="btn-start" class="neon-btn primary-btn pulse-glow">
+            <span>INITIATE RUN</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Game Over Screen Overlay -->
+      <div id="gameover-screen" class="game-modal">
+        <div class="modal-card">
+          <h2 class="gameover-title">SYSTEM OFFLINE</h2>
+          <p class="gameover-sub">CIRCUIT OVERLOADED</p>
+
+          <div class="results-grid">
+            <div class="result-item">
+              <span class="res-label">FINAL SCORE</span>
+              <span id="res-score" class="res-val neon-pink">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">DISTANCE REACHED</span>
+              <span id="res-distance" class="res-val neon-cyan">0m</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">SHARDS COLLECTED</span>
+              <span id="res-shards" class="res-val neon-yellow">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">RECORD HIGH</span>
+              <span id="res-highscore" class="res-val neon-green">0</span>
+            </div>
+          </div>
+
+          <div id="new-record-badge" class="new-record-badge hidden">★ NEW HIGH SCORE ★</div>
+
+          <div class="modal-buttons">
+            <button id="btn-restart" class="neon-btn primary-btn">
+              <span>RUN AGAIN [R]</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+              <span>ARCADE HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pause Screen Overlay -->
+      <div id="pause-screen" class="game-modal">
+        <div class="modal-card mini-card">
+          <h2 class="pause-title">SYSTEM PAUSED</h2>
+          <p class="pause-sub">PRESS [P] OR CLICK RESUME</p>
+          <div class="modal-buttons">
+            <button id="btn-resume" class="neon-btn primary-btn">
+              <span>RESUME</span>
+            </button>
+            <button id="btn-pause-restart" class="neon-btn secondary-btn">
+              <span>RESTART</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+              <span>EXIT TO HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Touch / Mobile On-Screen Controls -->
+      <div id="touch-controls" class="touch-controls-layer">
+        <div class="touch-left">
+          <button id="btn-touch-slide" class="touch-action-btn slide-btn">
+            <span>SLIDE</span>
+            <small>↓</small>
+          </button>
+        </div>
+        <div class="touch-right">
+          <button id="btn-touch-dash" class="touch-action-btn dash-btn">
+            <span>DASH</span>
+            <small>⚡</small>
+          </button>
+          <button id="btn-touch-jump" class="touch-action-btn jump-btn">
+            <span>JUMP</span>
+            <small>↑</small>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GRAVITY FLIPPER // Quantum Inversion Runner</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="game-wrapper">
+    <div id="game-container">
+      <!-- Main Game Canvas -->
+      <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+      <!-- Retro CRT Scanline Overlay -->
+      <div class="crt-overlay"></div>
+
+      <!-- In-Game HUD -->
+      <div id="hud" class="overlay-hud">
+        <div class="hud-top">
+          <div class="hud-box">
+            <span class="hud-label">SCORE</span>
+            <span id="score-display" class="hud-val">000000</span>
+          </div>
+
+          <div class="hud-box">
+            <span class="hud-label">DISTANCE</span>
+            <span id="dist-display" class="hud-val">0m</span>
+          </div>
+
+          <div class="hud-box multiplier-box">
+            <span class="hud-label">MULTIPLIER</span>
+            <span id="mult-display" class="hud-val mult-active">x1</span>
+          </div>
+
+          <div class="hud-box sector-box">
+            <span class="hud-label">SECTOR</span>
+            <span id="sector-display" class="hud-val sector-name">NEXUS</span>
+          </div>
+
+          <div class="hud-box highscore-box">
+            <span class="hud-label">BEST</span>
+            <span id="hud-highscore" class="hud-val">000000</span>
+          </div>
+        </div>
+
+        <div class="hud-bottom">
+          <!-- Air Flip Ready Indicator -->
+          <div class="airflip-meter-container">
+            <span class="hud-label">AIR FLIP CHARGE</span>
+            <div class="airflip-pills">
+              <div id="airflip-pill-1" class="airflip-pill ready"></div>
+            </div>
+          </div>
+
+          <!-- Controls Buttons -->
+          <div class="hud-controls-hint">
+            <a href="../../index.html" class="neon-icon-btn" title="Exit to Arcade Hub">
+              <span>🏠</span>
+            </a>
+            <button id="btn-audio-toggle" class="neon-icon-btn" title="Toggle Sound & Music [M]">
+              <span id="audio-icon">🔊</span>
+            </button>
+            <button id="btn-pause" class="neon-icon-btn" title="Pause Game [P]">
+              <span id="pause-icon">⏸</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic notification / Sector warning -->
+        <div id="banner-notification" class="banner-notification">SECTOR 01: CYBER NEXUS</div>
+      </div>
+
+      <!-- Start Screen Modal -->
+      <div id="start-screen" class="game-modal active">
+        <div class="modal-card">
+          <div class="glitch-title" data-text="GRAVITY FLIPPER">GRAVITY FLIPPER</div>
+          <p class="subtitle">QUANTUM INVERSION REFLEX RUNNER</p>
+
+          <div class="instructions-panel">
+            <div class="control-row">
+              <span class="key-badge">SPACE / UP / CLICK / TAP</span>
+              <span>FLIP GRAVITY (FLOOR ⇄ CEILING)</span>
+            </div>
+            <div class="control-row">
+              <span class="key-badge">AIR FLIP</span>
+              <span>1 IN-FLIGHT RESCUE FLIP PER SURFACE TOUCH</span>
+            </div>
+            <div class="control-row">
+              <span class="key-badge">ORBS ◆</span>
+              <span>COLLECT TO BOOST SCORE MULTIPLIER (UP TO x8)</span>
+            </div>
+            <div class="control-row">
+              <span class="key-badge">P / ESC</span>
+              <span>PAUSE GAME</span>
+            </div>
+          </div>
+
+          <div class="item-legend">
+            <div class="legend-item">
+              <span class="legend-icon spike-icon">▲</span>
+              <span>Quantum Spikes (Lethal)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-icon orb-icon">◆</span>
+              <span>Graviton Orbs (+Multiplier)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-icon portal-icon">🌀</span>
+              <span>Warp Gates (+Speed & Score)</span>
+            </div>
+          </div>
+
+          <button id="btn-start" class="neon-btn primary-btn pulse-glow">
+            <span>INITIATE DIVE</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Game Over Modal -->
+      <div id="gameover-screen" class="game-modal">
+        <div class="modal-card">
+          <h2 class="gameover-title">GRAVITY COLLAPSE</h2>
+          <p class="gameover-sub">KINETIC EQUILIBRIUM LOST</p>
+
+          <div class="results-grid">
+            <div class="result-item">
+              <span class="res-label">FINAL SCORE</span>
+              <span id="res-score" class="res-val neon-pink">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">DISTANCE</span>
+              <span id="res-distance" class="res-val neon-cyan">0m</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">ORBS COLLECTED</span>
+              <span id="res-orbs" class="res-val neon-yellow">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">BEST RECORD</span>
+              <span id="res-highscore" class="res-val neon-green">0</span>
+            </div>
+          </div>
+
+          <div id="new-record-badge" class="new-record-badge hidden">★ NEW RECORD HIGH ★</div>
+
+          <div class="modal-buttons">
+            <button id="btn-restart" class="neon-btn primary-btn">
+              <span>RETRY RUN [R]</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn">
+              <span>ARCADE HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pause Screen Modal -->
+      <div id="pause-screen" class="game-modal">
+        <div class="modal-card mini-card">
+          <h2 class="pause-title">STASIS ENGAGED</h2>
+          <p class="pause-sub">PRESS [P] OR CLICK RESUME</p>
+          <div class="modal-buttons">
+            <button id="btn-resume" class="neon-btn primary-btn">
+              <span>RESUME</span>
+            </button>
+            <button id="btn-pause-restart" class="neon-btn secondary-btn">
+              <span>RESTART</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn">
+              <span>EXIT TO HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Full-screen touch tap capture for mobile/tablets -->
+      <div id="touch-tap-zone" class="touch-tap-zone"></div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+# 🕹️ Antigravity Arcade
+
+> A collection of fast, lightweight pass-time mini-games built with pure vanilla HTML5 Canvas and Web Audio.
+
+---
+
+## 🚀 Quick Start
+
+### Option 1: Direct File
+Double-click or open [index.html](file:///Users/zameer/Documents/antigravity/index.html) in any browser to launch the **Arcade Hub**. From there, you can launch any game with one click!
+
+You can also launch the games directly:
+- **⚡ Neon Runner**: [games/neon-runner/index.html](file:///Users/zameer/Documents/antigravity/games/neon-runner/index.html)
+- **🌀 Gravity Flipper**: [games/gravity-flipper/index.html](file:///Users/zameer/Documents/antigravity/games/gravity-flipper/index.html)
+- **🏓 Neon Pong**: [games/neon-pong/index.html](file:///Users/zameer/Documents/antigravity/games/neon-pong/index.html)
+- **🚀 Cyber Jetpack**: [games/cyber-jetpack/index.html](file:///Users/zameer/Documents/antigravity/games/cyber-jetpack/index.html)
+- **🌌 Star Voyager**: [games/star-voyager/index.html](file:///Users/zameer/Documents/antigravity/games/star-voyager/index.html)
+- **🧱 Quantum Breaker**: [games/quantum-breaker/index.html](file:///Users/zameer/Documents/antigravity/games/quantum-breaker/index.html)
+- **⚡ Cyber Pinball**: [games/cyber-pinball/index.html](file:///Users/zameer/Documents/antigravity/games/cyber-pinball/index.html)
+- **🐍 Cyber Snake**: [games/cyber-snake/index.html](file:///Users/zameer/Documents/antigravity/games/cyber-snake/index.html)
+- **🧩 Neon Matrix Blocks**: [games/neon-blocks/index.html](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html)
+
+### Option 2: Local HTTP Server (Optional)
+Run Python's built-in web server:
+```bash
+python3 -m http.server 8000
+```
+Then visit `http://localhost:8000` in your browser.
+
+---
+
+## 📁 Repository Structure
+
+```text
+antigravity/
+├── index.html                  # 🕹️ Master Arcade Hub & Game Launcher
+├── README.md                   # 📖 Workspace overview and guide
+│
+├── games/                      # 🎮 Standalone game projects
+│   ├── neon-runner/            # ⚡ Neon Runner (Synthwave Endless Runner)
+│   │   ├── index.html
+│   │   ├── game.js
+│   │   ├── style.css
+│   │   └── README.md
+│   │
+│   ├── gravity-flipper/        # 🌀 Gravity Flipper (Quantum Inversion Runner)
+│   │   ├── index.html
+│   │   ├── game.js
+│   │   ├── style.css
+│   │   └── README.md
+│   │
+│   ├── neon-pong/              # 🏓 Neon Pong (1P AI + 2P Local Curve Rally)
+│   │   ├── index.html
+│   │   ├── game.js
+│   │   ├── style.css
+│   │   └── README.md
+│   │
+│   ├── cyber-jetpack/          # 🚀 Cyber Jetpack (Laser Flap Vector Thrust Runner)
+│   │   ├── index.html
+│   │   ├── game.js
+│   │   ├── style.css
+│   │   └── README.md
+│   │
+│   ├── star-voyager/           # 🌌 Star Voyager (3D Procedural Space Flight Simulator)
+│   │   ├── index.html
+│   │   ├── game.js
+│   │   ├── style.css
+│   │   ├── three.min.js
+│   │   └── README.md
+│   │
+│   ├── quantum-breaker/        # 🧱 Quantum Breaker (Neon Multi-Ball Breakout)
+│   │   ├── index.html
+│   │   ├── game.js
+│   │   ├── style.css
+│   │   └── README.md
+│   │
+│   ├── cyber-pinball/          # ⚡ Cyber Pinball (Neon Matrix Overdrive Pinball)
+│   │   ├── index.html
+│   │   ├── game.js
+│   │   ├── style.css
+│   │   └── README.md
+│   │
+│   ├── cyber-snake/            # 🐍 Cyber Snake (Neon Grid Overdrive Snake)
+│   │   ├── index.html
+│   │   ├── game.js
+│   │   ├── style.css
+│   │   └── README.md
+│   │
+│   └── neon-blocks/            # 🧩 Neon Matrix Blocks (Cyberpunk Tetromino Puzzle)
+│       ├── index.html
+│       ├── game.js
+│       ├── style.css
+│       └── README.md
+│
+└── templates/
+    └── game-template/          # 📦 Ready-to-use template for new mini-games
+        ├── index.html
+        ├── game.js
+        ├── style.css
+        └── README.md
+```
+
+---
+
+## 🎮 Installed Games
+
+| Game | Category | Tech | Modes | Status | Play |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **⚡ [Neon Runner](file:///Users/zameer/Documents/antigravity/games/neon-runner/index.html)** | Synthwave Endless Runner | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-runner/index.html) |
+| **🌀 [Gravity Flipper](file:///Users/zameer/Documents/antigravity/games/gravity-flipper/index.html)** | Quantum Inversion Runner | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/gravity-flipper/index.html) |
+| **🏓 [Neon Pong](file:///Users/zameer/Documents/antigravity/games/neon-pong/index.html)** | Cyberpunk Curve Rally | Canvas 2D + Web Audio | 1P AI / 2P Local | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-pong/index.html) |
+| **🚀 [Cyber Jetpack](file:///Users/zameer/Documents/antigravity/games/cyber-jetpack/index.html)** | Laser Flap Vector Thrust Runner | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/cyber-jetpack/index.html) |
+| **🌌 [Star Voyager](file:///Users/zameer/Documents/antigravity/games/star-voyager/index.html)** | 3D Procedural Space Flight Sim | Three.js 3D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/star-voyager/index.html) |
+| **🧱 [Quantum Breaker](file:///Users/zameer/Documents/antigravity/games/quantum-breaker/index.html)** | Neon Multi-Ball Matrix Arkanoid | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/quantum-breaker/index.html) |
+| **⚡ [Cyber Pinball](file:///Users/zameer/Documents/antigravity/games/cyber-pinball/index.html)** | Neon Multi-Ball Matrix Pinball | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/cyber-pinball/index.html) |
+| **🐍 [Cyber Snake](file:///Users/zameer/Documents/antigravity/games/cyber-snake/index.html)** | Neon Grid Overdrive Snake | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/cyber-snake/index.html) |
+| **🧩 [Neon Matrix Blocks](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html)** | Cyberpunk Tetromino Puzzle | Canvas 2D + Web Audio | 1P (Marathon/Sprint/Ultra) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html) |
+
+---
+
+## 🛠️ Adding a New Game
+
+### Method A: Just Ask Me!
+Tell Antigravity what you'd like to play, for example:
+- *"Let's build a classic Snake game with neon glow in `games/cyber-snake`"*
+- *"Make a retro space shooter like Galaga in `games/space-shooter`"*
+- *"Build a neon pinball machine with bumpers and ramps in `games/cyber-pinball`"*
+
+### Method B: Duplicate the Starter Template
+```bash
+# 1. Copy the starter template
+cp -r templates/game-template games/<your-game-name>
+
+# 2. Add your game logic to games/<your-game-name>/game.js
+# 3. Add a card link into the root index.html
+```
+
+---
+
+## 🎨 Game Design Principles
+
+All games in this arcade follow these lightweight principles:
+1. **Zero External Dependencies**: Pure vanilla HTML5, CSS3, and JavaScript.
+2. **Built-in Procedural Audio**: Sound effects and music synthesized live using the browser's `Web Audio API` (no missing audio assets or broken file paths).
+3. **Responsive & Aspect-Locked**: Designed with clean canvas scaling for desktop, laptop, or mobile touch controls.
+4. **Persistent High Scores**: Automatically saved to browser `localStorage`.
+5. **Arcade Integration**: Includes a home button `🏠` to easily return to the Arcade Hub.

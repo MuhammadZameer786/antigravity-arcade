@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CYBER SNAKE // Neon Grid Overdrive</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="game-wrapper">
+    <div id="game-container">
+      <!-- Main Canvas (960x540 Standard 16:9) -->
+      <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+      <!-- Retro CRT Scanline Atmosphere -->
+      <div class="crt-overlay" id="crt-overlay"></div>
+
+      <!-- In-Game HUD -->
+      <div id="hud" class="overlay-hud">
+        <div class="hud-top">
+          <div class="hud-box">
+            <span class="hud-label">SCORE</span>
+            <span id="score-display" class="hud-val neon-cyan">0</span>
+          </div>
+
+          <div class="hud-box">
+            <span class="hud-label">LENGTH</span>
+            <span id="length-display" class="hud-val neon-green">4</span>
+          </div>
+
+          <div class="hud-box">
+            <span class="hud-label">COMBO</span>
+            <span id="combo-display" class="hud-val neon-pink">x1.0</span>
+          </div>
+
+          <div class="hud-box time-box" id="hud-time-box" style="display: none;">
+            <span class="hud-label">SURGE TIME</span>
+            <span id="time-display" class="hud-val neon-yellow">60.0s</span>
+          </div>
+
+          <div class="hud-box highscore-box">
+            <span class="hud-label">BEST RECORD</span>
+            <span id="hud-highscore" class="hud-val">0</span>
+          </div>
+        </div>
+
+        <!-- Overdrive Turbo Gauge & Active Buffs -->
+        <div class="hud-middle">
+          <div class="boost-container" id="boost-container">
+            <div class="boost-meta">
+              <span class="boost-label">⚡ OVERDRIVE TURBO [SPACE]</span>
+              <span id="boost-percent" class="boost-val">100%</span>
+            </div>
+            <div class="boost-track">
+              <div id="boost-bar" class="boost-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+
+          <!-- Active Powerup Status Row -->
+          <div id="active-powerups" class="active-powerups-bar"></div>
+        </div>
+
+        <div class="hud-bottom">
+          <!-- Notification Pill -->
+          <div id="banner-notification" class="banner-notification">CYBER SYSTEM ONLINE</div>
+
+          <!-- Quick Controls Bar -->
+          <div class="hud-controls-hint">
+            <a href="../../index.html" class="neon-icon-btn" title="Exit to Arcade Hub">
+              <span>🏠</span>
+            </a>
+            <button id="btn-audio-toggle" class="neon-icon-btn" title="Toggle Audio Synth [M]">
+              <span id="audio-icon">🔊</span>
+            </button>
+            <button id="btn-pause" class="neon-icon-btn" title="Pause Game [P / ESC]">
+              <span id="pause-icon">⏸</span>
+            </button>
+            <button id="btn-fullscreen" class="neon-icon-btn" title="Toggle Fullscreen">
+              <span>⛶</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Touch / Mobile Virtual Controls -->
+      <div id="touch-controls" class="touch-controls-layer">
+        <div class="dpad-container">
+          <button class="dpad-btn up" data-dir="UP" aria-label="Up">▲</button>
+          <div class="dpad-middle-row">
+            <button class="dpad-btn left" data-dir="LEFT" aria-label="Left">◀</button>
+            <div class="dpad-center"></div>
+            <button class="dpad-btn right" data-dir="RIGHT" aria-label="Right">▶</button>
+          </div>
+          <button class="dpad-btn down" data-dir="DOWN" aria-label="Down">▼</button>
+        </div>
+        <button id="btn-touch-boost" class="touch-boost-btn" aria-label="Turbo Boost">
+          <span>⚡ TURBO</span>
+        </button>
+      </div>
+
+      <!-- Start Screen Modal -->
+      <div id="start-screen" class="game-modal active">
+        <div class="modal-card">
+          <div class="glitch-header">
+            <div class="terminal-tag">SYSTEM // VER 2.0.4</div>
+            <h1 class="glitch-title" data-text="CYBER SNAKE">CYBER SNAKE</h1>
+            <p class="subtitle">NEON GRID OVERDRIVE // HIGH SPEED SYNTH ENGINE</p>
+          </div>
+
+          <!-- Settings & Mode Selection Tabs -->
+          <div class="selection-section">
+            <div class="config-group">
+              <span class="config-label">GAME PROTOCOL</span>
+              <div class="pill-selector" id="mode-selector">
+                <button class="pill-btn active" data-mode="arcade">
+                  <span class="pill-icon">⚡</span>
+                  <span class="pill-text">CLASSIC GRID</span>
+                </button>
+                <button class="pill-btn" data-mode="hazards">
+                  <span class="pill-icon">☣</span>
+                  <span class="pill-text">CYBER HAZARDS</span>
+                </button>
+                <button class="pill-btn" data-mode="time">
+                  <span class="pill-icon">⏱</span>
+                  <span class="pill-text">TIME SURGE</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="config-columns">
+              <div class="config-group">
+                <span class="config-label">WALL PROTOCOL</span>
+                <div class="pill-selector" id="wall-selector">
+                  <button class="pill-btn active" data-walls="wrap">
+                    <span class="pill-text">PORTAL WRAP</span>
+                  </button>
+                  <button class="pill-btn" data-walls="solid">
+                    <span class="pill-text">LETHAL BOUNDARY</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="config-group">
+                <span class="config-label">CLOCK FREQUENCY</span>
+                <div class="pill-selector" id="speed-selector">
+                  <button class="pill-btn" data-speed="slow">NORMAL</button>
+                  <button class="pill-btn active" data-speed="fast">CYBER</button>
+                  <button class="pill-btn" data-speed="hyper">OVERDRIVE</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="config-group">
+              <span class="config-label">NEON COLOR CHIP</span>
+              <div class="theme-palette" id="theme-selector">
+                <button class="theme-chip active" data-theme="cyan" title="Cyan Surge" style="--chip-c1: #00f3ff; --chip-c2: #0077ff;"></button>
+                <button class="theme-chip" data-theme="magenta" title="Synthwave Magenta" style="--chip-c1: #ff007f; --chip-c2: #9d00ff;"></button>
+                <button class="theme-chip" data-theme="matrix" title="Toxic Matrix" style="--chip-c1: #05ffa1; --chip-c2: #00ff44;"></button>
+                <button class="theme-chip" data-theme="solar" title="Solar Flare" style="--chip-c1: #ffe600; --chip-c2: #ff5500;"></button>
+                <button class="theme-chip" data-theme="spectrum" title="Chromatic Rainbow" style="--chip-c1: #00f3ff; --chip-c2: #ff007f;"></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Controls panel -->
+          <div class="instructions-panel">
+            <div class="control-row">
+              <span class="key-badge">WASD / ARROW KEYS</span>
+              <span>STEER CYBER SERPENT</span>
+            </div>
+            <div class="control-row">
+              <span class="key-badge">HOLD SPACE / TOUCH BOOST</span>
+              <span>TURBO OVERDRIVE THRUST (2X SPEED)</span>
+            </div>
+            <div class="control-row">
+              <span class="key-badge">P / ESC & M</span>
+              <span>PAUSE MATRIX & MUTE SYNTHWAVE AUDIO</span>
+            </div>
+          </div>
+
+          <!-- Cyber modules guide -->
+          <div class="modules-showcase">
+            <div class="mod-item" title="Data Packet: Standard memory bit (+100 pts)">
+              <span class="mod-dot cyan">◆</span>
+              <span class="mod-label">DATA BIT</span>
+            </div>
+            <div class="mod-item" title="Crypto Core: High value rare node (+500 pts & Combo)">
+              <span class="mod-dot gold">★</span>
+              <span class="mod-label">CRYPTO CORE</span>
+            </div>
+            <div class="mod-item" title="Phase Cloak: Pass through your own tail safely!">
+              <span class="mod-dot purple">◈</span>
+              <span class="mod-label">PHASE SHIFT</span>
+            </div>
+            <div class="mod-item" title="Chrono Glitch: Slow-motion bullet time precision">
+              <span class="mod-dot blue">⌛</span>
+              <span class="mod-label">SLOW-MO</span>
+            </div>
+            <div class="mod-item" title="EMP Blast: Trims dangerous tail and clears hazards">
+              <span class="mod-dot red">⚡</span>
+              <span class="mod-label">EMP SURGE</span>
+            </div>
+          </div>
+
+          <button id="btn-start" class="neon-btn primary-btn pulse-glow">
+            <span>INITIALIZE MATRIX</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Game Over Modal -->
+      <div id="gameover-screen" class="game-modal">
+        <div class="modal-card">
+          <div class="gameover-header">
+            <div class="glitch-red-badge">TERMINATION DETECTED</div>
+            <h2 class="gameover-title">SYSTEM COMPROMISED</h2>
+            <p id="gameover-cause" class="subtitle">NEURAL LINK SEVERED</p>
+          </div>
+
+          <div class="results-grid">
+            <div class="result-item">
+              <span class="res-label">TOTAL SCORE</span>
+              <span id="res-score" class="res-val neon-cyan">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">MAX LENGTH</span>
+              <span id="res-length" class="res-val neon-green">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">DATA BITS CONSUMED</span>
+              <span id="res-food" class="res-val neon-pink">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">PEAK COMBO</span>
+              <span id="res-combo" class="res-val neon-yellow">x1.0</span>
+            </div>
+            <div class="result-item full-width">
+              <span class="res-label">SECTOR HIGH RECORD</span>
+              <span id="res-highscore" class="res-val neon-white">0</span>
+            </div>
+          </div>
+
+          <div id="new-high-badge" class="new-high-badge hidden">
+            <span>🏆 NEW MATRIX RECORD ESTABLISHED! 🏆</span>
+          </div>
+
+          <div class="modal-buttons">
+            <button id="btn-restart" class="neon-btn primary-btn pulse-glow">
+              <span>RE-ENGAGE SYSTEM [R]</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn">
+              <span>ARCADE HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pause Modal -->
+      <div id="pause-screen" class="game-modal">
+        <div class="modal-card mini-card">
+          <div class="terminal-tag">SYSTEM SUSPENDED</div>
+          <h2 class="pause-title">PROCESS PAUSED</h2>
+          
+          <div class="quick-settings">
+            <div class="quick-row">
+              <span>CRT Scanlines</span>
+              <button id="btn-toggle-crt" class="setting-toggle-btn active">ON</button>
+            </div>
+            <div class="quick-row">
+              <span>Audio Synth</span>
+              <button id="btn-pause-audio" class="setting-toggle-btn active">ACTIVE</button>
+            </div>
+          </div>
+
+          <div class="modal-buttons">
+            <button id="btn-resume" class="neon-btn primary-btn">
+              <span>RESUME PROCESS [P]</span>
+            </button>
+            <button id="btn-pause-restart" class="neon-btn secondary-btn">
+              <span>RESTART RUN</span>
+            </button>
+            <a href="../../index.html" class="neon-btn outline-btn">
+              <span>EXIT TO ARCADE</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

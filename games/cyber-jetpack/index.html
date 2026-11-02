@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CYBER JETPACK // Laser Flap Protocol</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="game-wrapper">
+    <div id="game-container">
+      <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+      <!-- Full-screen touch/mouse input trigger zone -->
+      <div id="touch-zone" class="touch-tap-zone" aria-label="Hold to thrust, release to fall"></div>
+
+      <!-- Scanline / Vignette Ambience -->
+      <div class="crt-overlay"></div>
+
+      <!-- In-Game HUD -->
+      <div id="hud" class="overlay-hud">
+        <div class="hud-top">
+          <div class="hud-box score-box">
+            <span class="hud-label">SCORE</span>
+            <span id="score-display" class="hud-val">000000</span>
+          </div>
+
+          <div class="hud-box dist-box">
+            <span class="hud-label">DISTANCE</span>
+            <span id="dist-display" class="hud-val">0m</span>
+          </div>
+
+          <div class="hud-box coin-box">
+            <span class="hud-label">DATA COINS</span>
+            <span id="coin-display" class="hud-val neon-yellow">0</span>
+          </div>
+
+          <div class="hud-box mult-box">
+            <span class="hud-label">COMBO</span>
+            <span id="mult-display" class="hud-val mult-active">x1</span>
+          </div>
+
+          <div class="hud-box highscore-box">
+            <span class="hud-label">BEST</span>
+            <span id="hud-highscore" class="hud-val">000000</span>
+          </div>
+        </div>
+
+        <!-- Active Power-Ups Row -->
+        <div id="powerup-hud-row" class="powerup-hud-row">
+          <!-- Dynamic powerup badges will be rendered here by JS -->
+        </div>
+
+        <!-- HUD Bottom Bar -->
+        <div class="hud-bottom">
+          <div class="overdrive-container">
+            <div class="overdrive-header">
+              <span class="hud-label">OVERDRIVE BURST</span>
+              <span id="overdrive-status" class="overdrive-text">READY AT 100%</span>
+            </div>
+            <div class="overdrive-bar-bg">
+              <div id="overdrive-bar-fill" class="overdrive-bar-fill"></div>
+            </div>
+          </div>
+
+          <div class="hud-controls-hint">
+            <a href="../../index.html" class="neon-icon-btn" title="Exit to Arcade Hub" style="text-decoration: none;">
+              <span>🏠</span>
+            </a>
+            <button id="btn-audio-toggle" class="neon-icon-btn" title="Toggle Sound [M]">
+              <span id="audio-icon">🔊</span>
+            </button>
+            <button id="btn-pause" class="neon-icon-btn" title="Pause Game [P]">
+              <span id="pause-icon">⏸</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Banner Alert Notification (Missile alert, Overdrive, Close calls) -->
+        <div id="banner-notification" class="banner-notification">SPEED UP!</div>
+      </div>
+
+      <!-- Start Screen Modal -->
+      <div id="start-screen" class="game-modal active">
+        <div class="modal-card">
+          <div class="badge-tag">PROTOCOL: FLIGHT-99</div>
+          <h1 class="glitch-title" data-text="CYBER JETPACK">CYBER JETPACK</h1>
+          <p class="subtitle">LASER FLAP PROTOCOL // VECTOR THRUST RUNNER</p>
+
+          <div class="instructions-panel">
+            <div class="control-row">
+              <div class="key-badge">HOLD SPACE / ↑ / W / CLICK / TAP</div>
+              <span>FIRE THRUSTERS (ASCEND)</span>
+            </div>
+            <div class="control-row">
+              <div class="key-badge">RELEASE ANY KEY / SCREEN</div>
+              <span>CUT THRUSTERS (DIVE WITH GRAVITY)</span>
+            </div>
+            <div class="control-row">
+              <div class="key-badge">MICRO-TAP</div>
+              <span>PRECISE HOVER & ALTITUDE BALANCING</span>
+            </div>
+            <div class="control-row">
+              <div class="key-badge">P / ESC</div>
+              <span>PAUSE SYSTEM</span>
+            </div>
+          </div>
+
+          <div class="item-legend">
+            <div class="legend-item">
+              <span class="legend-icon shield-icon">🛡️</span>
+              <span><strong>Cyber Shield:</strong> Absorbs 1 laser impact & emits emp wave</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-icon magnet-icon">🧲</span>
+              <span><strong>Data Magnet:</strong> Pulls all floating cyber coins into thrusters</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-icon boost-icon">⚡</span>
+              <span><strong>Hyper Warp:</strong> Supersonic invulnerability & obliterates lasers</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-icon time-icon">⏱️</span>
+              <span><strong>Chronos Matrix:</strong> Dilates time, slowing moving lasers by 50%</span>
+            </div>
+          </div>
+
+          <button id="btn-start" class="neon-btn primary-btn pulse-glow">
+            <span>INITIATE FLIGHT</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Game Over Screen Modal -->
+      <div id="gameover-screen" class="game-modal">
+        <div class="modal-card">
+          <div class="badge-tag alert-tag">MISSION STATUS</div>
+          <h2 class="gameover-title">FLIGHT TERMINATED</h2>
+          <p class="gameover-sub">CHASSIS DESTROYED IN LASER MATRIX</p>
+
+          <div class="results-grid">
+            <div class="result-item">
+              <span class="res-label">FINAL SCORE</span>
+              <span id="res-score" class="res-val neon-pink">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">DISTANCE FLOWN</span>
+              <span id="res-distance" class="res-val neon-cyan">0m</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">DATA COINS</span>
+              <span id="res-coins" class="res-val neon-yellow">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">CLOSE CALLS</span>
+              <span id="res-closecalls" class="res-val neon-orange">0</span>
+            </div>
+            <div class="result-item full-width">
+              <span class="res-label">RECORD HIGH SCORE</span>
+              <span id="res-highscore" class="res-val neon-green">0</span>
+            </div>
+          </div>
+
+          <div id="new-record-badge" class="new-record-badge hidden">★ NEW ALL-TIME RECORD ★</div>
+
+          <div class="modal-buttons">
+            <button id="btn-restart" class="neon-btn primary-btn">
+              <span>RELAUNCH JETPACK [R]</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+              <span>ARCADE HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pause Screen Modal -->
+      <div id="pause-screen" class="game-modal">
+        <div class="modal-card mini-card">
+          <h2 class="pause-title">THRUSTERS PAUSED</h2>
+          <p class="pause-sub">PRESS [P] OR CLICK RESUME TO RE-ENGAGE</p>
+          <div class="modal-buttons">
+            <button id="btn-resume" class="neon-btn primary-btn">
+              <span>RESUME FLIGHT</span>
+            </button>
+            <button id="btn-pause-restart" class="neon-btn secondary-btn">
+              <span>RESTART RUN</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+              <span>EXIT TO HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

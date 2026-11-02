@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>New Game // Antigravity Arcade</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="game-wrapper">
+    <div id="game-container">
+      <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+      <!-- CRT / Scanline Atmosphere (optional) -->
+      <div class="crt-overlay"></div>
+
+      <!-- HUD Overlay -->
+      <div id="hud" class="overlay-hud">
+        <div class="hud-top">
+          <div class="hud-box">
+            <span class="hud-label">SCORE</span>
+            <span id="score-display" class="hud-val">0</span>
+          </div>
+          <div class="hud-box">
+            <span class="hud-label">HIGH SCORE</span>
+            <span id="highscore-display" class="hud-val">0</span>
+          </div>
+        </div>
+
+        <div class="hud-bottom">
+          <div class="hud-controls-hint">
+            <a href="../../index.html" class="neon-icon-btn" title="Exit to Arcade Hub">
+              <span>🏠</span>
+            </a>
+            <button id="btn-audio-toggle" class="neon-icon-btn" title="Toggle Sound [M]">
+              <span id="audio-icon">🔊</span>
+            </button>
+            <button id="btn-pause" class="neon-icon-btn" title="Pause Game [P]">
+              <span id="pause-icon">⏸</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Start Screen Modal -->
+      <div id="start-screen" class="game-modal active">
+        <div class="modal-card">
+          <h1 class="glitch-title">GAME TITLE</h1>
+          <p class="subtitle">BRIEF GAME DESCRIPTION</p>
+          <div class="instructions-panel">
+            <div class="control-row">
+              <span class="key-badge">ARROW KEYS / WASD</span>
+              <span>MOVE / CONTROL</span>
+            </div>
+            <div class="control-row">
+              <span class="key-badge">SPACE</span>
+              <span>PRIMARY ACTION</span>
+            </div>
+          </div>
+          <button id="btn-start" class="neon-btn primary-btn pulse-glow">
+            <span>START GAME</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Game Over Modal -->
+      <div id="gameover-screen" class="game-modal">
+        <div class="modal-card">
+          <h2 class="gameover-title">GAME OVER</h2>
+          <div class="results-grid">
+            <div class="result-item">
+              <span class="res-label">SCORE</span>
+              <span id="res-score" class="res-val neon-pink">0</span>
+            </div>
+            <div class="result-item">
+              <span class="res-label">BEST SCORE</span>
+              <span id="res-highscore" class="res-val neon-green">0</span>
+            </div>
+          </div>
+          <div class="modal-buttons">
+            <button id="btn-restart" class="neon-btn primary-btn">
+              <span>PLAY AGAIN [R]</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn">
+              <span>ARCADE HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pause Modal -->
+      <div id="pause-screen" class="game-modal">
+        <div class="modal-card mini-card">
+          <h2 class="pause-title">PAUSED</h2>
+          <div class="modal-buttons">
+            <button id="btn-resume" class="neon-btn primary-btn">
+              <span>RESUME</span>
+            </button>
+            <button id="btn-pause-restart" class="neon-btn secondary-btn">
+              <span>RESTART</span>
+            </button>
+            <a href="../../index.html" class="neon-btn secondary-btn">
+              <span>EXIT TO HUB</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
