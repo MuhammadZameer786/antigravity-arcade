@@ -12,6 +12,14 @@ Open [index.html](file:///Users/zameer/Documents/antigravity/games/gravity-flipp
 ### Option 2: From the Arcade Hub
 Open the master [Arcade Hub](../../index.html) and click **"LAUNCH GAME"** on the Gravity Flipper card.
 
+### Option 3: Online Race (Prototype)
+Run the [arcade server](../../README.md#option-3-arcade-server-for-online-play), open the game on two devices, and pick **ONLINE RACE**. One player creates a room and the other joins with its 4-letter code.
+
+- Both players run the same course at the same time. The last one still alive wins.
+- The rival appears as a ghost, and the HUD's **RIVAL** box shows how far ahead or behind you are.
+- There's no pausing. Keeping the game hidden for 15 seconds forfeits the race, and a dropped player has 20 seconds to reconnect.
+- High scores aren't saved from races.
+
 ---
 
 ## ⌨️ Controls

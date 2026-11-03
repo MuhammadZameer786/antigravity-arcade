@@ -797,6 +797,85 @@ html, body {
   display: block;
 }
 
+/* Online Versus Match */
+.neon-primary-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.rival-panel,
+.garbage-meter {
+  display: none;
+}
+
+body.versus-match .rival-panel {
+  display: block;
+}
+
+body.versus-match .garbage-meter {
+  display: block;
+}
+
+body.versus-match .stats-panel,
+body.versus-match #btn-pause {
+  display: none;
+}
+
+.rival-board {
+  position: relative;
+}
+
+#rivalCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #000;
+  border-radius: 3px;
+}
+
+.rival-status {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: rgba(4, 2, 10, 0.8);
+  font-family: 'Orbitron', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--neon-yellow);
+}
+
+.rival-status.active {
+  display: flex;
+}
+
+.garbage-meter {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 6px;
+  height: 100%;
+  z-index: 10;
+  background: rgba(255, 0, 85, 0.1);
+}
+
+.garbage-fill {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 0;
+  background: #ff0055;
+  box-shadow: 0 0 8px #ff0055;
+  transition: height 0.12s ease;
+}
+
 /* Cabinet Footer */
 .cabinet-footer {
   background: #090314;
@@ -1233,10 +1312,30 @@ kbd {
     width: 100%;
   }
 
+  /* In a versus match the rival's board tucks in under HOLD */
+  body.versus-match #play-area {
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      "vitals vitals vitals"
+      "hold   board  next"
+      "rival  board  next";
+  }
+
+  .rival-panel {
+    grid-area: rival;
+  }
+
   .hold-panel,
-  .next-panel {
+  .next-panel,
+  .rival-panel {
     width: 100%;
     padding: 3px;
+  }
+
+  .rival-status {
+    font-size: 7px;
+    letter-spacing: 0;
+    padding: 2px;
   }
 
   .hold-canvas-box,

@@ -674,6 +674,25 @@
   }
 
   /* ==========================================================================
+     ONLINE VERSUS RULES
+     ========================================================================== */
+  const GARBAGE_PALETTE = { type: 'G', color: '#4b4f6b', border: '#7c82a8', shadow: 'rgba(124, 130, 168, 0.5)' };
+  const CLEAR_ATTACK = [0, 0, 1, 2, 4];                 // Garbage sent, indexed by lines cleared
+  const COMBO_ATTACK = [0, 0, 1, 1, 2, 2, 3, 3, 4];     // Extra garbage, indexed by combo
+  const TSPIN_ATTACK_PER_LINE = 2;
+  const B2B_ATTACK = 1;
+  const PERFECT_CLEAR_ATTACK = 10;
+  const MAX_ATTACK = 20;
+  const MAX_GARBAGE_PER_LOCK = 8;
+  const VERSUS_LEVEL_SECONDS = 30;                      // Speed rises with match time so games end
+  const VERSUS_MAX_LEVEL = 15;
+  const BOARD_SYNC_SECONDS = 0.15;
+  const RIVAL_TILE_SIZE = 15;
+
+  const VERSUS_WON_TEXT = { lost: 'RIVAL OVERFLOWED', forfeit: 'RIVAL DISCONNECTED', away: 'RIVAL WENT AWAY' };
+  const VERSUS_LOST_TEXT = { lost: 'MATRIX OVERFLOW', forfeit: 'CONNECTION LOST', away: 'GAME LEFT HIDDEN TOO LONG' };
+
+  /* ==========================================================================
      MAIN GAME LOGIC ENGINE
      ========================================================================== */
   class NeonMatrixBlocks {
@@ -693,6 +712,9 @@
       this.nextCanvas = document.getElementById('nextCanvas');
       this.nextCtx = this.nextCanvas.getContext('2d');
 
+      this.rivalCanvas = document.getElementById('rivalCanvas');
+      this.rivalCtx = this.rivalCanvas.getContext('2d');
+
       // Overlays & UI
       this.flashOverlay = document.getElementById('flash-overlay');
       this.dangerOverlay = document.getElementById('danger-overlay');
@@ -702,6 +724,12 @@
       this.modalPause = document.getElementById('modal-pause');
       this.modalGameOver = document.getElementById('modal-gameover');
       this.tickerText = document.getElementById('ticker-text');
+
+      // Online Versus elements
+      this.rivalLines = document.getElementById('rival-lines');
+      this.rivalStatus = document.getElementById('rival-status');
+      this.garbageFill = document.getElementById('garbage-fill');
+      this.rematchBtn = document.getElementById('btn-play-again');
 
       // HUD elements
       this.vitalScore = document.getElementById('vital-score');
@@ -723,7 +751,7 @@
       this.statMaxCombo = document.getElementById('stat-max-combo');
       this.statPpm = document.getElementById('stat-ppm');
 
-      // Game Modes: 'marathon', 'sprint', 'ultra'
+      // Game Modes: 'marathon', 'sprint', 'ultra', 'versus'
       this.gameMode = 'marathon';
       this.state = 'MENU'; // 'MENU', 'PLAYING', 'PAUSED', 'GAMEOVER'
 
@@ -784,6 +812,15 @@
       this.shakeDuration = 0;
       this.shakeIntensity = 0;
       this.lineClearAnimation = null; // { rows: [], timer: 0.3 }
+
+      // Online Versus
+      this.lobby = null;            // ArcadeLobby, built the first time someone goes online
+      this.pieceRng = Math.random;  // Replaced with a seeded source for a match
+      this.garbageRng = Math.random;
+      this.incomingGarbage = 0;
+      this.linesSent = 0;
+      this.boardSyncTimer = 0;
+      this.lastBoardSent = '';
 
       // Last piece maneuver (for T-Spin detection)
       this.lastActionWasRotate = false;
@@ -862,7 +899,7 @@
       const types = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
       // Fisher-Yates shuffle
       for (let i = types.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(this.pieceRng() * (i + 1));
         [types[i], types[j]] = [types[j], types[i]];
       }
       this.bag.push(...types);
@@ -1216,6 +1253,8 @@
           this.vitalScore.textContent = this.formatScore(this.score);
         }
 
+        if (this.gameMode === 'versus') this.applyGarbage();
+
         this.checkBoardDanger();
         this.spawnPiece();
       }
@@ -1287,6 +1326,7 @@
       }
 
       // Back-to-Back bonus calculation (1.5x)
+      const isBackToBack = isDifficult && this.backToBack;
       if (isDifficult) {
         if (this.backToBack) {
           basePoints = Math.floor(basePoints * 1.5);
@@ -1344,19 +1384,25 @@
       // Level progression (Marathon mode: level up every 10 lines)
       if (this.gameMode === 'marathon') {
         const targetLevel = Math.min(15, Math.floor(this.lines / 10) + 1);
-        if (targetLevel > this.level) {
-          this.level = targetLevel;
-          this.vitalLevel.textContent = this.level;
-          this.dropInterval = Math.max(80, 1000 * Math.pow(0.85 - (this.level - 1) * 0.007, this.level - 1));
-          this.sound.playLevelUp();
-          this.showFloatMessage(`LEVEL UP! [LVL ${this.level}]`, '#ffe600');
-        }
+        if (targetLevel > this.level) this.levelUp(targetLevel);
       }
 
       // Sprint mode victory condition (40 lines)
       if (this.gameMode === 'sprint' && this.lines >= this.sprintTarget) {
         this.triggerVictory();
       }
+
+      if (this.gameMode === 'versus') {
+        this.sendAttack(this.calculateAttack(linesCleared, isTSpin, isBackToBack, isPerfectClear));
+      }
+    }
+
+    levelUp(level) {
+      this.level = level;
+      this.vitalLevel.textContent = this.level;
+      this.dropInterval = Math.max(80, 1000 * Math.pow(0.85 - (this.level - 1) * 0.007, this.level - 1));
+      this.sound.playLevelUp();
+      this.showFloatMessage(`LEVEL UP! [LVL ${this.level}]`, '#ffe600');
     }
 
     checkBoardDanger() {
@@ -1659,6 +1705,8 @@
         this.statPpm.textContent = ppm;
       }
 
+      if (this.gameMode === 'versus') this.updateVersus(dt);
+
       // Screen shake decay
       if (this.shakeDuration > 0) {
         this.shakeDuration -= dt;
@@ -1788,6 +1836,12 @@
       this.countTetrises = 0;
       this.countTSpins = 0;
 
+      this.incomingGarbage = 0;
+      this.linesSent = 0;
+      this.boardSyncTimer = 0;
+      this.lastBoardSent = '';
+      this.renderGarbageMeter();
+
       // Reset HUD
       this.vitalScore.textContent = '000000';
       this.vitalLevel.textContent = '1';
@@ -1817,6 +1871,10 @@
       } else if (this.gameMode === 'ultra') {
         this.modeDisplay.textContent = 'ULTRA 2MIN';
         this.modeSublabel.textContent = 'TARGET: HIGH SCORE';
+      } else if (this.gameMode === 'versus') {
+        this.modeDisplay.textContent = 'VERSUS';
+        this.modeSublabel.textContent = `ROOM ${this.lobby.room.code}`;
+        this.tickerText.textContent = `ONLINE VERSUS // ROOM ${this.lobby.room.code} // LAST MATRIX STANDING WINS`;
       }
 
       this.modalStart.classList.remove('active');
@@ -1830,6 +1888,8 @@
     }
 
     pauseGame() {
+      if (this.gameMode === 'versus') return; // A rival can't be paused
+
       if (this.state === 'PLAYING') {
         this.state = 'PAUSED';
         this.modalPause.classList.add('active');
@@ -1850,6 +1910,11 @@
     }
 
     triggerGameOver(reason) {
+      if (this.gameMode === 'versus') {
+        this.topOut();
+        return;
+      }
+
       this.state = 'GAMEOVER';
       this.sound.playGameOver();
       this.sound.stopMusic();
@@ -1903,6 +1968,217 @@
     }
 
     /* ==========================================================================
+       ONLINE VERSUS
+       Each device plays its own board. Rivals share a seed, and exchange only
+       garbage and a picture of each board, so a lag spike never moves your
+       pieces. The server settles who won.
+       ========================================================================== */
+    openLobby() {
+      this.modalStart.classList.remove('active');
+
+      // Built on first use, so the solo modes never depend on the shared scripts
+      if (!this.lobby) {
+        this.lobby = new ArcadeLobby({
+          mount: document.getElementById('tetris-cabinet'),
+          classes: {
+            overlay: 'game-modal',
+            box: 'modal-box',
+            title: 'modal-title',
+            primaryButton: 'neon-primary-btn',
+            secondaryButton: 'neon-secondary-btn'
+          },
+          rules: 'SAME PIECES // LAST MATRIX STANDING WINS',
+          rematchButton: this.rematchBtn,
+          rematchLabel: this.rematchBtn,
+          onGesture: () => this.sound.init(),
+          onCountdown: () => this.prepareMatch(),
+          onStart: (seed) => this.startMatch(seed),
+          onRelay: (data) => this.handleRivalData(data),
+          onStatus: (text) => this.setRivalStatus(text),
+          onResult: (won, reason) => this.showVersusResult(won, reason),
+          onBack: () => {
+            this.leaveVersus();
+            this.modalStart.classList.add('active');
+          }
+        });
+      }
+      this.lobby.open();
+    }
+
+    setRivalStatus(text) {
+      this.rivalStatus.textContent = text;
+      this.rivalStatus.classList.toggle('active', text !== '');
+    }
+
+    prepareMatch() {
+      document.body.classList.add('versus-match');
+      this.modalGameOver.classList.remove('active');
+      this.setRivalStatus('');
+      this.rivalLines.textContent = '0 LINES';
+      this.renderRival('');
+    }
+
+    startMatch(seed) {
+      this.pieceRng = ArcadeRoom.seededRandom(seed);
+      this.garbageRng = ArcadeRoom.seededRandom(seed ^ 0x9e3779b9); // Its own stream, so garbage can't shift the piece order
+      this.startGame();
+    }
+
+    updateVersus(dt) {
+      const targetLevel = Math.min(VERSUS_MAX_LEVEL, Math.floor(this.elapsedTime / VERSUS_LEVEL_SECONDS) + 1);
+      if (targetLevel > this.level) this.levelUp(targetLevel);
+
+      this.boardSyncTimer += dt;
+      if (this.boardSyncTimer >= BOARD_SYNC_SECONDS) {
+        this.boardSyncTimer = 0;
+        this.syncBoard();
+      }
+    }
+
+    calculateAttack(linesCleared, isTSpin, isBackToBack, isPerfectClear) {
+      let attack = isTSpin
+        ? linesCleared * TSPIN_ATTACK_PER_LINE
+        : CLEAR_ATTACK[Math.min(linesCleared, CLEAR_ATTACK.length - 1)];
+      if (isBackToBack) attack += B2B_ATTACK;
+      attack += COMBO_ATTACK[Math.min(this.combo, COMBO_ATTACK.length - 1)];
+      if (isPerfectClear) attack += PERFECT_CLEAR_ATTACK;
+      return Math.min(attack, MAX_ATTACK);
+    }
+
+    // Clears cancel what's on the way in before anything is sent back
+    sendAttack(attack) {
+      const cancelled = Math.min(attack, this.incomingGarbage);
+      const sent = attack - cancelled;
+      this.incomingGarbage -= cancelled;
+      this.renderGarbageMeter();
+
+      if (sent > 0 && this.state === 'PLAYING') {
+        this.linesSent += sent;
+        this.lobby.room.relay({ kind: 'garbage', lines: sent });
+        this.showFloatMessage(`ATTACK +${sent}`, '#05ffa1');
+      }
+    }
+
+    handleRivalData(data) {
+      if (data.kind === 'garbage') {
+        if (!Number.isInteger(data.lines) || data.lines < 1 || data.lines > MAX_ATTACK) return;
+        if (this.state !== 'PLAYING') return;
+        this.incomingGarbage = Math.min(this.incomingGarbage + data.lines, ROWS);
+        this.renderGarbageMeter();
+        this.sound.playDangerPulse();
+        this.showFloatMessage(`INCOMING +${data.lines}`, '#ff0055');
+      } else if (data.kind === 'board' && typeof data.cells === 'string') {
+        this.renderRival(data.cells);
+        if (Number.isInteger(data.lines)) this.rivalLines.textContent = `${data.lines} LINES`;
+      }
+    }
+
+    // Pending garbage rises when a piece locks without clearing anything
+    applyGarbage() {
+      const rows = Math.min(this.incomingGarbage, MAX_GARBAGE_PER_LOCK);
+      if (rows === 0) return;
+
+      const hole = Math.floor(this.garbageRng() * COLS);
+      for (let i = 0; i < rows; i++) {
+        this.board.shift();
+        const row = [];
+        for (let c = 0; c < COLS; c++) row.push(c === hole ? null : GARBAGE_PALETTE);
+        this.board.push(row);
+      }
+
+      this.incomingGarbage -= rows;
+      this.renderGarbageMeter();
+      this.triggerScreenShake(6, 0.15);
+    }
+
+    boardSnapshot() {
+      const piece = this.currentPiece;
+      let cells = '';
+      for (let r = HIDDEN_ROWS; r < TOTAL_ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const pieceRow = piece ? piece.matrix[r - piece.row] : null;
+          const cell = this.board[r][c];
+          if (pieceRow && pieceRow[c - piece.col]) cells += piece.type;
+          else cells += cell ? cell.type : '.';
+        }
+      }
+      return cells;
+    }
+
+    syncBoard() {
+      const cells = this.boardSnapshot();
+      if (cells === this.lastBoardSent) return;
+      this.lastBoardSent = cells;
+      this.lobby.room.relay({ kind: 'board', cells, lines: this.lines }, { volatile: true });
+    }
+
+    topOut() {
+      if (this.state !== 'PLAYING') return;
+      this.state = 'GAMEOVER';
+      this.sound.playGameOver();
+      this.sound.stopMusic();
+      this.syncBoard();
+      this.lobby.reportLoss();
+      this.tickerText.textContent = 'MATRIX OVERFLOW // AWAITING MATCH RESULT';
+    }
+
+    showVersusResult(won, reason) {
+      if (this.state === 'PLAYING' && won) this.sound.playLevelUp();
+      this.sound.stopMusic();
+      this.state = 'GAMEOVER';
+
+      const badge = document.getElementById('go-badge');
+      badge.textContent = won ? VERSUS_WON_TEXT[reason] : VERSUS_LOST_TEXT[reason];
+      badge.classList.toggle('red', !won);
+
+      document.getElementById('go-title').textContent = won ? 'VICTORY' : 'DEFEAT';
+      document.getElementById('go-score').textContent = this.formatScore(this.score);
+      document.getElementById('go-high-label').textContent = 'LINES SENT';
+      document.getElementById('go-high').textContent = this.linesSent;
+      document.getElementById('go-lines').textContent = this.lines;
+      document.getElementById('go-level').textContent = this.level;
+      document.getElementById('go-time').textContent = this.formatTime(this.elapsedTime);
+      document.getElementById('go-tetris').textContent = this.countTetrises;
+      document.getElementById('go-new-record').classList.remove('active');
+
+      this.modalGameOver.classList.add('active');
+      this.tickerText.textContent = `MATCH OVER // ${won ? 'VICTORY' : 'DEFEAT'}`;
+    }
+
+    // Leaves any room and puts the shared screens back for the solo modes
+    leaveVersus() {
+      if (this.lobby) this.lobby.leave();
+      this.pieceRng = Math.random;
+      this.garbageRng = Math.random;
+
+      document.body.classList.remove('versus-match');
+      document.getElementById('go-high-label').textContent = 'HIGH SCORE';
+      document.getElementById('go-badge').classList.add('red');
+      this.setRivalStatus('');
+    }
+
+    renderGarbageMeter() {
+      this.garbageFill.style.height = `${(this.incomingGarbage / ROWS) * 100}%`;
+    }
+
+    renderRival(cells) {
+      const ctx = this.rivalCtx;
+      ctx.clearRect(0, 0, this.rivalCanvas.width, this.rivalCanvas.height);
+
+      for (let i = 0; i < Math.min(cells.length, COLS * ROWS); i++) {
+        const palette = cells[i] === 'G' ? GARBAGE_PALETTE : PIECE_PALETTE[cells[i]];
+        if (!palette) continue;
+        ctx.fillStyle = palette.color;
+        ctx.fillRect(
+          (i % COLS) * RIVAL_TILE_SIZE + 1,
+          Math.floor(i / COLS) * RIVAL_TILE_SIZE + 1,
+          RIVAL_TILE_SIZE - 2,
+          RIVAL_TILE_SIZE - 2
+        );
+      }
+    }
+
+    /* ==========================================================================
        USER INPUT HANDLING (KEYBOARD & TOUCH)
        ========================================================================== */
     bindInputs() {
@@ -1918,6 +2194,9 @@
       });
 
       window.addEventListener('keydown', (e) => {
+        // Letters typed into a room code aren't game shortcuts
+        if (e.target instanceof HTMLInputElement) return;
+
         // Prevent window scrolling on arrow keys and space
         if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
           e.preventDefault();
@@ -1943,7 +2222,7 @@
         }
 
         // Restart on R
-        if (e.code === 'KeyR' && (this.state === 'PLAYING' || this.state === 'PAUSED')) {
+        if (e.code === 'KeyR' && this.gameMode !== 'versus' && (this.state === 'PLAYING' || this.state === 'PAUSED')) {
           this.startGame();
           return;
         }
@@ -2027,7 +2306,8 @@
 
       // Start Game Button
       document.getElementById('btn-start-game').addEventListener('click', () => {
-        this.startGame();
+        if (this.gameMode === 'versus') this.openLobby();
+        else this.startGame();
       });
 
       // Pause Modal Buttons
@@ -2044,10 +2324,12 @@
       });
 
       // Game Over Modal Buttons
-      document.getElementById('btn-play-again').addEventListener('click', () => {
-        this.startGame();
+      this.rematchBtn.addEventListener('click', () => {
+        if (this.gameMode === 'versus') this.lobby.requestRematch();
+        else this.startGame();
       });
       document.getElementById('btn-go-menu').addEventListener('click', () => {
+        if (this.gameMode === 'versus') this.leaveVersus();
         this.state = 'MENU';
         this.modalGameOver.classList.remove('active');
         this.modalStart.classList.add('active');

@@ -27,6 +27,15 @@ python3 -m http.server 8000
 ```
 Then visit `http://localhost:8000` in your browser.
 
+### Option 3: Arcade Server (For Online Play)
+Neon Blocks versus and the Gravity Flipper race need the room server, which also serves the arcade (requires Node 22+):
+```bash
+cd server
+npm install
+npm start
+```
+Then visit `http://localhost:8787`. It also prints an address that phones and tablets on the same Wi-Fi can open.
+
 ---
 
 ## 📁 Repository Structure
@@ -92,6 +101,15 @@ antigravity/
 │       ├── style.css
 │       └── README.md
 │
+├── server/                     # 🛰️ Room-code WebSocket server for online play
+│   ├── index.js
+│   └── rooms.test.js
+│
+├── shared/
+│   ├── arcade-room.js          # 🔌 Room client: codes, heartbeats, reconnecting
+│   ├── arcade-lobby.js         # 🚪 Lobby screens: create, join, ready, rematch
+│   └── arcade-lobby.css
+│
 └── templates/
     └── game-template/          # 📦 Ready-to-use template for new mini-games
         ├── index.html
@@ -107,14 +125,14 @@ antigravity/
 | Game | Category | Tech | Modes | Status | Play |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **⚡ [Neon Runner](file:///Users/zameer/Documents/antigravity/games/neon-runner/index.html)** | Synthwave Endless Runner | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-runner/index.html) |
-| **🌀 [Gravity Flipper](file:///Users/zameer/Documents/antigravity/games/gravity-flipper/index.html)** | Quantum Inversion Runner | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/gravity-flipper/index.html) |
+| **🌀 [Gravity Flipper](file:///Users/zameer/Documents/antigravity/games/gravity-flipper/index.html)** | Quantum Inversion Runner | Canvas 2D + Web Audio | 1P / 2P Online Race (Prototype) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/gravity-flipper/index.html) |
 | **🏓 [Neon Pong](file:///Users/zameer/Documents/antigravity/games/neon-pong/index.html)** | Cyberpunk Curve Rally | Canvas 2D + Web Audio | 1P AI / 2P Local | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-pong/index.html) |
 | **🚀 [Cyber Jetpack](file:///Users/zameer/Documents/antigravity/games/cyber-jetpack/index.html)** | Laser Flap Vector Thrust Runner | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/cyber-jetpack/index.html) |
 | **🌌 [Star Voyager](file:///Users/zameer/Documents/antigravity/games/star-voyager/index.html)** | 3D Procedural Space Flight Sim | Three.js 3D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/star-voyager/index.html) |
 | **🧱 [Quantum Breaker](file:///Users/zameer/Documents/antigravity/games/quantum-breaker/index.html)** | Neon Multi-Ball Matrix Arkanoid | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/quantum-breaker/index.html) |
 | **⚡ [Cyber Pinball](file:///Users/zameer/Documents/antigravity/games/cyber-pinball/index.html)** | Neon Multi-Ball Matrix Pinball | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/cyber-pinball/index.html) |
 | **🐍 [Cyber Snake](file:///Users/zameer/Documents/antigravity/games/cyber-snake/index.html)** | Neon Grid Overdrive Snake | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/cyber-snake/index.html) |
-| **🧩 [Neon Matrix Blocks](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html)** | Cyberpunk Tetromino Puzzle | Canvas 2D + Web Audio | 1P (Marathon/Sprint/Ultra) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html) |
+| **🧩 [Neon Matrix Blocks](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html)** | Cyberpunk Tetromino Puzzle | Canvas 2D + Web Audio | 1P (Marathon/Sprint/Ultra) / 2P Online Versus (Prototype) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html) |
 
 ---
 

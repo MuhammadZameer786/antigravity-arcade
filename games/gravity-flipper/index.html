@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>GRAVITY FLIPPER // Quantum Inversion Runner</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../shared/arcade-lobby.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
@@ -42,7 +43,7 @@
           </div>
 
           <div class="hud-box highscore-box">
-            <span class="hud-label">BEST</span>
+            <span id="hud-best-label" class="hud-label">BEST</span>
             <span id="hud-highscore" class="hud-val">000000</span>
           </div>
         </div>
@@ -114,17 +115,22 @@
             </div>
           </div>
 
-          <button id="btn-start" class="neon-btn primary-btn pulse-glow">
-            <span>INITIATE DIVE</span>
-          </button>
+          <div class="modal-buttons">
+            <button id="btn-start" class="neon-btn primary-btn pulse-glow">
+              <span>INITIATE DIVE</span>
+            </button>
+            <button id="btn-online" class="neon-btn secondary-btn">
+              <span>⚔️ ONLINE RACE</span>
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Game Over Modal -->
       <div id="gameover-screen" class="game-modal">
         <div class="modal-card">
-          <h2 class="gameover-title">GRAVITY COLLAPSE</h2>
-          <p class="gameover-sub">KINETIC EQUILIBRIUM LOST</p>
+          <h2 id="result-title" class="gameover-title">GRAVITY COLLAPSE</h2>
+          <p id="result-sub" class="gameover-sub">KINETIC EQUILIBRIUM LOST</p>
 
           <div class="results-grid">
             <div class="result-item">
@@ -140,7 +146,7 @@
               <span id="res-orbs" class="res-val neon-yellow">0</span>
             </div>
             <div class="result-item">
-              <span class="res-label">BEST RECORD</span>
+              <span id="res-best-label" class="res-label">BEST RECORD</span>
               <span id="res-highscore" class="res-val neon-green">0</span>
             </div>
           </div>
@@ -149,7 +155,10 @@
 
           <div class="modal-buttons">
             <button id="btn-restart" class="neon-btn primary-btn">
-              <span>RETRY RUN [R]</span>
+              <span id="btn-restart-label">RETRY RUN [R]</span>
+            </button>
+            <button id="btn-leave-race" class="neon-btn secondary-btn">
+              <span>LEAVE RACE</span>
             </button>
             <a href="../../index.html" class="neon-btn secondary-btn">
               <span>ARCADE HUB</span>
@@ -190,6 +199,8 @@
     <button class="rotate-dismiss" onclick="this.parentElement.remove()">PLAY ANYWAY</button>
   </div>
 
+  <script src="../../shared/arcade-room.js"></script>
+  <script src="../../shared/arcade-lobby.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

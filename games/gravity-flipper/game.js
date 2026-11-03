@@ -445,6 +445,14 @@ class ParticleSystem {
 }
 
 // ============================================================================
+// ONLINE RACE RULES
+// ============================================================================
+const RIVAL_SYNC_SECONDS = 0.08;
+const RIVAL_COAST_SECONDS = 0.5;   // How long to keep moving a rival we've stopped hearing from
+const RACE_WON_TEXT = { lost: 'RIVAL CRASHED', forfeit: 'RIVAL DISCONNECTED', away: 'RIVAL WENT AWAY' };
+const RACE_LOST_TEXT = { lost: 'YOU CRASHED FIRST', forfeit: 'CONNECTION LOST', away: 'GAME LEFT HIDDEN TOO LONG' };
+
+// ============================================================================
 // MAIN GAME CONTROLLER
 // ============================================================================
 class GravityFlipper {
@@ -463,7 +471,7 @@ class GravityFlipper {
     this.floorY = 500;
 
     // Game state
-    this.state = 'start'; // 'start', 'playing', 'paused', 'gameover'
+    this.state = 'start'; // 'start', 'lobby', 'playing', 'paused', 'gameover'
     this.score = 0;
     this.distance = 0;
     this.multiplier = 1;
@@ -518,6 +526,14 @@ class GravityFlipper {
     this.bgGridOffset = 0;
     this.nextSpawnX = 800;
 
+    // Online Race
+    this.lobby = null;            // ArcadeLobby, built the first time someone goes online
+    this.isRace = false;
+    this.courseRng = Math.random; // Seeded for a race so both runners get the same course
+    this.scrolled = 0;            // Course travelled. Unlike distance, warp gates don't add to it
+    this.rival = null;            // Latest report from the other runner
+    this.rivalSyncTimer = 0;
+
     this.initDOM();
     this.bindEvents();
     this.updateHUD();
@@ -541,6 +557,14 @@ class GravityFlipper {
     this.resOrbs = document.getElementById('res-orbs');
     this.resHighscore = document.getElementById('res-highscore');
     this.newRecordBadge = document.getElementById('new-record-badge');
+
+    // Online Race elements
+    this.hudBestLabel = document.getElementById('hud-best-label');
+    this.resultTitle = document.getElementById('result-title');
+    this.resultSub = document.getElementById('result-sub');
+    this.resBestLabel = document.getElementById('res-best-label');
+    this.restartBtn = document.getElementById('btn-restart');
+    this.restartLabel = document.getElementById('btn-restart-label');
   }
 
   bindEvents() {
@@ -557,7 +581,9 @@ class GravityFlipper {
 
     // Start / Restart Buttons
     document.getElementById('btn-start').addEventListener('click', () => this.start());
-    document.getElementById('btn-restart').addEventListener('click', () => this.start());
+    document.getElementById('btn-online').addEventListener('click', () => this.openLobby());
+    this.restartBtn.addEventListener('click', () => this.restart());
+    document.getElementById('btn-leave-race').addEventListener('click', () => this.leaveRace());
     document.getElementById('btn-resume').addEventListener('click', () => this.togglePause());
     document.getElementById('btn-pause-restart').addEventListener('click', () => this.start());
 
@@ -586,7 +612,8 @@ class GravityFlipper {
 
     // Keyboard controls
     window.addEventListener('keydown', (e) => {
-      if (e.repeat) return;
+      // Letters typed into a room code aren't game shortcuts
+      if (e.repeat || e.target instanceof HTMLInputElement) return;
 
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'KeyW' || e.code === 'KeyS') {
         if (this.state === 'playing') {
@@ -607,7 +634,7 @@ class GravityFlipper {
 
       if (e.code === 'KeyR' && this.state === 'gameover') {
         e.preventDefault();
-        this.start();
+        this.restart();
       }
 
       if (e.code === 'KeyM') {
@@ -660,6 +687,9 @@ class GravityFlipper {
     this.warpGates = [];
     this.particles.clear();
     this.nextSpawnX = 750;
+    this.scrolled = 0;
+    this.rival = null;
+    this.rivalSyncTimer = 0;
 
     // Modals
     this.startScreen.classList.remove('active');
@@ -674,7 +704,14 @@ class GravityFlipper {
     requestAnimationFrame((t) => this.loop(t));
   }
 
+  restart() {
+    if (this.isRace) this.lobby.requestRematch();
+    else this.start();
+  }
+
   togglePause() {
+    if (this.isRace) return; // A rival can't be paused
+
     if (this.state === 'playing') {
       this.state = 'paused';
       this.audio.stopMusic();
@@ -732,6 +769,11 @@ class GravityFlipper {
     this.particles.emit(this.player.x, this.player.y, 35, '#ff007f', 380, 0.8, 5);
     this.particles.emit(this.player.x, this.player.y, 25, '#00f3ff', 320, 0.7, 4);
 
+    if (this.isRace) {
+      this.lobby.reportLoss();
+      return;
+    }
+
     const isNewBest = this.score > this.highScore;
     if (isNewBest) {
       this.highScore = this.score;
@@ -745,6 +787,144 @@ class GravityFlipper {
     this.resHighscore.textContent = this.highScore.toLocaleString();
 
     this.gameoverScreen.classList.add('active');
+    this.updateHUD();
+  }
+
+  // ==========================================================================
+  // ONLINE RACE
+  // Each device runs its own game on the same seeded course, so a lag spike
+  // never moves a spike. Rivals share only a position report for the ghost,
+  // and the first crash the server hears about decides the race.
+  // ==========================================================================
+  openLobby() {
+    this.startScreen.classList.remove('active');
+    this.state = 'lobby';
+
+    // Built on first use, so solo play never depends on the shared scripts
+    if (!this.lobby) {
+      this.lobby = new ArcadeLobby({
+        mount: document.getElementById('game-container'),
+        classes: {
+          overlay: 'game-modal',
+          box: 'modal-card mini-card',
+          title: 'pause-title',
+          primaryButton: 'neon-btn primary-btn',
+          secondaryButton: 'neon-btn secondary-btn'
+        },
+        rules: 'SAME COURSE // LAST RUNNER STANDING WINS',
+        rematchButton: this.restartBtn,
+        rematchLabel: this.restartLabel,
+        onGesture: () => this.audio.init(),
+        onCountdown: () => this.prepareRace(),
+        onStart: (seed) => this.startRace(seed),
+        onRelay: (data) => this.handleRivalData(data),
+        onStatus: (text) => {
+          if (text) this.showBanner(text);
+        },
+        onResult: (won, reason) => this.showRaceResult(won, reason),
+        onBack: () => this.leaveRace()
+      });
+    }
+    this.lobby.open();
+  }
+
+  prepareRace() {
+    this.isRace = true;
+    this.state = 'lobby';
+    document.body.classList.add('race-match');
+    this.gameoverScreen.classList.remove('active');
+    this.hudBestLabel.textContent = 'RIVAL';
+  }
+
+  startRace(seed) {
+    this.courseRng = ArcadeRoom.seededRandom(seed);
+    this.start();
+  }
+
+  updateRace(dt) {
+    this.rivalSyncTimer += dt;
+    if (this.rivalSyncTimer >= RIVAL_SYNC_SECONDS) {
+      this.rivalSyncTimer = 0;
+      this.lobby.room.relay({
+        kind: 'runner',
+        scrolled: Math.round(this.scrolled),
+        speed: Math.round(this.speed),
+        distance: Math.floor(this.distance),
+        y: Math.round(this.player.y),
+        rotation: Number(this.player.rotation.toFixed(2))
+      }, { volatile: true });
+    }
+
+    if (this.rival) {
+      const ease = Math.min(1, dt * 20);
+      this.rival.shownY += (this.rival.y - this.rival.shownY) * ease;
+      this.rival.shownRotation += (this.rival.rotation - this.rival.shownRotation) * ease;
+    }
+  }
+
+  handleRivalData(data) {
+    if (data.kind !== 'runner') return;
+    const fields = [data.scrolled, data.speed, data.distance, data.y, data.rotation];
+    if (!fields.every(Number.isFinite)) return;
+
+    const previous = this.rival;
+    this.rival = {
+      scrolled: data.scrolled,
+      speed: data.speed,
+      distance: data.distance,
+      y: data.y,
+      rotation: data.rotation,
+      receivedAt: performance.now(),
+      shownY: previous ? previous.shownY : data.y,
+      shownRotation: previous ? previous.shownRotation : data.rotation
+    };
+  }
+
+  // Where the rival should be now, carrying them forward from their last report
+  rivalScrolled() {
+    const silence = (performance.now() - this.rival.receivedAt) / 1000;
+    return this.rival.scrolled + this.rival.speed * Math.min(silence, RIVAL_COAST_SECONDS);
+  }
+
+  rivalGapText() {
+    if (!this.rival) return '--';
+    const gap = Math.round((this.rivalScrolled() - this.scrolled) / 10);
+    return `${gap > 0 ? '+' : ''}${gap}m`;
+  }
+
+  showRaceResult(won, reason) {
+    if (this.state === 'playing' && won) this.audio.playWarp();
+    this.audio.stopMusic();
+    this.state = 'gameover';
+
+    this.resultTitle.textContent = won ? 'VICTORY' : 'DEFEAT';
+    this.resultTitle.classList.toggle('victory', won);
+    this.resultSub.textContent = won ? RACE_WON_TEXT[reason] : RACE_LOST_TEXT[reason];
+    this.resScore.textContent = this.score.toLocaleString();
+    this.resDist.textContent = Math.floor(this.distance) + 'm';
+    this.resOrbs.textContent = this.orbsCollected;
+    this.resBestLabel.textContent = 'RIVAL DISTANCE';
+    this.resHighscore.textContent = this.rival ? this.rival.distance + 'm' : '--';
+    this.gameoverScreen.classList.add('active');
+  }
+
+  // Leaves any room and puts the shared screens back for solo play
+  leaveRace() {
+    this.lobby.leave();
+    this.isRace = false;
+    this.courseRng = Math.random;
+    this.rival = null;
+
+    document.body.classList.remove('race-match');
+    this.hudBestLabel.textContent = 'BEST';
+    this.resBestLabel.textContent = 'BEST RECORD';
+    this.resultTitle.textContent = 'GRAVITY COLLAPSE';
+    this.resultTitle.classList.remove('victory');
+    this.resultSub.textContent = 'KINETIC EQUILIBRIUM LOST';
+
+    this.gameoverScreen.classList.remove('active');
+    this.startScreen.classList.add('active');
+    this.state = 'start';
     this.updateHUD();
   }
 
@@ -769,7 +949,7 @@ class GravityFlipper {
     const theme = this.getSector();
 
     // Pattern catalogue
-    const patternType = Math.floor(Math.random() * 6);
+    const patternType = Math.floor(this.courseRng() * 6);
     let patternLength = 400;
 
     switch (patternType) {
@@ -874,6 +1054,7 @@ class GravityFlipper {
 
     // Move world entities leftward
     const dx = this.speed * dt;
+    this.scrolled += dx;
     this.bgGridOffset = (this.bgGridOffset + dx * 0.6) % 40;
     this.nextSpawnX -= dx;
 
@@ -899,6 +1080,8 @@ class GravityFlipper {
 
     // Update particles
     this.particles.update(dt);
+
+    if (this.isRace) this.updateRace(dt);
 
     // Update HUD
     this.updateHUD();
@@ -1114,7 +1297,9 @@ class GravityFlipper {
     if (this.distDisplay) this.distDisplay.textContent = Math.floor(this.distance) + 'm';
     if (this.multDisplay) this.multDisplay.textContent = `x${this.multiplier}`;
     if (this.sectorDisplay) this.sectorDisplay.textContent = this.getSector().name;
-    if (this.hudHighscore) this.hudHighscore.textContent = this.highScore.toString().padStart(6, '0');
+    if (this.hudHighscore) {
+      this.hudHighscore.textContent = this.isRace ? this.rivalGapText() : this.highScore.toString().padStart(6, '0');
+    }
   }
 
   // ==========================================================================
@@ -1155,6 +1340,9 @@ class GravityFlipper {
 
     // Draw Particles
     this.particles.render(ctx);
+
+    // Draw the rival behind your own runner
+    if (this.isRace && this.rival) this.renderRival(ctx);
 
     // Draw Player
     if (this.state !== 'gameover') {
@@ -1398,6 +1586,31 @@ class GravityFlipper {
     ctx.lineTo(4, -2);
     ctx.stroke();
 
+    ctx.restore();
+  }
+
+  renderRival(ctx) {
+    const p = this.player;
+    const x = p.x + this.rivalScrolled() - this.scrolled;
+    if (x < -p.size || x > this.width) return;
+
+    ctx.save();
+    ctx.globalAlpha = 0.45;
+    ctx.translate(x + p.size / 2, this.rival.shownY + p.size / 2);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = "700 10px 'Orbitron', sans-serif";
+    ctx.textAlign = 'center';
+    ctx.fillText('RIVAL', 0, this.rival.shownY > this.height / 2 ? -p.size : p.size + 8);
+
+    ctx.rotate(this.rival.shownRotation);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#fff';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+    ctx.strokeRect(-p.size / 2, -p.size / 2, p.size, p.size);
     ctx.restore();
   }
 

@@ -463,6 +463,31 @@ html, body {
   border-color: #fff;
 }
 
+/* Online Race */
+#btn-leave-race {
+  display: none;
+}
+
+body.race-match #btn-leave-race {
+  display: inline-flex;
+}
+
+body.race-match #btn-pause {
+  display: none;
+}
+
+.gameover-title.victory {
+  color: var(--neon-green);
+  text-shadow: 0 0 20px rgba(5, 255, 161, 0.7);
+}
+
+.primary-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
 /* ==========================================================================
    MOBILE RESPONSIVE ADAPTATIONS (PORTRAIT & LANDSCAPE)
    ========================================================================== */
