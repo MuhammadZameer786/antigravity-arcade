@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#05020c">
+  <title>VECTOR SIEGE // Neon Arena Shooter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="arena" aria-label="Vector Siege arena"></canvas>
+
+  <header class="hud">
+    <div class="stat stat-score">
+      <span class="stat-label">SCORE</span>
+      <span id="hud-score" class="stat-value cyan">0</span>
+    </div>
+    <div class="stat stat-mult">
+      <span class="stat-label">MULT</span>
+      <span id="hud-mult" class="stat-value pink">x1</span>
+      <span class="mult-bar"><i id="hud-mult-fill"></i></span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">WAVE</span>
+      <span id="hud-wave" class="stat-value yellow">1</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">LIVES</span>
+      <span id="hud-lives" class="stat-value green">▲▲▲</span>
+    </div>
+    <div class="stat stat-high">
+      <span class="stat-label">BEST</span>
+      <span id="hud-high" class="stat-value">0</span>
+    </div>
+    <div class="hud-buttons">
+      <button id="btn-audio" class="icon-btn" title="Sound [M]" aria-label="Toggle sound"><span id="audio-icon">🔊</span></button>
+      <button id="btn-pause" class="icon-btn" title="Pause [P]" aria-label="Pause">⏸</button>
+    </div>
+  </header>
+
+  <button id="btn-bomb" class="bomb-btn" title="Bomb [Space]" aria-label="Fire bomb">
+    <span class="bomb-label">BOMB</span>
+    <span id="hud-bombs" class="bomb-count">3</span>
+  </button>
+
+  <div id="start-modal" class="modal active">
+    <div class="card">
+      <h1 class="title">VECTOR SIEGE</h1>
+      <p class="subtitle">NEON ARENA SHOOTER</p>
+
+      <ul class="how-to">
+        <li><strong>Survive the waves.</strong> Every fifth wave, a Warden attacks.</li>
+        <li><strong>Grab the shards</strong> enemies drop to raise your multiplier.</li>
+        <li><strong>Bombs</strong> clear the arena. Scoring earns you more.</li>
+      </ul>
+
+      <div class="controls touch-only">
+        <div><span class="badge">LEFT THUMB</span> Move</div>
+        <div><span class="badge">RIGHT THUMB</span> Aim, or let it auto-aim</div>
+        <div><span class="badge">BOMB</span> Button at the bottom</div>
+      </div>
+      <div class="controls keys-only">
+        <div><span class="badge">WASD</span> Move</div>
+        <div><span class="badge">MOUSE / ARROWS</span> Aim. Firing is automatic</div>
+        <div><span class="badge">SPACE / R-CLICK</span> Bomb</div>
+        <div><span class="badge">GAMEPAD</span> Sticks move and aim, A bombs</div>
+      </div>
+
+      <button id="btn-start" class="btn btn-primary">START</button>
+      <button id="btn-daily" class="btn btn-secondary">
+        DAILY SIEGE
+        <small id="daily-best" class="btn-note">Same waves all day</small>
+      </button>
+      <a href="../../index.html" class="btn btn-secondary">ARCADE HUB</a>
+    </div>
+  </div>
+
+  <div id="pause-modal" class="modal">
+    <div class="card card-small">
+      <h2 class="title">PAUSED</h2>
+      <button id="btn-resume" class="btn btn-primary">RESUME</button>
+      <button id="btn-restart" class="btn btn-secondary">RESTART</button>
+      <a href="../../index.html" class="btn btn-secondary">ARCADE HUB</a>
+    </div>
+  </div>
+
+  <div id="gameover-modal" class="modal">
+    <div class="card">
+      <h2 class="title">SIEGE OVER</h2>
+      <p id="final-mode" class="subtitle">ENDLESS</p>
+      <div id="final-score" class="final-score">0</div>
+      <div id="new-best" class="new-best">NEW BEST</div>
+      <div class="final-stats">
+        <div><span id="final-wave">1</span>WAVE</div>
+        <div><span id="final-kills">0</span>KILLS</div>
+        <div><span id="final-mult">x1</span>TOP MULT</div>
+        <div><span id="final-acc">0%</span>ACCURACY</div>
+      </div>
+      <ol id="records" class="records"></ol>
+      <p id="daily-note" class="daily-note"></p>
+      <button id="btn-again" class="btn btn-primary">PLAY AGAIN</button>
+      <button id="btn-menu" class="btn btn-secondary">CHANGE MODE</button>
+      <a href="../../index.html" class="btn btn-secondary">ARCADE HUB</a>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

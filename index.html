@@ -1126,6 +1126,82 @@
       50% { transform: translateY(-5px); filter: brightness(1.3); }
     }
 
+    /* Vector Siege Banner Art */
+    .vector-siege-art {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 55%, #14062c 0%, #080312 70%, #020106 100%);
+      overflow: hidden;
+    }
+
+    .art-siege-grid {
+      position: absolute;
+      inset: -26px;
+      background:
+        linear-gradient(90deg, rgba(130, 70, 255, 0.2) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(130, 70, 255, 0.2) 1px, transparent 1px);
+      background-size: 26px 26px;
+      animation: siegeGridDrift 6s linear infinite;
+    }
+
+    .art-siege-ship {
+      position: absolute;
+      left: calc(50% - 11px);
+      top: calc(58% - 11px);
+      width: 0;
+      height: 0;
+      border-top: 11px solid transparent;
+      border-bottom: 11px solid transparent;
+      border-left: 24px solid var(--neon-cyan);
+      filter: drop-shadow(0 0 8px var(--neon-cyan));
+      transform: rotate(-32deg);
+    }
+
+    .art-siege-shot {
+      position: absolute;
+      left: 50%;
+      top: 58%;
+      width: 14px;
+      height: 3px;
+      border-radius: 2px;
+      background: #fff;
+      box-shadow: 0 0 8px var(--neon-cyan);
+      transform: rotate(-32deg);
+      animation: siegeShot 0.9s linear infinite;
+    }
+
+    .art-siege-shot.s2 { animation-delay: 0.3s; }
+    .art-siege-shot.s3 { animation-delay: 0.6s; }
+
+    .art-siege-enemy {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border: 2px solid currentColor;
+      box-shadow: 0 0 10px currentColor, inset 0 0 6px currentColor;
+      animation: siegeEnemyPulse 1.8s ease-in-out infinite;
+    }
+
+    .art-siege-enemy.e1 { left: 72%; top: 22%; color: var(--neon-pink); transform: rotate(45deg); }
+    .art-siege-enemy.e2 { left: 20%; top: 26%; color: var(--neon-cyan); transform: rotate(45deg); animation-delay: 0.6s; }
+    .art-siege-enemy.e3 { left: 80%; top: 66%; color: var(--neon-yellow); animation-delay: 1.2s; }
+    .art-siege-enemy.e4 { left: 14%; top: 70%; color: var(--neon-green); border-radius: 50%; animation-delay: 0.3s; }
+
+    @keyframes siegeGridDrift {
+      from { transform: translate(0, 0); }
+      to { transform: translate(26px, 26px); }
+    }
+
+    @keyframes siegeShot {
+      0% { opacity: 1; translate: 0 0; }
+      100% { opacity: 0; translate: 110px -70px; }
+    }
+
+    @keyframes siegeEnemyPulse {
+      0%, 100% { filter: brightness(1); scale: 1; }
+      50% { filter: brightness(1.5); scale: 1.15; }
+    }
+
     @media (max-width: 768px) {
       body {
         padding-bottom: 40px;
@@ -1238,7 +1314,7 @@
       <div class="quick-stats">
         <div class="stat-item">
           <span class="stat-label">Active Games</span>
-          <span class="stat-val" id="stat-game-count">9</span>
+          <span class="stat-val" id="stat-game-count">10</span>
         </div>
         <div class="stat-item">
           <span class="stat-label">Audio Engine</span>
@@ -1815,6 +1891,74 @@
           </div>
         </div>
       </div>
+
+      <!-- Vector Siege Card -->
+      <div class="game-card">
+        <div class="card-banner">
+          <div class="vector-siege-art">
+            <div class="art-siege-grid"></div>
+            <div class="art-siege-enemy e1"></div>
+            <div class="art-siege-enemy e2"></div>
+            <div class="art-siege-enemy e3"></div>
+            <div class="art-siege-enemy e4"></div>
+            <div class="art-siege-shot"></div>
+            <div class="art-siege-shot s2"></div>
+            <div class="art-siege-shot s3"></div>
+            <div class="art-siege-ship"></div>
+          </div>
+          <div class="badge-live">
+            <span class="status-dot"></span> READY
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 class="card-title">Vector Siege</h2>
+            <span class="genre-tag neon">TWIN-STICK</span>
+          </div>
+
+          <p class="card-desc">
+            Hold the neon grid against wave after wave of geometric invaders. Move with one thumb, aim with the other, and let auto-fire do the rest. Grab shards for a x10 multiplier, save bombs for emergencies, and break through the Warden's rotating shield every fifth wave.
+          </p>
+
+          <div class="card-tags">
+            <span class="tag">Twin-Stick Touch</span>
+            <span class="tag">Gamepad</span>
+            <span class="tag">Warden Bosses</span>
+            <span class="tag">Shard Multiplier</span>
+            <span class="tag">Daily Siege</span>
+            <span class="tag">Synthwave BGM</span>
+          </div>
+
+          <div class="card-meta">
+            <div class="meta-item">
+              <span class="meta-label">Category</span>
+              <span>Arena Shooter</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Modes</span>
+              <span>Endless / Daily Siege</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Local High Score</span>
+              <span class="meta-val" id="siege-highscore-display">0 PTS</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Controls</span>
+              <span style="font-size: 11px; color:#aaa;">WASD + Mouse/Arrows, Space Bomb, Touch</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="games/vector-siege/index.html" class="play-btn">
+              <span>▶ LAUNCH GAME</span>
+            </a>
+            <a href="games/vector-siege/README.md" class="icon-action-btn" title="View Instructions">
+              <span>📖</span>
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Arcade Footer -->
@@ -1859,6 +2003,10 @@
       const blocksScore = localStorage.getItem('neon_blocks_highscore_marathon') || '0';
       const blocksEl = document.getElementById('blocks-highscore-display');
       if (blocksEl) blocksEl.textContent = Number(blocksScore).toLocaleString() + ' PTS';
+
+      const siegeScore = localStorage.getItem('vector_siege_highscore') || '0';
+      const siegeEl = document.getElementById('siege-highscore-display');
+      if (siegeEl) siegeEl.textContent = Number(siegeScore).toLocaleString() + ' PTS';
     });
   </script>
 </body>

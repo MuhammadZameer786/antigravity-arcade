@@ -19,6 +19,7 @@ You can also launch the games directly:
 - **⚡ Cyber Pinball**: [games/cyber-pinball/index.html](file:///Users/zameer/Documents/antigravity/games/cyber-pinball/index.html)
 - **🐍 Cyber Snake**: [games/cyber-snake/index.html](file:///Users/zameer/Documents/antigravity/games/cyber-snake/index.html)
 - **🧩 Neon Matrix Blocks**: [games/neon-blocks/index.html](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html)
+- **🎯 Vector Siege**: [games/vector-siege/index.html](file:///Users/zameer/Documents/antigravity/games/vector-siege/index.html)
 
 ### Option 2: Local HTTP Server (Optional)
 Run Python's built-in web server:
@@ -95,7 +96,13 @@ antigravity/
 │   │   ├── style.css
 │   │   └── README.md
 │   │
-│   └── neon-blocks/            # 🧩 Neon Matrix Blocks (Cyberpunk Tetromino Puzzle)
+│   ├── neon-blocks/            # 🧩 Neon Matrix Blocks (Cyberpunk Tetromino Puzzle)
+│   │   ├── index.html
+│   │   ├── game.js
+│   │   ├── style.css
+│   │   └── README.md
+│   │
+│   └── vector-siege/           # 🎯 Vector Siege (Twin-Stick Neon Arena Shooter)
 │       ├── index.html
 │       ├── game.js
 │       ├── style.css
@@ -133,6 +140,7 @@ antigravity/
 | **⚡ [Cyber Pinball](file:///Users/zameer/Documents/antigravity/games/cyber-pinball/index.html)** | Neon Multi-Ball Matrix Pinball | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/cyber-pinball/index.html) |
 | **🐍 [Cyber Snake](file:///Users/zameer/Documents/antigravity/games/cyber-snake/index.html)** | Neon Grid Overdrive Snake | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/cyber-snake/index.html) |
 | **🧩 [Neon Matrix Blocks](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html)** | Cyberpunk Tetromino Puzzle | Canvas 2D + Web Audio | 1P (Marathon/Sprint/Ultra) / 2P Online Versus (Prototype) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html) |
+| **🎯 [Vector Siege](file:///Users/zameer/Documents/antigravity/games/vector-siege/index.html)** | Twin-Stick Neon Arena Shooter | Canvas 2D + Web Audio | 1P (Endless / Daily Siege) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/vector-siege/index.html) |
 
 ---
 
