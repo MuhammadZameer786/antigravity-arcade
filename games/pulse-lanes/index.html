@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#04010a">
+  <title>PULSE LANES // Neon Rhythm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="stage" aria-label="Note highway"></canvas>
+  <div id="safe-probe" class="safe-probe" aria-hidden="true"></div>
+
+  <div id="hud" class="hud" hidden>
+    <div class="progress"><i id="progress-fill"></i></div>
+    <div class="hud-row">
+      <div class="hud-left">
+        <span class="score-line"><span id="score" class="score">0</span><span id="mult" class="mult m1">x1</span></span>
+        <span id="run-label" class="run-label"></span>
+      </div>
+      <div class="hud-right">
+        <div class="hud-stats">
+          <span id="acc" class="acc">100.00%</span>
+          <span class="energy" title="Energy"><i id="energy-fill"></i></span>
+        </div>
+        <button id="btn-audio" class="icon-btn" title="Sound [M]" aria-label="Toggle sound"><span id="audio-icon">🔊</span></button>
+        <button id="btn-pause" class="icon-btn" title="Pause [P]" aria-label="Pause">⏸</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="start-modal" class="modal active">
+    <div class="card card-wide">
+      <h1 class="title">PULSE LANES</h1>
+      <p class="subtitle">NEON RHYTHM // LIVE SYNTH TRACKS</p>
+      <p class="how-to">Hit each note as it crosses the line and <strong>hold long notes</strong> to their end. Misses cut the melody and drain your energy.</p>
+
+      <div class="level-row" role="radiogroup" aria-label="Difficulty">
+        <button class="level-btn" data-level="easy" role="radio">EASY</button>
+        <button class="level-btn" data-level="normal" role="radio">NORMAL</button>
+        <button class="level-btn" data-level="hard" role="radio">HARD</button>
+      </div>
+
+      <div id="track-list" class="track-list" role="listbox" aria-label="Tracks"></div>
+
+      <button id="btn-play" class="btn btn-primary">PLAY</button>
+      <div class="btn-row">
+        <button id="btn-settings" class="btn btn-secondary">SETTINGS</button>
+        <a href="../../index.html" class="btn btn-secondary">ARCADE HUB</a>
+      </div>
+      <p class="hint keys-only">D F J K or the arrow keys · P to pause · Tap a track to hear it, tap again to play</p>
+      <p class="hint touch-only">Tap the four columns of the screen · Tap a track to hear it, tap again to play</p>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal">
+    <div class="card card-small">
+      <h2 class="title">SETTINGS</h2>
+      <div class="setting">
+        <span class="setting-label">NOTE SPEED<small>How fast notes travel</small></span>
+        <span class="stepper">
+          <button id="speed-down" class="step-btn" aria-label="Slower notes">−</button>
+          <span id="speed-val" class="step-val">5</span>
+          <button id="speed-up" class="step-btn" aria-label="Faster notes">+</button>
+        </span>
+      </div>
+      <div class="setting">
+        <span class="setting-label">AUDIO OFFSET<small>Raise it if you keep hitting late</small></span>
+        <span class="stepper">
+          <button id="offset-down" class="step-btn" aria-label="Lower offset">−</button>
+          <span id="offset-val" class="step-val">0 MS</span>
+          <button id="offset-up" class="step-btn" aria-label="Raise offset">+</button>
+        </span>
+      </div>
+      <button id="btn-calibrate" class="btn btn-secondary">
+        CALIBRATE BY TAPPING
+        <small class="btn-note">Worth doing with Bluetooth headphones</small>
+      </button>
+      <div class="setting">
+        <span class="setting-label">HIT SOUNDS<small>A soft tick on each hit</small></span>
+        <button id="btn-hitsounds" class="toggle-btn" aria-pressed="true">ON</button>
+      </div>
+      <button id="btn-settings-done" class="btn btn-primary">DONE</button>
+    </div>
+  </div>
+
+  <div id="calibrate-modal" class="modal">
+    <div class="card card-small">
+      <h2 class="title">CALIBRATE</h2>
+      <p class="card-text">Tap the pad, or press any lane key, on every click. Listen to the clicks rather than watching the pad.</p>
+      <button id="cal-pad" class="cal-pad">TAP</button>
+      <p id="cal-status" class="cal-status" role="status" aria-live="polite">0 / 12 TAPS</p>
+      <button id="btn-cal-save" class="btn btn-primary" disabled>USE THIS OFFSET</button>
+      <button id="btn-cal-retry" class="btn btn-secondary">START AGAIN</button>
+      <button id="btn-cal-cancel" class="btn btn-secondary">CANCEL</button>
+    </div>
+  </div>
+
+  <div id="pause-modal" class="modal">
+    <div class="card card-small">
+      <h2 class="title">PAUSED</h2>
+      <button id="btn-resume" class="btn btn-primary">RESUME</button>
+      <button id="btn-restart" class="btn btn-secondary">RESTART</button>
+      <button id="btn-quit" class="btn btn-secondary">TRACKS</button>
+      <a href="../../index.html" class="btn btn-secondary">ARCADE HUB</a>
+    </div>
+  </div>
+
+  <div id="result-modal" class="modal">
+    <div class="card">
+      <h2 id="result-title" class="title">TRACK CLEAR</h2>
+      <p id="result-sub" class="subtitle"></p>
+      <div class="grade-row">
+        <span id="result-grade" class="grade">A</span>
+        <span class="result-score">
+          <span id="result-score">0</span>
+          <span id="result-best" class="new-best" hidden>NEW BEST</span>
+        </span>
+      </div>
+      <div class="result-stats">
+        <div><span>ACCURACY</span><b id="res-acc">0%</b></div>
+        <div><span>MAX COMBO</span><b id="res-combo">0</b></div>
+        <div><span>PERFECT</span><b id="res-perfect" class="yellow">0</b></div>
+        <div><span>GREAT</span><b id="res-great" class="green">0</b></div>
+        <div><span>GOOD</span><b id="res-good" class="cyan">0</b></div>
+        <div><span>MISS</span><b id="res-miss" class="red">0</b></div>
+        <div><span>HOLDS</span><b id="res-holds">0 / 0</b></div>
+        <div><span>EARLY / LATE</span><b id="res-timing">0 / 0</b></div>
+      </div>
+      <p id="result-note" class="card-text"></p>
+      <button id="btn-apply-offset" class="btn btn-secondary" hidden>SET OFFSET</button>
+      <button id="btn-retry" class="btn btn-primary">PLAY AGAIN</button>
+      <button id="btn-result-menu" class="btn btn-secondary">TRACKS</button>
+    </div>
+  </div>
+
+  <script src="music.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

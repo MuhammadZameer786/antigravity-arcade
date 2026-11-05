@@ -906,14 +906,16 @@
       flex-grow: 1;
     }
 
-    .tags-row {
+    .tags-row,
+    .card-tags {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
       margin-bottom: 18px;
     }
 
-    .game-tag {
+    .game-tag,
+    .card-tags .tag {
       font-family: 'Orbitron', monospace;
       font-size: 10px;
       background: rgba(255, 255, 255, 0.06);
@@ -928,6 +930,17 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 20px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 12px;
+    }
+
+    /* Newer cards list four details, so they sit in a two-by-two grid */
+    .card-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 16px;
       margin-bottom: 20px;
       padding-top: 14px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -1268,6 +1281,82 @@
       45%, 100% { opacity: 1; }
     }
 
+    /* Pulse Lanes Banner Art */
+    .pulse-lanes-art {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: linear-gradient(180deg, #04010a 0%, #1a0630 40%, #3d0c50 48%, #07020f 48%);
+    }
+
+    .art-pulse-sun {
+      position: absolute;
+      left: 50%;
+      top: 48%;
+      width: 120px;
+      height: 60px;
+      margin: -60px 0 0 -60px;
+      border-radius: 120px 120px 0 0;
+      background: repeating-linear-gradient(180deg, transparent 0 34px, #2a0840 34px 37px),
+        linear-gradient(180deg, var(--neon-yellow), #ff6a3d 55%, var(--neon-pink));
+      opacity: 0.9;
+    }
+
+    .art-pulse-road {
+      position: absolute;
+      left: 50%;
+      bottom: -8px;
+      width: 132px;
+      height: 380px;
+      margin-left: -66px;
+      overflow: hidden;
+      border-left: 2px solid var(--neon-cyan);
+      border-right: 2px solid var(--neon-cyan);
+      background:
+        linear-gradient(90deg, transparent 24.6%, rgba(255, 255, 255, 0.1) 25%, transparent 25.4%,
+          transparent 49.6%, rgba(255, 255, 255, 0.1) 50%, transparent 50.4%,
+          transparent 74.6%, rgba(255, 255, 255, 0.1) 75%, transparent 75.4%),
+        rgba(8, 3, 20, 0.94);
+      box-shadow: 0 0 14px rgba(0, 243, 255, 0.45);
+      transform: perspective(170px) rotateX(56deg);
+      transform-origin: 50% 100%;
+    }
+
+    .art-pulse-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 16%;
+      height: 4px;
+      background: #fff;
+      box-shadow: 0 0 10px #fff;
+    }
+
+    .art-pulse-note {
+      position: absolute;
+      top: 0;
+      width: 21%;
+      height: 12px;
+      border-radius: 6px;
+      opacity: 0;
+      animation: pulseFall 2.4s linear infinite;
+    }
+
+    .art-pulse-note.c { background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
+    .art-pulse-note.p { background: #ff2bd6; box-shadow: 0 0 10px #ff2bd6; }
+    .art-pulse-note.n1 { left: 2%; }
+    .art-pulse-note.n2 { left: 27%; animation-delay: -0.6s; }
+    .art-pulse-note.n3 { left: 52%; animation-delay: -1.2s; }
+    .art-pulse-note.n4 { left: 77%; animation-delay: -1.8s; }
+    .art-pulse-note.n5 { left: 27%; animation-delay: -1.5s; }
+
+    @keyframes pulseFall {
+      0% { transform: translateY(0); opacity: 0; }
+      12% { opacity: 1; }
+      84% { opacity: 1; }
+      100% { transform: translateY(340px); opacity: 0; }
+    }
+
     @media (max-width: 768px) {
       body {
         padding-bottom: 40px;
@@ -1380,7 +1469,7 @@
       <div class="quick-stats">
         <div class="stat-item">
           <span class="stat-label">Active Games</span>
-          <span class="stat-val" id="stat-game-count">11</span>
+          <span class="stat-val" id="stat-game-count">12</span>
         </div>
         <div class="stat-item">
           <span class="stat-label">Audio Engine</span>
@@ -2116,6 +2205,74 @@
           </div>
         </div>
       </div>
+
+      <!-- Pulse Lanes Card -->
+      <div class="game-card">
+        <div class="card-banner">
+          <div class="pulse-lanes-art">
+            <div class="art-pulse-sun"></div>
+            <div class="art-pulse-road">
+              <div class="art-pulse-note c n1"></div>
+              <div class="art-pulse-note p n2"></div>
+              <div class="art-pulse-note p n3"></div>
+              <div class="art-pulse-note c n4"></div>
+              <div class="art-pulse-note p n5"></div>
+              <div class="art-pulse-line"></div>
+            </div>
+          </div>
+          <div class="badge-live">
+            <span class="status-dot"></span> READY
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 class="card-title">Pulse Lanes</h2>
+            <span class="genre-tag neon">RHYTHM</span>
+          </div>
+
+          <p class="card-desc">
+            A four-lane rhythm game whose music is synthesized live in your browser. The notes follow the melody, so hitting them plays the tune and missing cuts it out. Play six tracks on three difficulties, a new Daily Track each day, or Endless, where the tempo keeps climbing until your energy runs out.
+          </p>
+
+          <div class="card-tags">
+            <span class="tag">6 Live-Synth Tracks</span>
+            <span class="tag">3 Difficulties</span>
+            <span class="tag">Hold Notes</span>
+            <span class="tag">Daily Track</span>
+            <span class="tag">Endless Mode</span>
+            <span class="tag">Tap Calibration</span>
+          </div>
+
+          <div class="card-meta">
+            <div class="meta-item">
+              <span class="meta-label">Category</span>
+              <span>Rhythm</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Modes</span>
+              <span>Tracks / Daily / Endless</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Local High Score</span>
+              <span class="meta-val" id="pulse-highscore-display">0 PTS</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Controls</span>
+              <span style="font-size: 11px; color:#aaa;">D F J K or Arrows, Tap the Columns</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="games/pulse-lanes/index.html" class="play-btn">
+              <span>▶ LAUNCH GAME</span>
+            </a>
+            <a href="games/pulse-lanes/README.md" class="icon-action-btn" title="View Instructions">
+              <span>📖</span>
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Arcade Footer -->
@@ -2172,6 +2329,10 @@
       } catch (e) {}
       const duelEl = document.getElementById('duel-wins-display');
       if (duelEl) duelEl.textContent = duelWins + (duelWins === 1 ? ' WIN' : ' WINS');
+
+      const pulseScore = localStorage.getItem('pulse_lanes_highscore') || '0';
+      const pulseEl = document.getElementById('pulse-highscore-display');
+      if (pulseEl) pulseEl.textContent = Number(pulseScore).toLocaleString() + ' PTS';
     });
   </script>
 </body>

@@ -21,6 +21,7 @@ You can also launch the games directly:
 - **🧩 Neon Matrix Blocks**: [games/neon-blocks/index.html](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html)
 - **🎯 Vector Siege**: [games/vector-siege/index.html](file:///Users/zameer/Documents/antigravity/games/vector-siege/index.html)
 - **🔌 Circuit Duel**: [games/circuit-duel/index.html](file:///Users/zameer/Documents/antigravity/games/circuit-duel/index.html)
+- **🎵 Pulse Lanes**: [games/pulse-lanes/index.html](file:///Users/zameer/Documents/antigravity/games/pulse-lanes/index.html)
 
 ### Option 2: Local HTTP Server (Optional)
 Run Python's built-in web server:
@@ -109,8 +110,15 @@ antigravity/
 │   │   ├── style.css
 │   │   └── README.md
 │   │
-│   └── circuit-duel/           # 🔌 Circuit Duel (Neon Dots & Boxes: CPU, Local, Online)
+│   ├── circuit-duel/           # 🔌 Circuit Duel (Neon Dots & Boxes: CPU, Local, Online)
+│   │   ├── index.html
+│   │   ├── game.js
+│   │   ├── style.css
+│   │   └── README.md
+│   │
+│   └── pulse-lanes/            # 🎵 Pulse Lanes (4-Lane Rhythm Game with Live-Synth Tracks)
 │       ├── index.html
+│       ├── music.js
 │       ├── game.js
 │       ├── style.css
 │       └── README.md
@@ -149,6 +157,7 @@ antigravity/
 | **🧩 [Neon Matrix Blocks](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html)** | Cyberpunk Tetromino Puzzle | Canvas 2D + Web Audio | 1P (Marathon/Sprint/Ultra) / 2P Online Versus (Prototype) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html) |
 | **🎯 [Vector Siege](file:///Users/zameer/Documents/antigravity/games/vector-siege/index.html)** | Twin-Stick Neon Arena Shooter | Canvas 2D + Web Audio | 1P (Endless / Daily Siege) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/vector-siege/index.html) |
 | **🔌 [Circuit Duel](file:///Users/zameer/Documents/antigravity/games/circuit-duel/index.html)** | Neon Dots & Boxes Strategy Duel | Canvas 2D + Web Audio | 1P vs CPU / 2P Local / 2P Online | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/circuit-duel/index.html) |
+| **🎵 [Pulse Lanes](file:///Users/zameer/Documents/antigravity/games/pulse-lanes/index.html)** | 4-Lane Rhythm Game with Live-Synth Tracks | Canvas 2D + Web Audio | 1P Tracks / Daily / Endless | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/pulse-lanes/index.html) |
 
 ---
 
