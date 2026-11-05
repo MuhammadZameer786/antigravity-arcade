@@ -20,6 +20,7 @@ You can also launch the games directly:
 - **🐍 Cyber Snake**: [games/cyber-snake/index.html](file:///Users/zameer/Documents/antigravity/games/cyber-snake/index.html)
 - **🧩 Neon Matrix Blocks**: [games/neon-blocks/index.html](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html)
 - **🎯 Vector Siege**: [games/vector-siege/index.html](file:///Users/zameer/Documents/antigravity/games/vector-siege/index.html)
+- **🔌 Circuit Duel**: [games/circuit-duel/index.html](file:///Users/zameer/Documents/antigravity/games/circuit-duel/index.html)
 
 ### Option 2: Local HTTP Server (Optional)
 Run Python's built-in web server:
@@ -29,7 +30,7 @@ python3 -m http.server 8000
 Then visit `http://localhost:8000` in your browser.
 
 ### Option 3: Arcade Server (For Online Play)
-Neon Blocks versus and the Gravity Flipper race need the room server, which also serves the arcade (requires Node 22+):
+Neon Blocks versus, the Gravity Flipper race and Circuit Duel online need the room server, which also serves the arcade (requires Node 22+):
 ```bash
 cd server
 npm install
@@ -102,7 +103,13 @@ antigravity/
 │   │   ├── style.css
 │   │   └── README.md
 │   │
-│   └── vector-siege/           # 🎯 Vector Siege (Twin-Stick Neon Arena Shooter)
+│   ├── vector-siege/           # 🎯 Vector Siege (Twin-Stick Neon Arena Shooter)
+│   │   ├── index.html
+│   │   ├── game.js
+│   │   ├── style.css
+│   │   └── README.md
+│   │
+│   └── circuit-duel/           # 🔌 Circuit Duel (Neon Dots & Boxes: CPU, Local, Online)
 │       ├── index.html
 │       ├── game.js
 │       ├── style.css
@@ -141,6 +148,7 @@ antigravity/
 | **🐍 [Cyber Snake](file:///Users/zameer/Documents/antigravity/games/cyber-snake/index.html)** | Neon Grid Overdrive Snake | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/cyber-snake/index.html) |
 | **🧩 [Neon Matrix Blocks](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html)** | Cyberpunk Tetromino Puzzle | Canvas 2D + Web Audio | 1P (Marathon/Sprint/Ultra) / 2P Online Versus (Prototype) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html) |
 | **🎯 [Vector Siege](file:///Users/zameer/Documents/antigravity/games/vector-siege/index.html)** | Twin-Stick Neon Arena Shooter | Canvas 2D + Web Audio | 1P (Endless / Daily Siege) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/vector-siege/index.html) |
+| **🔌 [Circuit Duel](file:///Users/zameer/Documents/antigravity/games/circuit-duel/index.html)** | Neon Dots & Boxes Strategy Duel | Canvas 2D + Web Audio | 1P vs CPU / 2P Local / 2P Online | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/circuit-duel/index.html) |
 
 ---
 

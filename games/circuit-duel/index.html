@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#05020c">
+  <title>CIRCUIT DUEL // Neon Dots & Boxes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../shared/arcade-lobby.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <div class="topbar">
+      <div class="brand">
+        <span class="brand-name">CIRCUIT DUEL</span>
+        <span id="mode-label" class="mode-label">VS CPU</span>
+      </div>
+      <div class="hud-buttons">
+        <button id="btn-audio" class="icon-btn" title="Sound [M]" aria-label="Toggle sound"><span id="audio-icon">🔊</span></button>
+        <button id="btn-pause" class="icon-btn" title="Menu [P]" aria-label="Open menu">⏸</button>
+      </div>
+    </div>
+
+    <div id="panel-0" class="player p0">
+      <span id="name-0" class="player-name">YOU</span>
+      <span id="score-0" class="player-score">0</span>
+      <span class="player-turn">TURN</span>
+    </div>
+    <div class="goal">
+      <span class="goal-label">FIRST TO</span>
+      <span class="goal-num">15</span>
+    </div>
+    <div id="panel-1" class="player p1">
+      <span id="name-1" class="player-name">CPU</span>
+      <span id="score-1" class="player-score">0</span>
+      <span class="player-turn">TURN</span>
+    </div>
+
+    <main id="board-wrap">
+      <canvas id="board" aria-label="Game board"></canvas>
+    </main>
+
+    <footer class="status-bar">
+      <div id="status" class="status" role="status" aria-live="polite">PICK A MODE</div>
+      <div id="clock" class="clock" hidden><i id="clock-fill"></i></div>
+      <div class="hint touch-only">TAP A LINE, THEN TAP IT AGAIN TO DRAW</div>
+      <div class="hint keys-only">CLICK A LINE · OR ARROWS TO PICK, ENTER TO DRAW</div>
+    </footer>
+  </div>
+
+  <div id="start-modal" class="modal active">
+    <div class="card">
+      <h1 class="title">CIRCUIT DUEL</h1>
+      <p class="subtitle">NEON DOTS &amp; BOXES</p>
+
+      <ul class="how-to">
+        <li>Take turns drawing <strong>one line</strong> between two neighboring nodes.</li>
+        <li>Close the fourth side of a cell to <strong>claim it and go again</strong>.</li>
+        <li><strong>Cores</strong> are worth 2 or 3 points. First to <strong>15</strong> wins.</li>
+      </ul>
+
+      <div class="level-row" role="radiogroup" aria-label="Computer difficulty">
+        <button class="level-btn" data-level="easy" role="radio">EASY</button>
+        <button class="level-btn" data-level="normal" role="radio">NORMAL</button>
+        <button class="level-btn" data-level="hard" role="radio">HARD</button>
+      </div>
+      <button id="btn-cpu" class="btn btn-primary">
+        VS COMPUTER
+        <small id="cpu-record" class="btn-note">No games yet</small>
+      </button>
+      <button id="btn-local" class="btn btn-secondary">
+        PASS &amp; PLAY
+        <small class="btn-note">Two players, one screen</small>
+      </button>
+      <button id="btn-online" class="btn btn-secondary">
+        ONLINE DUEL
+        <small id="online-record" class="btn-note">Play a friend with a room code</small>
+      </button>
+      <a href="../../index.html" class="btn btn-secondary">ARCADE HUB</a>
+    </div>
+  </div>
+
+  <div id="pause-modal" class="modal">
+    <div class="card card-small">
+      <h2 class="title">PAUSED</h2>
+      <button id="btn-resume" class="btn btn-primary">RESUME</button>
+      <button id="btn-restart" class="btn btn-secondary">NEW GAME</button>
+      <button id="btn-quit" class="btn btn-secondary">MENU</button>
+      <a href="../../index.html" class="btn btn-secondary">ARCADE HUB</a>
+    </div>
+  </div>
+
+  <div id="leave-modal" class="modal">
+    <div class="card card-small">
+      <h2 class="title">LEAVE?</h2>
+      <p class="card-text">Leaving an online match counts as a loss.</p>
+      <button id="btn-stay" class="btn btn-primary">KEEP PLAYING</button>
+      <button id="btn-forfeit" class="btn btn-secondary">FORFEIT &amp; LEAVE</button>
+    </div>
+  </div>
+
+  <div id="result-modal" class="modal">
+    <div class="card">
+      <h2 id="result-title" class="title">YOU WIN</h2>
+      <p id="result-sub" class="subtitle">FIRST TO 15</p>
+      <div class="final-score">
+        <span id="final-0" class="cyan">0</span>
+        <span class="dash">:</span>
+        <span id="final-1" class="pink">0</span>
+      </div>
+      <p id="result-record" class="card-text"></p>
+      <button id="btn-again" class="btn btn-primary"><span id="again-label">PLAY AGAIN</span></button>
+      <button id="btn-board" class="btn btn-secondary">VIEW BOARD</button>
+      <button id="btn-result-menu" class="btn btn-secondary">MENU</button>
+    </div>
+  </div>
+
+  <button id="btn-show-result" class="show-result" hidden>SHOW RESULT</button>
+
+  <script src="../../shared/arcade-room.js"></script>
+  <script src="../../shared/arcade-lobby.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

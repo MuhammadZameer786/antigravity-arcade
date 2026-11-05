@@ -1202,6 +1202,72 @@
       50% { filter: brightness(1.5); scale: 1.15; }
     }
 
+    /* Circuit Duel Banner Art */
+    .circuit-duel-art {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 50%, #170730 0%, #080312 70%, #020106 100%);
+    }
+
+    .art-duel-board {
+      position: relative;
+      width: 132px;
+      height: 132px;
+    }
+
+    .art-duel-node {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      margin: -4px 0 0 -4px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 8px var(--neon-purple);
+    }
+
+    .art-duel-line {
+      position: absolute;
+      border-radius: 2px;
+    }
+
+    .art-duel-line.h { height: 4px; width: 44px; margin-top: -2px; }
+    .art-duel-line.v { width: 4px; height: 44px; margin-left: -2px; }
+    .art-duel-line.c { background: var(--neon-cyan); box-shadow: 0 0 8px var(--neon-cyan); }
+    .art-duel-line.p { background: var(--neon-pink); box-shadow: 0 0 8px var(--neon-pink); }
+
+    .art-duel-line.next {
+      animation: duelDraw 2.4s ease-in-out infinite;
+    }
+
+    .art-duel-cell {
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      border-radius: 3px;
+    }
+
+    .art-duel-cell.c { background: rgba(0, 243, 255, 0.18); border: 1px solid rgba(0, 243, 255, 0.5); }
+    .art-duel-cell.p { background: rgba(255, 0, 127, 0.18); border: 1px solid rgba(255, 0, 127, 0.5); }
+
+    .art-duel-core {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      margin: -8px 0 0 -8px;
+      border: 2px solid var(--neon-yellow);
+      box-shadow: 0 0 10px var(--neon-yellow);
+      transform: rotate(45deg);
+      animation: siegeEnemyPulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes duelDraw {
+      0%, 30% { opacity: 0; }
+      45%, 100% { opacity: 1; }
+    }
+
     @media (max-width: 768px) {
       body {
         padding-bottom: 40px;
@@ -1314,7 +1380,7 @@
       <div class="quick-stats">
         <div class="stat-item">
           <span class="stat-label">Active Games</span>
-          <span class="stat-val" id="stat-game-count">10</span>
+          <span class="stat-val" id="stat-game-count">11</span>
         </div>
         <div class="stat-item">
           <span class="stat-label">Audio Engine</span>
@@ -1959,6 +2025,97 @@
           </div>
         </div>
       </div>
+
+      <!-- Circuit Duel Card -->
+      <div class="game-card">
+        <div class="card-banner">
+          <div class="circuit-duel-art">
+            <!-- A 3x3 corner of the board: nodes 44px apart -->
+            <div class="art-duel-board">
+              <div class="art-duel-cell c" style="left: 4px; top: 4px;"></div>
+              <div class="art-duel-cell p" style="left: 48px; top: 48px;"></div>
+              <div class="art-duel-line h c" style="left: 0; top: 0;"></div>
+              <div class="art-duel-line h c" style="left: 0; top: 44px;"></div>
+              <div class="art-duel-line v c" style="left: 0; top: 0;"></div>
+              <div class="art-duel-line v p" style="left: 44px; top: 0;"></div>
+              <div class="art-duel-line h p" style="left: 44px; top: 44px;"></div>
+              <div class="art-duel-line h c" style="left: 44px; top: 88px;"></div>
+              <div class="art-duel-line v p" style="left: 44px; top: 44px;"></div>
+              <div class="art-duel-line v p" style="left: 88px; top: 44px;"></div>
+              <div class="art-duel-line h c" style="left: 88px; top: 0;"></div>
+              <div class="art-duel-line v c next" style="left: 132px; top: 0;"></div>
+              <div class="art-duel-core" style="left: 110px; top: 110px;"></div>
+              <div class="art-duel-node" style="left: 0; top: 0;"></div>
+              <div class="art-duel-node" style="left: 44px; top: 0;"></div>
+              <div class="art-duel-node" style="left: 88px; top: 0;"></div>
+              <div class="art-duel-node" style="left: 132px; top: 0;"></div>
+              <div class="art-duel-node" style="left: 0; top: 44px;"></div>
+              <div class="art-duel-node" style="left: 44px; top: 44px;"></div>
+              <div class="art-duel-node" style="left: 88px; top: 44px;"></div>
+              <div class="art-duel-node" style="left: 132px; top: 44px;"></div>
+              <div class="art-duel-node" style="left: 0; top: 88px;"></div>
+              <div class="art-duel-node" style="left: 44px; top: 88px;"></div>
+              <div class="art-duel-node" style="left: 88px; top: 88px;"></div>
+              <div class="art-duel-node" style="left: 132px; top: 88px;"></div>
+              <div class="art-duel-node" style="left: 0; top: 132px;"></div>
+              <div class="art-duel-node" style="left: 44px; top: 132px;"></div>
+              <div class="art-duel-node" style="left: 88px; top: 132px;"></div>
+              <div class="art-duel-node" style="left: 132px; top: 132px;"></div>
+            </div>
+          </div>
+          <div class="badge-live">
+            <span class="status-dot"></span> READY
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 class="card-title">Circuit Duel</h2>
+            <span class="genre-tag neon">TURN-BASED</span>
+          </div>
+
+          <p class="card-desc">
+            Neon dots and boxes for two. Take turns drawing a line between nodes, close a cell's fourth side to claim it and move again, and fight over cores worth 2 or 3 points. First to 15 wins, so there are no draws. Play the computer, pass one phone around, or challenge a friend online.
+          </p>
+
+          <div class="card-tags">
+            <span class="tag">3 CPU Levels</span>
+            <span class="tag">Pass &amp; Play</span>
+            <span class="tag">Online Rooms</span>
+            <span class="tag">Bonus Cores</span>
+            <span class="tag">Move Clock</span>
+            <span class="tag">Keyboard Play</span>
+          </div>
+
+          <div class="card-meta">
+            <div class="meta-item">
+              <span class="meta-label">Category</span>
+              <span>Strategy Duel</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Modes</span>
+              <span>1P vs CPU / 2P Local / 2P Online</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Wins vs CPU</span>
+              <span class="meta-val" id="duel-wins-display">0 WINS</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Controls</span>
+              <span style="font-size: 11px; color:#aaa;">Click or tap twice, Arrows + Enter</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="games/circuit-duel/index.html" class="play-btn">
+              <span>▶ LAUNCH GAME</span>
+            </a>
+            <a href="games/circuit-duel/README.md" class="icon-action-btn" title="View Instructions">
+              <span>📖</span>
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Arcade Footer -->
@@ -2007,6 +2164,14 @@
       const siegeScore = localStorage.getItem('vector_siege_highscore') || '0';
       const siegeEl = document.getElementById('siege-highscore-display');
       if (siegeEl) siegeEl.textContent = Number(siegeScore).toLocaleString() + ' PTS';
+
+      let duelWins = 0;
+      try {
+        const duel = JSON.parse(localStorage.getItem('circuit_duel_cpu') || '{}');
+        Object.values(duel).forEach((r) => { duelWins += (r && r.w) || 0; });
+      } catch (e) {}
+      const duelEl = document.getElementById('duel-wins-display');
+      if (duelEl) duelEl.textContent = duelWins + (duelWins === 1 ? ' WIN' : ' WINS');
     });
   </script>
 </body>
