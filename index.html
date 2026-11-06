@@ -1357,6 +1357,337 @@
       100% { transform: translateY(340px); opacity: 0; }
     }
 
+    /* Today panel: the day's daily challenges and the daily streak */
+    .today {
+      position: relative;
+      overflow: hidden;
+      padding: 22px 24px 24px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+    }
+
+    .today::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--neon-pink), var(--neon-purple), var(--neon-cyan));
+    }
+
+    .today-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 16px 28px;
+      margin-bottom: 18px;
+    }
+
+    .today-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .today-date {
+      margin-top: 6px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--neon-cyan);
+    }
+
+    .today-sub {
+      margin-top: 4px;
+      font-size: 14px;
+      color: #9da3b4;
+      letter-spacing: 0.5px;
+    }
+
+    .today-sub b {
+      color: #fff;
+    }
+
+    .streak {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 16px;
+      background: rgba(14, 9, 28, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+    }
+
+    .streak-count {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 70px;
+    }
+
+    .streak-num {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 14px rgba(255, 230, 0, 0.45);
+      white-space: nowrap;
+    }
+
+    .streak-flame {
+      font-size: 18px;
+      margin-right: 4px;
+      vertical-align: 3px;
+    }
+
+    .streak.cold .streak-num {
+      color: #5d6378;
+      text-shadow: none;
+    }
+
+    .streak.cold .streak-flame {
+      filter: grayscale(1);
+      opacity: 0.5;
+    }
+
+    .streak-label {
+      margin-top: 5px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9.5px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #798099;
+    }
+
+    .streak-side {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .week {
+      display: flex;
+      gap: 7px;
+      list-style: none;
+    }
+
+    .week li {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px;
+      color: #798099;
+    }
+
+    .week i {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .week li.on i {
+      background: var(--neon-yellow);
+      border-color: var(--neon-yellow);
+      box-shadow: 0 0 8px rgba(255, 230, 0, 0.55);
+    }
+
+    .week li.now {
+      color: #fff;
+    }
+
+    .week li.now:not(.on) i {
+      border: 1.5px dashed var(--neon-yellow);
+    }
+
+    .streak-note {
+      font-size: 13px;
+      color: #9da3b4;
+    }
+
+    .streak-note.warn {
+      color: var(--neon-pink);
+    }
+
+    .daily-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 14px;
+    }
+
+    .daily-tile {
+      --accent-rgb: 0, 243, 255;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-height: 96px;
+      padding: 14px 16px;
+      background: rgba(10, 6, 22, 0.6);
+      border: 1px solid rgba(var(--accent-rgb), 0.28);
+      border-left: 3px solid rgba(var(--accent-rgb), 0.6);
+      border-radius: 12px;
+      color: #fff;
+      text-decoration: none;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .daily-tile:hover,
+    .daily-tile:focus-visible {
+      outline: none;
+      transform: translateY(-2px);
+      border-color: rgb(var(--accent-rgb));
+      box-shadow: 0 0 22px rgba(var(--accent-rgb), 0.25);
+    }
+
+    .daily-icon {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 46px;
+      height: 46px;
+      border-radius: 10px;
+      font-size: 22px;
+      background: rgba(var(--accent-rgb), 0.12);
+      border: 1px solid rgba(var(--accent-rgb), 0.35);
+    }
+
+    .daily-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .daily-kicker {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgb(var(--accent-rgb));
+    }
+
+    .daily-name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .daily-desc {
+      font-size: 13.5px;
+      color: #9da3b4;
+    }
+
+    .daily-result {
+      margin-top: 4px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #c9cede;
+    }
+
+    .daily-tile.done .daily-result {
+      color: rgb(var(--accent-rgb));
+    }
+
+    .daily-cta {
+      flex: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #030109;
+      background: rgb(var(--accent-rgb));
+      box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.35);
+    }
+
+    .daily-tile.done .daily-cta {
+      color: rgb(var(--accent-rgb));
+      background: transparent;
+      border: 1px solid rgba(var(--accent-rgb), 0.6);
+      box-shadow: none;
+    }
+
+    @media (max-width: 768px) {
+      .today {
+        padding: 18px 14px 16px;
+      }
+      .today-head {
+        flex-direction: column;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      .today-title {
+        font-size: 1.2rem;
+      }
+      .streak {
+        width: 100%;
+        padding: 10px 12px;
+        gap: 12px;
+      }
+      .streak-count {
+        min-width: 60px;
+      }
+      .streak-num {
+        font-size: 24px;
+      }
+      .week {
+        gap: 6px;
+      }
+      .daily-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .daily-tile {
+        gap: 12px;
+        min-height: 88px;
+        padding: 12px 12px 12px 13px;
+      }
+      .daily-icon {
+        width: 38px;
+        height: 38px;
+        font-size: 18px;
+      }
+      .daily-name {
+        font-size: 14px;
+      }
+      .daily-desc {
+        font-size: 13px;
+      }
+      .daily-result {
+        font-size: 13.5px;
+      }
+      .daily-cta {
+        padding: 9px 11px;
+        font-size: 11px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .daily-tile {
+        transition: none;
+      }
+      .daily-tile:hover,
+      .daily-tile:focus-visible {
+        transform: none;
+      }
+    }
+
     @media (max-width: 768px) {
       body {
         padding-bottom: 40px;
@@ -1481,6 +1812,28 @@
         </div>
       </div>
     </header>
+
+    <!-- Today: the day's daily challenges and the daily streak -->
+    <section class="today" aria-labelledby="today-title">
+      <div class="today-head">
+        <div>
+          <h2 class="today-title" id="today-title"><span aria-hidden="true">📅</span> Today</h2>
+          <p class="today-date" id="today-date"></p>
+          <p class="today-sub" id="today-sub"></p>
+        </div>
+        <div class="streak cold" id="streak">
+          <div class="streak-count">
+            <span class="streak-num"><span class="streak-flame" aria-hidden="true">🔥</span><span id="streak-num">0</span></span>
+            <span class="streak-label" id="streak-label">Day streak</span>
+          </div>
+          <div class="streak-side">
+            <ol class="week" id="streak-week" aria-label="Dailies played in the last seven days"></ol>
+            <p class="streak-note" id="streak-note"></p>
+          </div>
+        </div>
+      </div>
+      <div class="daily-grid" id="daily-grid"></div>
+    </section>
 
     <!-- Playable Games Section -->
     <div class="section-head">
@@ -2283,9 +2636,11 @@
     </footer>
   </div>
 
+  <script src="shared/arcade-daily.js"></script>
+  <script src="games/pulse-lanes/music.js"></script>
   <script>
     // Load local high scores & records for all active games
-    document.addEventListener('DOMContentLoaded', () => {
+    function loadScores() {
       const runnerScore = localStorage.getItem('neonrunner_highscore') || '0';
       document.getElementById('card-highscore-display').textContent = Number(runnerScore).toLocaleString() + ' PTS';
 
@@ -2333,7 +2688,158 @@
       const pulseScore = localStorage.getItem('pulse_lanes_highscore') || '0';
       const pulseEl = document.getElementById('pulse-highscore-display');
       if (pulseEl) pulseEl.textContent = Number(pulseScore).toLocaleString() + ' PTS';
+    }
+
+    // ---- Today panel -------------------------------------------------------
+    // Each daily challenge in the arcade. Games save finished daily runs with
+    // ArcadeDaily.record(id, result), and their results show up here.
+    const DIFF_NAMES = { easy: 'Easy', normal: 'Normal', hard: 'Hard' };
+    const fmt = (n) => Number(n || 0).toLocaleString();
+    const pulseDaily = (day) => (window.PulseMusic ? window.PulseMusic.dailyTrack(day) : null);
+
+    const DAILIES = [
+      {
+        id: 'vector-siege',
+        kicker: 'Daily Siege',
+        icon: '🎯',
+        rgb: '255, 0, 127',
+        href: 'games/vector-siege/index.html#daily',
+        name: () => 'Vector Siege',
+        desc: () => 'Same waves for everyone today',
+        result: (r) => ['Best ' + fmt(r.score)].concat(r.wave ? ['Wave ' + r.wave] : []),
+      },
+      {
+        id: 'pulse-lanes',
+        kicker: 'Daily Track',
+        icon: '🎵',
+        rgb: '0, 243, 255',
+        href: 'games/pulse-lanes/index.html#daily',
+        name: (day) => (pulseDaily(day) ? pulseDaily(day).name : 'Pulse Lanes'),
+        desc: (day) => (pulseDaily(day) ? 'Pulse Lanes · ' + pulseDaily(day).bpm + ' BPM' : 'A new track every day'),
+        result: (r) =>
+          (r.cleared ? [r.grade + (r.fc ? ' FC' : ''), Number(r.acc || 0).toFixed(1) + '%'] : ['Not cleared'])
+            .concat([DIFF_NAMES[r.diff] || '', fmt(r.score)])
+            .filter(Boolean),
+      },
+    ];
+
+    let shownDay = null;
+
+    function el(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+
+    function untilMidnight() {
+      const now = new Date();
+      const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      const mins = Math.max(1, Math.ceil((next - now) / 60000));
+      const h = Math.floor(mins / 60);
+      return h ? h + 'h ' + (mins % 60) + 'm' : mins + 'm';
+    }
+
+    function renderToday() {
+      const D = window.ArcadeDaily;
+      if (!D) return;
+      const day = D.dayKey();
+      const log = D.load();
+      const results = log.days[day] || {};
+      shownDay = day;
+
+      document.getElementById('today-date').textContent = new Date().toLocaleDateString(undefined, {
+        weekday: 'long', day: 'numeric', month: 'long',
+      });
+
+      const grid = document.getElementById('daily-grid');
+      grid.textContent = '';
+      let done = 0;
+      DAILIES.forEach((d) => {
+        const r = results[d.id];
+        if (r) done++;
+        const tile = el('a', 'daily-tile' + (r ? ' done' : ''));
+        tile.href = d.href;
+        tile.style.setProperty('--accent-rgb', d.rgb);
+        const icon = el('span', 'daily-icon', d.icon);
+        icon.setAttribute('aria-hidden', 'true');
+        const info = el('span', 'daily-info');
+        info.append(
+          el('span', 'daily-kicker', d.kicker + (r ? ' · ✓ Done' : '')),
+          el('span', 'daily-name', d.name(day)),
+          el('span', 'daily-desc', d.desc(day)),
+          el('span', 'daily-result', r ? d.result(r).join(' · ') + (r.runs > 1 ? ' · ' + r.runs + ' runs' : '') : 'Not played yet')
+        );
+        tile.append(icon, info, el('span', 'daily-cta', r ? 'AGAIN' : 'PLAY ▸'));
+        grid.append(tile);
+      });
+
+      const st = D.streak(log, day);
+      document.getElementById('streak').classList.toggle('cold', st.current === 0);
+      document.getElementById('streak-num').textContent = st.current;
+      document.getElementById('streak-label').textContent = st.current === 1 ? 'Day streak' : 'Days in a row';
+
+      let note;
+      let warn = false;
+      if (st.current === 0) note = st.best ? 'Play a daily to start a new one' : 'Play any daily to start one';
+      else if (st.playedToday) note = 'Done for today. Back tomorrow';
+      else {
+        note = 'Play a daily today to keep it';
+        warn = true;
+      }
+      if (st.best > st.current) note += ' · best ' + st.best;
+      const noteEl = document.getElementById('streak-note');
+      noteEl.textContent = note;
+      noteEl.classList.toggle('warn', warn);
+
+      const week = document.getElementById('streak-week');
+      week.textContent = '';
+      for (let i = 6; i >= 0; i--) {
+        const key = D.shiftDay(day, -i);
+        const [y, m, dd] = key.split('-').map(Number);
+        const date = new Date(y, m - 1, dd);
+        const on = !!log.days[key] && Object.keys(log.days[key]).length > 0;
+        const li = el('li', (on ? 'on' : '') + (i === 0 ? ' now' : ''));
+        li.setAttribute(
+          'aria-label',
+          date.toLocaleDateString(undefined, { weekday: 'long' }) + (i === 0 ? ' (today)' : '') + ': ' + (on ? 'played' : 'not played')
+        );
+        li.append(el('i'), el('span', '', date.toLocaleDateString(undefined, { weekday: 'narrow' })));
+        week.append(li);
+      }
+
+      updateTodaySub(done);
+    }
+
+    function updateTodaySub(done) {
+      const sub = document.getElementById('today-sub');
+      if (done === undefined) done = Number(sub.dataset.done || 0);
+      sub.dataset.done = done;
+      sub.textContent = '';
+      sub.append(el('b', '', done + ' of ' + DAILIES.length), ' done · New dailies in ' + untilMidnight());
+    }
+
+    function refreshAll() {
+      loadScores();
+      renderToday();
+    }
+
+    refreshAll();
+    // Coming back from a game can restore this page from memory, and other
+    // tabs can finish a daily, so refresh then too.
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) refreshAll();
     });
+    window.addEventListener('storage', (e) => {
+      if (!e.key || e.key === 'arcade_daily_log') renderToday();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') renderToday();
+    });
+    setInterval(() => {
+      if (window.ArcadeDaily && window.ArcadeDaily.dayKey() !== shownDay) renderToday();
+      else updateTodaySub();
+    }, 30000);
   </script>
 </body>
 </html>

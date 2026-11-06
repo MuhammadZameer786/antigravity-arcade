@@ -60,7 +60,7 @@ Timed power-ups show as rings around your ship that shrink as they run out.
 ## 🗓️ Modes
 
 - **Endless**: different waves every run. Your top 5 runs are saved.
-- **Daily Siege**: the waves come from today's date, so every run today faces the same waves. Your best score for the day is saved, and new waves arrive tomorrow.
+- **Daily Siege**: the waves come from today's date, so every run today faces the same waves. Your best score for the day is saved, and new waves arrive tomorrow. It also appears in the Arcade Hub's **Today** panel and counts toward the daily streak.
 
 ---
 
@@ -73,4 +73,4 @@ Timed power-ups show as rings around your ship that shrink as they run out.
 - **Warping grid**: explosions send ripples through the background grid.
 - **Procedural audio**: the music and every sound effect are synthesized live with the Web Audio API. The tempo rises with each wave, and a lead line comes in for Warden fights.
 - **Reduced motion**: if your system asks for reduced motion, screen shake is off and grid ripples are softer.
-- High scores are saved in `localStorage` (`vector_siege_highscore`, `vector_siege_records`, `vector_siege_daily`).
+- High scores are saved in `localStorage` (`vector_siege_highscore`, `vector_siege_records`, `vector_siege_daily`). Daily Siege results also go to the arcade's shared daily log (see [shared/arcade-daily.js](../../shared/arcade-daily.js)).

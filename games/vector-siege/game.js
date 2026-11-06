@@ -698,7 +698,20 @@ class VectorSiege {
     this.resize();
     this.refreshStartScreen();
     this.updateHud();
+    if (location.hash === '#daily') this.featureDaily();
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  // Opened from the hub's Today panel: make Daily Siege the main button.
+  // Browsers only start sound after a tap on this page, so it waits for one.
+  featureDaily() {
+    const daily = document.getElementById('btn-daily');
+    const start = document.getElementById('btn-start');
+    daily.classList.replace('btn-secondary', 'btn-primary');
+    start.classList.replace('btn-primary', 'btn-secondary');
+    start.parentNode.insertBefore(daily, start);
+    daily.focus({ preventScroll: true });
+    this.menuMode = 'daily';
   }
 
   // ---- Setup ---------------------------------------------------------------
@@ -895,7 +908,7 @@ class VectorSiege {
       // Let a focused button handle its own Enter or Space
       if ((code === 'Enter' || code === 'Space') && onControl) return;
       if (code === 'Enter' || code === 'KeyR') {
-        if (this.state === 'START' && code === 'Enter') this.startGame('endless');
+        if (this.state === 'START' && code === 'Enter') this.startGame(this.menuMode || 'endless');
         else if (this.state === 'OVER') this.startGame(this.mode);
         return;
       }
@@ -1039,7 +1052,8 @@ class VectorSiege {
   startGame(mode) {
     this.mode = mode;
     this.audio.init();
-    this.seed = mode === 'daily' ? `daily-${todayKey()}` : `run-${Math.floor(Math.random() * 1e9)}`;
+    this.dailyDay = todayKey();
+    this.seed = mode === 'daily' ? `daily-${this.dailyDay}` : `run-${Math.floor(Math.random() * 1e9)}`;
     this.resetWorld();
     this.releaseInput();
     this.highScore = this.readBest(mode);
@@ -1913,6 +1927,10 @@ class VectorSiege {
 
     if (isDaily) {
       if (isBest) writeJSON('vector_siege_daily', { date: todayKey(), score: this.score });
+      // The arcade's Today panel and daily streak read this shared log.
+      if (window.ArcadeDaily) {
+        window.ArcadeDaily.record('vector-siege', { score: this.score, wave: this.waveNum }, this.dailyDay);
+      }
       document.getElementById('daily-note').textContent =
         `Today's best: ${Math.max(previous, this.score).toLocaleString()}. New waves tomorrow.`;
     } else {

@@ -128,6 +128,7 @@ antigravity/
 │   └── rooms.test.js
 │
 ├── shared/
+│   ├── arcade-daily.js         # 📅 Daily log: results and streak for the hub's Today panel
 │   ├── arcade-room.js          # 🔌 Room client: codes, heartbeats, reconnecting
 │   ├── arcade-lobby.js         # 🚪 Lobby screens: create, join, ready, rematch
 │   └── arcade-lobby.css
@@ -158,6 +159,13 @@ antigravity/
 | **🎯 [Vector Siege](file:///Users/zameer/Documents/antigravity/games/vector-siege/index.html)** | Twin-Stick Neon Arena Shooter | Canvas 2D + Web Audio | 1P (Endless / Daily Siege) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/vector-siege/index.html) |
 | **🔌 [Circuit Duel](file:///Users/zameer/Documents/antigravity/games/circuit-duel/index.html)** | Neon Dots & Boxes Strategy Duel | Canvas 2D + Web Audio | 1P vs CPU / 2P Local / 2P Online | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/circuit-duel/index.html) |
 | **🎵 [Pulse Lanes](file:///Users/zameer/Documents/antigravity/games/pulse-lanes/index.html)** | 4-Lane Rhythm Game with Live-Synth Tracks | Canvas 2D + Web Audio | 1P Tracks / Daily / Endless | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/pulse-lanes/index.html) |
+
+---
+
+## 📅 Today Panel
+The top of the Arcade Hub shows **today's daily challenges**: Vector Siege's Daily Siege and Pulse Lanes' Daily Track. Each tile shows your best result for the day and opens the game with that daily ready to start. Playing at least one daily a day builds a **streak**, and a strip of dots shows the last seven days. New dailies arrive at midnight, local time.
+
+Games save finished daily runs with `ArcadeDaily.record()` from [shared/arcade-daily.js](shared/arcade-daily.js), and the hub reads them back from `localStorage` (`arcade_daily_log`). To add another daily, call it when the run ends and add an entry to the `DAILIES` list in [index.html](index.html).
 
 ---
 

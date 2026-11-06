@@ -29,7 +29,7 @@ Finishing a long note scores 150 more. Your combo raises a multiplier to x2 at 1
 | Mode | Notes |
 | :--- | :--- |
 | **Tracks** | Six tracks from 100 to 148 BPM, each on Easy, Normal or Hard. Your best grade and accuracy are saved for each. |
-| **Daily Track** | A new track every day, the same for everyone on that date. |
+| **Daily Track** | A new track every day, the same for everyone on that date. It also appears in the Arcade Hub's **Today** panel and counts toward the daily streak. |
 | **Endless** | Sections keep coming. Every cycle the tempo rises, the key changes and the melodies get busier, until your energy runs out. |
 
 Tap a track to hear a loop of it, and tap it again to play.
@@ -66,4 +66,4 @@ Headphones and speakers add a delay between the game making a sound and you hear
 - **Charts from the melody**: each difficulty keeps more of the melody. Easy uses quarter notes, Normal eighths and Hard sixteenths, and Normal and Hard add double notes on the drops. Higher notes sit further right. The music is identical on every difficulty.
 - **Playable by construction**: the chart writer never asks for the same lane again faster than the difficulty allows, and never overlaps a long note.
 - **Live synthesis**: kick, snare, clap, hats, crash, riser, bass, pads, lead and pluck are all built from oscillators, filtered noise and envelopes. The pads pump against the kick in the drops, and the lead has a dotted-eighth echo.
-- Records are saved in `localStorage` (`pulse_lanes_records`, `pulse_lanes_daily`, `pulse_lanes_endless`, `pulse_lanes_settings`, `pulse_lanes_highscore`).
+- Records are saved in `localStorage` (`pulse_lanes_records`, `pulse_lanes_daily`, `pulse_lanes_endless`, `pulse_lanes_settings`, `pulse_lanes_highscore`). Daily Track results also go to the arcade's shared daily log (see [shared/arcade-daily.js](../../shared/arcade-daily.js)).

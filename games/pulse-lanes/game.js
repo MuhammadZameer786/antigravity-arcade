@@ -198,6 +198,7 @@
       this.buildTrackList();
       this.selectDifficulty(this.settings.difficulty, true);
       this.renderSettings();
+      if (location.hash === '#daily') this.featureDaily();
 
       window.addEventListener('resize', () => this.resize());
       document.addEventListener('visibilitychange', () => this.onVisibility());
@@ -372,6 +373,15 @@
         b.classList.toggle('selected', sel);
         b.setAttribute('aria-selected', String(sel));
       }
+    }
+
+    // Opened from the hub's Today panel: pick the Daily Track. Browsers only
+    // start sound after a tap on this page, so PLAY still needs one.
+    featureDaily() {
+      this.selected = 'daily';
+      this.refreshTrackList();
+      const b = this.el['track-list'].querySelector('[data-id="daily"]');
+      if (b) b.scrollIntoView({ block: 'nearest' });
     }
 
     // Tapping a track plays a loop of its first drop. Tapping it again
@@ -848,6 +858,15 @@
       const allPerfect = fc && S.great === 0 && S.good === 0;
       const grade = failed && !endless ? 'F' : gradeFor(acc);
       const best = this.saveRecord(acc, grade, fc, cleared);
+      // The arcade's Today panel and daily streak read this shared log. A
+      // cleared run beats a failed one, then the higher score wins.
+      if (this.mode === 'daily' && window.ArcadeDaily) {
+        window.ArcadeDaily.record(
+          'pulse-lanes',
+          { score: S.score, grade, acc: Math.round(acc * 100) / 100, diff: this.diff, cleared, fc, track: this.def.name, rank: (cleared ? 1e9 : 0) + S.score },
+          this.dailyFor
+        );
+      }
 
       let title = 'TRACK CLEAR';
       if (endless) title = 'RUN OVER';
