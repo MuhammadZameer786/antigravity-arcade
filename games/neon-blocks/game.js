@@ -751,7 +751,7 @@
       this.statMaxCombo = document.getElementById('stat-max-combo');
       this.statPpm = document.getElementById('stat-ppm');
 
-      // Game Modes: 'marathon', 'sprint', 'ultra', 'versus'
+      // Game Modes: 'marathon', 'sprint', 'ultra', 'daily', 'versus'
       this.gameMode = 'marathon';
       this.state = 'MENU'; // 'MENU', 'PLAYING', 'PAUSED', 'GAMEOVER'
 
@@ -831,6 +831,8 @@
       this.loadHighScores();
       this.bindInputs();
       this.bindButtons();
+      this.refreshDailyDesc();
+      if (location.hash === '#daily') this.selectMode('daily');
 
       // Start rendering loop immediately (background rain & menu state)
       requestAnimationFrame((t) => this.loop(t));
@@ -849,6 +851,11 @@
 
     loadHighScores() {
       try {
+        if (this.gameMode === 'daily') {
+          this.highScore = this.readDailyBest();
+          this.vitalHigh.textContent = this.formatScore(this.highScore);
+          return;
+        }
         const saved = localStorage.getItem('neon_blocks_highscore_' + this.gameMode);
         this.highScore = saved ? parseInt(saved, 10) : 0;
         this.vitalHigh.textContent = this.formatScore(this.highScore);
@@ -857,8 +864,31 @@
       }
     }
 
+    // The daily keeps only today's best, so a new day starts from zero.
+    readDailyBest() {
+      try {
+        const d = JSON.parse(localStorage.getItem('neon_blocks_daily') || 'null');
+        return d && d.date === this.dailyDay() ? d.score || 0 : 0;
+      } catch (e) {
+        return 0;
+      }
+    }
+
+    dailyDay() {
+      return window.ArcadeDaily ? window.ArcadeDaily.dayKey() : new Date().toDateString();
+    }
+
     saveHighScore() {
       try {
+        if (this.gameMode === 'daily') {
+          if (this.score > this.highScore) {
+            this.highScore = this.score;
+            localStorage.setItem('neon_blocks_daily', JSON.stringify({ date: this.runDay, score: this.score, lines: this.lines }));
+            this.vitalHigh.textContent = this.formatScore(this.highScore);
+            return true;
+          }
+          return false;
+        }
         if (this.gameMode === 'sprint') {
           // In sprint mode, lower time is better
           const currentBest = localStorage.getItem('neon_blocks_sprint_time');
@@ -1688,7 +1718,7 @@
 
       // Update Timer
       this.elapsedTime += dt;
-      if (this.gameMode === 'ultra') {
+      if (this.gameMode === 'ultra' || this.gameMode === 'daily') {
         this.ultraRemaining = Math.max(0, this.ultraRemaining - dt);
         this.vitalTimer.textContent = this.formatTime(this.ultraRemaining);
         if (this.ultraRemaining <= 0) {
@@ -1812,6 +1842,14 @@
       this.sound.init();
       this.sound.startMusic();
 
+      // A versus match seeds its own pieces before it gets here
+      this.runDay = this.dailyDay();
+      if (this.gameMode === 'daily' && window.ArcadeDaily) {
+        this.pieceRng = ArcadeRoom.seededRandom(ArcadeDaily.seed('neon-blocks', this.runDay));
+      } else if (this.gameMode !== 'versus') {
+        this.pieceRng = Math.random;
+      }
+
       this.initBoard();
       this.bag = [];
       this.nextQueue = [];
@@ -1871,6 +1909,10 @@
       } else if (this.gameMode === 'ultra') {
         this.modeDisplay.textContent = 'ULTRA 2MIN';
         this.modeSublabel.textContent = 'TARGET: HIGH SCORE';
+      } else if (this.gameMode === 'daily') {
+        this.modeDisplay.textContent = 'DAILY 2MIN';
+        this.modeSublabel.textContent = 'SAME PIECES TODAY';
+        this.tickerText.textContent = `DAILY MATRIX // ${this.runDay} // SAME PIECES FOR EVERY PLAYER TODAY`;
       } else if (this.gameMode === 'versus') {
         this.modeDisplay.textContent = 'VERSUS';
         this.modeSublabel.textContent = `ROOM ${this.lobby.room.code}`;
@@ -1885,6 +1927,20 @@
       this.populateQueue();
       this.spawnPiece();
       this.renderHoldPiece();
+    }
+
+    selectMode(mode) {
+      document.querySelectorAll('.mode-option').forEach(o => o.classList.toggle('selected', o.dataset.mode === mode));
+      this.gameMode = mode;
+      this.loadHighScores();
+      this.refreshDailyDesc();
+    }
+
+    refreshDailyDesc() {
+      const best = this.readDailyBest();
+      document.getElementById('daily-opt-desc').textContent = best
+        ? `The same pieces for everyone today. Today's best: ${best.toLocaleString()}.`
+        : 'The same pieces for everyone today. Score all you can in 120 seconds.';
     }
 
     pauseGame() {
@@ -1920,9 +1976,14 @@
       this.sound.stopMusic();
 
       const isNewRecord = this.saveHighScore();
+      const isDaily = this.gameMode === 'daily';
+      if (isDaily && window.ArcadeDaily) {
+        window.ArcadeDaily.record('neon-blocks', { score: this.score, lines: this.lines, tetrises: this.countTetrises }, this.runDay);
+      }
 
       document.getElementById('go-badge').textContent = reason;
-      document.getElementById('go-title').textContent = 'CYCLE TERMINATED';
+      document.getElementById('go-title').textContent = isDaily ? `DAILY // ${this.runDay}` : 'CYCLE TERMINATED';
+      if (isDaily) this.refreshDailyDesc();
       document.getElementById('go-score').textContent = this.formatScore(this.score);
       document.getElementById('go-high').textContent = this.formatScore(this.highScore);
       document.getElementById('go-lines').textContent = this.lines;
@@ -2297,11 +2358,7 @@
 
       // Start modal mode selectors
       document.querySelectorAll('.mode-option').forEach(opt => {
-        opt.addEventListener('click', () => {
-          document.querySelectorAll('.mode-option').forEach(o => o.classList.remove('selected'));
-          opt.classList.add('selected');
-          this.gameMode = opt.dataset.mode;
-        });
+        opt.addEventListener('click', () => this.selectMode(opt.dataset.mode));
       });
 
       // Start Game Button

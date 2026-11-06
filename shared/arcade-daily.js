@@ -83,5 +83,17 @@
     return load().days[day || dayKey()] || {};
   }
 
-  root.ArcadeDaily = { dayKey, shiftDay, load, record, results, streak };
+  // A 32-bit seed for one game's daily (FNV-1a of "game:day"), so every
+  // player gets the same challenge on the same date.
+  function seed(game, day) {
+    const str = game + ':' + (day || dayKey());
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  root.ArcadeDaily = { dayKey, shiftDay, load, record, results, streak, seed };
 })(window);

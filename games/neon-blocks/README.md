@@ -50,7 +50,13 @@ On touchscreen devices, an arcade virtual keypad is automatically surfaced:
    - High-score battle with a 120-second countdown timer.
    - Maximize Tetrises, T-Spins, combos, and Back-to-Back clears before time expires.
 
-4. **⚔️ Online Versus (Prototype)**:
+4. **📅 Daily (2 Minutes)**:
+   - Ultra's 2-minute clock, with pieces dealt from today's date, so everyone gets the same pieces in the same order all day.
+   - Every retry today starts from the same first piece. Today's best is saved, and new pieces arrive at midnight.
+   - Shows up in the Arcade Hub's **Today** panel and counts toward the daily streak. Opening it from there picks this mode for you.
+   - Saved in `localStorage` as `neon_blocks_daily`, and in the arcade's shared daily log.
+
+5. **⚔️ Online Versus (Prototype)**:
    - Two devices, one room code, last matrix standing wins. Needs the [arcade server](../../README.md#option-3-arcade-server-for-online-play).
    - Both players draw the same pieces, and speed rises every 30 seconds.
    - Clears send garbage rows: Double 1, Triple 2, Tetris 4, T-Spin 2 per line, Back-to-Back +1, combos up to +4, Perfect Clear +10.

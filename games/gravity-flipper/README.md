@@ -12,7 +12,15 @@ Open [index.html](file:///Users/zameer/Documents/antigravity/games/gravity-flipp
 ### Option 2: From the Arcade Hub
 Open the master [Arcade Hub](../../index.html) and click **"LAUNCH GAME"** on the Gravity Flipper card.
 
-### Option 3: Online Race (Prototype)
+### Option 3: Daily Run
+Pick **📅 DAILY RUN** on the start screen. The course comes from today's date, so everyone runs the same course all day, and every retry starts it again from the top.
+
+- Your best score for the day is kept apart from your overall best, and the HUD's **TODAY** box shows it.
+- It shows up in the Arcade Hub's **Today** panel and counts toward the daily streak. Opening it from there makes Daily Run the main button.
+- **MODES** on the results screen goes back to the start screen to switch modes.
+- Saved in `localStorage` as `gravity_flipper_daily`, and in the arcade's shared daily log.
+
+### Option 4: Online Race (Prototype)
 Run the [arcade server](../../README.md#option-3-arcade-server-for-online-play), open the game on two devices, and pick **ONLINE RACE**. One player creates a room and the other joins with its 4-letter code.
 
 - Both players run the same course at the same time. The last one still alive wins.

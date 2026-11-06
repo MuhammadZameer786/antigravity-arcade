@@ -148,14 +148,14 @@ antigravity/
 | Game | Category | Tech | Modes | Status | Play |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **⚡ [Neon Runner](file:///Users/zameer/Documents/antigravity/games/neon-runner/index.html)** | Synthwave Endless Runner | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-runner/index.html) |
-| **🌀 [Gravity Flipper](file:///Users/zameer/Documents/antigravity/games/gravity-flipper/index.html)** | Quantum Inversion Runner | Canvas 2D + Web Audio | 1P / 2P Online Race (Prototype) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/gravity-flipper/index.html) |
+| **🌀 [Gravity Flipper](file:///Users/zameer/Documents/antigravity/games/gravity-flipper/index.html)** | Quantum Inversion Runner | Canvas 2D + Web Audio | 1P (Endless / Daily Run) / 2P Online Race (Prototype) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/gravity-flipper/index.html) |
 | **🏓 [Neon Pong](file:///Users/zameer/Documents/antigravity/games/neon-pong/index.html)** | Cyberpunk Curve Rally | Canvas 2D + Web Audio | 1P AI / 2P Local | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-pong/index.html) |
 | **🚀 [Cyber Jetpack](file:///Users/zameer/Documents/antigravity/games/cyber-jetpack/index.html)** | Laser Flap Vector Thrust Runner | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/cyber-jetpack/index.html) |
 | **🌌 [Star Voyager](file:///Users/zameer/Documents/antigravity/games/star-voyager/index.html)** | 3D Procedural Space Flight Sim | Three.js 3D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/star-voyager/index.html) |
 | **🧱 [Quantum Breaker](file:///Users/zameer/Documents/antigravity/games/quantum-breaker/index.html)** | Neon Multi-Ball Matrix Arkanoid | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/quantum-breaker/index.html) |
 | **⚡ [Cyber Pinball](file:///Users/zameer/Documents/antigravity/games/cyber-pinball/index.html)** | Neon Multi-Ball Matrix Pinball | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/cyber-pinball/index.html) |
 | **🐍 [Cyber Snake](file:///Users/zameer/Documents/antigravity/games/cyber-snake/index.html)** | Neon Grid Overdrive Snake | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/cyber-snake/index.html) |
-| **🧩 [Neon Matrix Blocks](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html)** | Cyberpunk Tetromino Puzzle | Canvas 2D + Web Audio | 1P (Marathon/Sprint/Ultra) / 2P Online Versus (Prototype) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html) |
+| **🧩 [Neon Matrix Blocks](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html)** | Cyberpunk Tetromino Puzzle | Canvas 2D + Web Audio | 1P (Marathon/Sprint/Ultra/Daily) / 2P Online Versus (Prototype) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-blocks/index.html) |
 | **🎯 [Vector Siege](file:///Users/zameer/Documents/antigravity/games/vector-siege/index.html)** | Twin-Stick Neon Arena Shooter | Canvas 2D + Web Audio | 1P (Endless / Daily Siege) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/vector-siege/index.html) |
 | **🔌 [Circuit Duel](file:///Users/zameer/Documents/antigravity/games/circuit-duel/index.html)** | Neon Dots & Boxes Strategy Duel | Canvas 2D + Web Audio | 1P vs CPU / 2P Local / 2P Online | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/circuit-duel/index.html) |
 | **🎵 [Pulse Lanes](file:///Users/zameer/Documents/antigravity/games/pulse-lanes/index.html)** | 4-Lane Rhythm Game with Live-Synth Tracks | Canvas 2D + Web Audio | 1P Tracks / Daily / Endless | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/pulse-lanes/index.html) |
@@ -163,9 +163,9 @@ antigravity/
 ---
 
 ## 📅 Today Panel
-The top of the Arcade Hub shows **today's daily challenges**: Vector Siege's Daily Siege and Pulse Lanes' Daily Track. Each tile shows your best result for the day and opens the game with that daily ready to start. Playing at least one daily a day builds a **streak**, and a strip of dots shows the last seven days. New dailies arrive at midnight, local time.
+The top of the Arcade Hub shows **today's four daily challenges**: Vector Siege's Daily Siege, Pulse Lanes' Daily Track, Neon Blocks' Daily (2 minutes, same pieces for everyone) and Gravity Flipper's Daily Run (same course for everyone). Each tile shows your best result for the day and opens the game with that daily ready to start. Playing at least one daily a day builds a **streak**, and a strip of dots shows the last seven days. New dailies arrive at midnight, local time.
 
-Games save finished daily runs with `ArcadeDaily.record()` from [shared/arcade-daily.js](shared/arcade-daily.js), and the hub reads them back from `localStorage` (`arcade_daily_log`). To add another daily, call it when the run ends and add an entry to the `DAILIES` list in [index.html](index.html).
+Games seed their daily from `ArcadeDaily.seed(game)` and save finished daily runs with `ArcadeDaily.record()`, both from [shared/arcade-daily.js](shared/arcade-daily.js). The hub reads them back from `localStorage` (`arcade_daily_log`). To add another daily, call it when the run ends and add an entry to the `DAILIES` list in [index.html](index.html).
 
 ---
 

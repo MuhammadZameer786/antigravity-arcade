@@ -463,6 +463,24 @@ html, body {
   border-color: #fff;
 }
 
+/* Start and result screens: the main button gets its own row, and the
+   other choices share the next one */
+#start-screen .modal-buttons,
+#gameover-screen .modal-buttons {
+  flex-wrap: wrap;
+}
+
+#start-screen .modal-buttons .neon-btn,
+#gameover-screen .modal-buttons .neon-btn {
+  flex: 1 1 0;
+  white-space: nowrap;
+}
+
+#start-screen .modal-buttons .primary-btn,
+#gameover-screen .modal-buttons .primary-btn {
+  flex-basis: 100%;
+}
+
 /* Online Race */
 #btn-leave-race {
   display: none;
@@ -470,6 +488,10 @@ html, body {
 
 body.race-match #btn-leave-race {
   display: inline-flex;
+}
+
+body.race-match #btn-modes {
+  display: none;
 }
 
 body.race-match #btn-pause {

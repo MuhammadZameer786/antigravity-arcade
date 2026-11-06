@@ -1523,7 +1523,7 @@
 
     .daily-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
     }
 
@@ -2721,6 +2721,26 @@
             .concat([DIFF_NAMES[r.diff] || '', fmt(r.score)])
             .filter(Boolean),
       },
+      {
+        id: 'neon-blocks',
+        kicker: 'Daily Blocks',
+        icon: '🧩',
+        rgb: '5, 255, 161',
+        href: 'games/neon-blocks/index.html#daily',
+        name: () => 'Neon Blocks',
+        desc: () => 'Same pieces for everyone · 2 minutes',
+        result: (r) => ['Best ' + fmt(r.score), fmt(r.lines) + (r.lines === 1 ? ' line' : ' lines')],
+      },
+      {
+        id: 'gravity-flipper',
+        kicker: 'Daily Run',
+        icon: '🌀',
+        rgb: '178, 102, 255',
+        href: 'games/gravity-flipper/index.html#daily',
+        name: () => 'Gravity Flipper',
+        desc: () => 'Same course for everyone today',
+        result: (r) => ['Best ' + fmt(r.score), fmt(r.distance) + 'm'],
+      },
     ];
 
     let shownDay = null;
@@ -2765,7 +2785,7 @@
         icon.setAttribute('aria-hidden', 'true');
         const info = el('span', 'daily-info');
         info.append(
-          el('span', 'daily-kicker', d.kicker + (r ? ' · ✓ Done' : '')),
+          el('span', 'daily-kicker', d.kicker + (r ? ' ✓' : '')),
           el('span', 'daily-name', d.name(day)),
           el('span', 'daily-desc', d.desc(day)),
           el('span', 'daily-result', r ? d.result(r).join(' · ') + (r.runs > 1 ? ' · ' + r.runs + ' runs' : '') : 'Not played yet')

@@ -529,7 +529,10 @@ class GravityFlipper {
     // Online Race
     this.lobby = null;            // ArcadeLobby, built the first time someone goes online
     this.isRace = false;
-    this.courseRng = Math.random; // Seeded for a race so both runners get the same course
+    this.courseRng = Math.random; // Seeded for a race or the daily, so everyone gets the same course
+    this.mode = 'solo';           // 'solo' or 'daily'; an online race is this.isRace
+    this.menuMode = 'solo';       // What Space starts from the start screen
+    this.isDaily = false;
     this.scrolled = 0;            // Course travelled. Unlike distance, warp gates don't add to it
     this.rival = null;            // Latest report from the other runner
     this.rivalSyncTimer = 0;
@@ -537,6 +540,7 @@ class GravityFlipper {
     this.initDOM();
     this.bindEvents();
     this.updateHUD();
+    if (location.hash === '#daily') this.featureDaily();
   }
 
   initDOM() {
@@ -580,8 +584,10 @@ class GravityFlipper {
     });
 
     // Start / Restart Buttons
-    document.getElementById('btn-start').addEventListener('click', () => this.start());
+    document.getElementById('btn-start').addEventListener('click', () => this.startMode('solo'));
+    document.getElementById('btn-daily').addEventListener('click', () => this.startMode('daily'));
     document.getElementById('btn-online').addEventListener('click', () => this.openLobby());
+    document.getElementById('btn-modes').addEventListener('click', () => this.showModes());
     this.restartBtn.addEventListener('click', () => this.restart());
     document.getElementById('btn-leave-race').addEventListener('click', () => this.leaveRace());
     document.getElementById('btn-resume').addEventListener('click', () => this.togglePause());
@@ -621,7 +627,7 @@ class GravityFlipper {
           this.handleFlip();
         } else if (this.state === 'start') {
           e.preventDefault();
-          this.start();
+          this.startMode(this.menuMode);
         }
       }
 
@@ -654,9 +660,54 @@ class GravityFlipper {
     this.canvas.height = this.height;
   }
 
+  startMode(mode) {
+    this.mode = mode;
+    this.start();
+  }
+
+  // Back to the start screen to pick another mode
+  showModes() {
+    this.state = 'start';
+    this.gameoverScreen.classList.remove('active');
+    this.startScreen.classList.add('active');
+  }
+
+  // Opened from the hub's Today panel: make Daily Run the main button.
+  // Browsers only start sound after a tap on this page, so it waits for one.
+  featureDaily() {
+    this.mode = this.menuMode = 'daily';
+    const daily = document.getElementById('btn-daily');
+    const start = document.getElementById('btn-start');
+    daily.classList.replace('secondary-btn', 'primary-btn');
+    daily.classList.add('pulse-glow');
+    start.classList.replace('primary-btn', 'secondary-btn');
+    start.classList.remove('pulse-glow');
+    start.parentNode.insertBefore(daily, start);
+    daily.focus({ preventScroll: true });
+  }
+
+  readDailyBest() {
+    try {
+      const d = JSON.parse(localStorage.getItem('gravity_flipper_daily') || 'null');
+      return d && d.date === this.runDay ? d.score || 0 : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
   start() {
     this.audio.init();
     this.audio.startMusic();
+
+    // A race seeds its own course before it gets here. The daily seeds it
+    // from today's date, so every retry today runs the same course.
+    if (!this.isRace) {
+      this.isDaily = this.mode === 'daily' && !!window.ArcadeDaily;
+      this.runDay = this.isDaily ? ArcadeDaily.dayKey() : '';
+      this.courseRng = this.isDaily ? ArcadeRoom.seededRandom(ArcadeDaily.seed('gravity-flipper', this.runDay)) : Math.random;
+      this.highScore = this.isDaily ? this.readDailyBest() : parseInt(localStorage.getItem(this.storageKey) || '0', 10) || 0;
+      this.hudBestLabel.textContent = this.isDaily ? 'TODAY' : 'BEST';
+    }
 
     this.state = 'playing';
     this.score = 0;
@@ -777,9 +828,27 @@ class GravityFlipper {
     const isNewBest = this.score > this.highScore;
     if (isNewBest) {
       this.highScore = this.score;
-      localStorage.setItem(this.storageKey, this.highScore.toString());
+      try {
+        if (this.isDaily) {
+          localStorage.setItem('gravity_flipper_daily', JSON.stringify({
+            date: this.runDay, score: this.score, distance: Math.floor(this.distance)
+          }));
+        } else {
+          localStorage.setItem(this.storageKey, this.highScore.toString());
+        }
+      } catch (e) {}
       this.newRecordBadge.classList.remove('hidden');
     }
+
+    // The daily keeps its own best for the day and reports to the arcade's
+    // Today panel.
+    if (this.isDaily) {
+      ArcadeDaily.record('gravity-flipper', {
+        score: this.score, distance: Math.floor(this.distance), orbs: this.orbsCollected
+      }, this.runDay);
+    }
+    this.resultSub.textContent = this.isDaily ? 'DAILY RUN // ' + this.runDay : 'KINETIC EQUILIBRIUM LOST';
+    this.resBestLabel.textContent = this.isDaily ? "TODAY'S BEST" : 'BEST RECORD';
 
     this.resScore.textContent = this.score.toLocaleString();
     this.resDist.textContent = Math.floor(this.distance) + 'm';
@@ -830,6 +899,7 @@ class GravityFlipper {
 
   prepareRace() {
     this.isRace = true;
+    this.isDaily = false;
     this.state = 'lobby';
     document.body.classList.add('race-match');
     this.gameoverScreen.classList.remove('active');
