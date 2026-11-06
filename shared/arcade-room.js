@@ -12,6 +12,7 @@
  *   start        Both are ready: { seed }
  *   relay        Data from the rival: { d }
  *   result       The match is over: { winner, reason } (compare winner to room.slot)
+ *   waking       The server is slow to answer, probably because it's asleep
  *   reconnecting Your own connection dropped
  *   reconnected  Your connection is back
  *   gone         Your connection could not be restored
@@ -23,16 +24,21 @@
 (function () {
   'use strict';
 
-  const LOCAL_SERVER_URL = 'ws://localhost:8787/ws'; // For games opened from file://
+  // The public room server, for pages that aren't served by a room server themselves
+  const HOSTED_SERVER_URL = 'wss://antigravity-arcade.onrender.com/ws';
   const HEARTBEAT_MS = 4000;
   const HEARTBEAT_TIMEOUT_MS = 9000;
   const RECONNECT_DELAY_MS = 1000;
   const RECONNECT_GIVE_UP_MS = 25000; // A little past the server's grace period
+  const SLOW_CONNECT_MS = 3000;       // When a first connection counts as slow
+  const CONNECT_RETRY_MS = 2000;
+  const CONNECT_GIVE_UP_MS = 90000;   // A free host can take a minute to wake its server
   const HIDDEN_FORFEIT_MS = 15000;    // A hidden game stops running, so it can't lose by itself
 
   function defaultServerUrl() {
     if (window.ARCADE_SERVER_URL) return window.ARCADE_SERVER_URL;
-    if (location.protocol === 'file:') return LOCAL_SERVER_URL;
+    // GitHub Pages and files opened from disk have no room server of their own
+    if (location.protocol === 'file:' || location.hostname.endsWith('.github.io')) return HOSTED_SERVER_URL;
     return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
   }
 
@@ -62,6 +68,9 @@
       this.lastPong = 0;
       this.reconnectTimer = null;
       this.droppedAt = 0;
+      this.firstMessage = null;
+      this.connectStartedAt = 0;
+      this.slowTimer = null;
       this.closed = false;
       this.inMatch = false;
       this.hiddenTimer = null;
@@ -104,6 +113,7 @@
       this.closed = true;
       clearInterval(this.heartbeat);
       clearTimeout(this.hiddenTimer);
+      clearTimeout(this.slowTimer);
       document.removeEventListener('visibilitychange', this.watchVisibility);
     }
 
@@ -126,8 +136,14 @@
     open(firstMessage) {
       const ws = new WebSocket(this.url);
       this.ws = ws;
+      if (!this.token && !this.connectStartedAt) {
+        this.firstMessage = firstMessage;
+        this.connectStartedAt = Date.now();
+        this.slowTimer = setTimeout(() => this.onEvent({ t: 'waking' }), SLOW_CONNECT_MS);
+      }
 
       ws.addEventListener('open', () => {
+        clearTimeout(this.slowTimer);
         this.lastPong = Date.now();
         ws.send(JSON.stringify(firstMessage));
         clearInterval(this.heartbeat);
@@ -192,9 +208,16 @@
       this.ws = null;
       this.live = false;
 
-      // Never got into a room, so there's nothing to get back to
+      // Never got into a room: keep trying while a sleeping server wakes, then give up
       if (!this.token) {
-        this.closed = true;
+        if (Date.now() - this.connectStartedAt < CONNECT_GIVE_UP_MS) {
+          this.reconnectTimer = setTimeout(() => {
+            this.reconnectTimer = null;
+            this.open(this.firstMessage);
+          }, CONNECT_RETRY_MS);
+          return;
+        }
+        this.shutDown();
         this.onEvent({ t: 'error', reason: 'unreachable' });
         return;
       }
@@ -220,6 +243,12 @@
       this.onEvent({ t: 'gone' });
     }
   }
+
+  // Start waking a sleeping server before the player asks for a room
+  ArcadeRoom.wake = function (url = defaultServerUrl()) {
+    const healthUrl = url.replace(/^ws/, 'http').replace(/\/ws$/, '/healthz');
+    fetch(healthUrl, { mode: 'no-cors', cache: 'no-store' }).catch(() => {});
+  };
 
   ArcadeRoom.seededRandom = seededRandom;
   window.ArcadeRoom = ArcadeRoom;

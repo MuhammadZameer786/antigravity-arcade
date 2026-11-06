@@ -21,7 +21,7 @@ Pick **📅 DAILY RUN** on the start screen. The course comes from today's date,
 - Saved in `localStorage` as `gravity_flipper_daily`, and in the arcade's shared daily log.
 
 ### Option 4: Online Race (Prototype)
-Run the [arcade server](../../README.md#option-3-arcade-server-for-online-play), open the game on two devices, and pick **ONLINE RACE**. One player creates a room and the other joins with its 4-letter code.
+Open the game on two devices and pick **ONLINE RACE**. It uses the arcade's [room server](../../README.md#option-3-arcade-server-for-online-play). One player creates a room and the other joins with its 4-letter code.
 
 - Both players run the same course at the same time. The last one still alive wins.
 - The rival appears as a ghost, and the HUD's **RIVAL** box shows how far ahead or behind you are.

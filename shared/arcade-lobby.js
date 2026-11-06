@@ -104,6 +104,7 @@
     }
 
     open() {
+      ArcadeRoom.wake();
       this.codeInput.value = '';
       this.status.textContent = '';
       this.backButton.hidden = false;
@@ -164,6 +165,9 @@
           break;
         case 'result':
           this.finish(msg.winner === this.room.slot, msg.reason);
+          break;
+        case 'waking':
+          this.status.textContent = 'WAKING THE GAME SERVER // THIS CAN TAKE A MINUTE';
           break;
         case 'reconnecting':
           this.options.onStatus('YOUR CONNECTION DROPPED // RETRYING');

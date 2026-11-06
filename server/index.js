@@ -35,7 +35,10 @@ const DEFAULT_PORT = 8787;
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // No I or O: easy to misread aloud
 const CODE_LENGTH = 4;
 const MAX_ROOMS = 1000;
+const MAX_CONNECTIONS = 2000;
 const MAX_MESSAGE_BYTES = 4096;
+const MESSAGES_PER_SECOND = 100;    // Neon Pong, the busiest game, sends about 35
+const MESSAGE_BURST = 200;
 const MAX_QUEUED_MESSAGES = 64;
 const GRACE_MS = 20000;            // How long a dropped player can come back
 const HEARTBEAT_TIMEOUT_MS = 12000; // Silence before a socket counts as dropped
@@ -45,6 +48,20 @@ const SWEEP_MS = 3000;
 /* ==========================================================================
    STATIC FILES
    ========================================================================== */
+function handleRequest(req, res) {
+  // For the host's health check, and for pages elsewhere waking a sleeping server
+  if (req.url === '/healthz') {
+    res.writeHead(200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*'
+    });
+    res.end('ok');
+    return;
+  }
+  serveStatic(req, res);
+}
+
 function serveStatic(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405).end();
@@ -93,10 +110,11 @@ function startArcadeServer({
   port = DEFAULT_PORT,
   graceMs = GRACE_MS,
   heartbeatTimeoutMs = HEARTBEAT_TIMEOUT_MS,
-  sweepMs = SWEEP_MS
+  sweepMs = SWEEP_MS,
+  maxConnections = MAX_CONNECTIONS
 } = {}) {
   const rooms = new Map();
-  const server = http.createServer(serveStatic);
+  const server = http.createServer(handleRequest);
   const wss = new WebSocketServer({ server, path: '/ws', maxPayload: MAX_MESSAGE_BYTES });
 
   const newCode = () => {
@@ -279,10 +297,24 @@ function startArcadeServer({
   };
 
   wss.on('connection', (ws) => {
+    if (wss.clients.size > maxConnections) {
+      ws.send(JSON.stringify({ t: 'error', reason: 'server-full' }));
+      ws.close();
+      return;
+    }
     ws.lastSeen = Date.now();
     ws.player = null;
+    ws.allowance = MESSAGE_BURST;
+    ws.allowanceAt = ws.lastSeen;
 
     ws.on('message', (data) => {
+      // A public server can't trust every client, so a flood is dropped, not relayed
+      const now = Date.now();
+      ws.allowance = Math.min(MESSAGE_BURST, ws.allowance + ((now - ws.allowanceAt) / 1000) * MESSAGES_PER_SECOND);
+      ws.allowanceAt = now;
+      if (ws.allowance < 1) return;
+      ws.allowance -= 1;
+
       let msg;
       try {
         msg = JSON.parse(data);
@@ -338,9 +370,17 @@ function lanAddresses() {
 }
 
 if (require.main === module) {
-  startArcadeServer({ port: Number(process.env.PORT) || DEFAULT_PORT }).then(({ port }) => {
-    console.log(`Arcade running at http://localhost:${port}`);
-    lanAddresses().forEach((ip) => console.log(`Same Wi-Fi devices: http://${ip}:${port}`));
+  startArcadeServer({ port: Number(process.env.PORT) || DEFAULT_PORT }).then((arcade) => {
+    console.log(`Arcade running at http://localhost:${arcade.port}`);
+    if (!process.env.RENDER) {
+      lanAddresses().forEach((ip) => console.log(`Same Wi-Fi devices: http://${ip}:${arcade.port}`));
+    }
+
+    // A host stops the old copy with SIGTERM once a new deploy is live
+    process.once('SIGTERM', () => {
+      setTimeout(() => process.exit(0), 5000).unref();
+      arcade.close().then(() => process.exit(0));
+    });
   });
 }
 

@@ -37,7 +37,7 @@ When you pick a line, any cell it would leave with three sides glows red. That c
 - Each move has a **30-second clock**. If yours runs out, your device draws a line for you.
 - Keeping the game hidden for 15 seconds, or leaving, counts as a loss. A dropped player has 20 seconds to reconnect.
 
-To play online, start the server and open the game from it on both devices:
+Online play uses the arcade's public room server, so both devices can be anywhere. To use your own server, start it and open the game from it on both devices:
 
 ```bash
 cd server

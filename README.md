@@ -31,13 +31,33 @@ python3 -m http.server 8000
 Then visit `http://localhost:8000` in your browser.
 
 ### Option 3: Arcade Server (For Online Play)
-Neon Blocks versus, the Gravity Flipper race, Circuit Duel online and Neon Pong online need the room server, which also serves the arcade (requires Node 22+):
+Neon Blocks versus, the Gravity Flipper race, Circuit Duel online and Neon Pong online pair players through a room server. A public one runs at **https://antigravity-arcade.onrender.com**, which also serves the whole arcade, so two players anywhere can open it and play. The GitHub Pages copy and games opened straight from disk connect to it by themselves.
+
+The public server is on a free plan that sleeps after 15 minutes with nobody playing. The first player to arrive after that sees "WAKING THE GAME SERVER" for up to a minute.
+
+To run your own instead (requires Node 22+), which also serves the arcade:
 ```bash
 cd server
 npm install
 npm start
 ```
-Then visit `http://localhost:8787`. It also prints an address that phones and tablets on the same Wi-Fi can open.
+Then visit `http://localhost:8787`. It also prints an address that phones and tablets on the same Wi-Fi can open. To point a page at a different server, set `window.ARCADE_SERVER_URL` (for example `'wss://example.com/ws'`) before the shared scripts load.
+
+#### Hosting the room server
+The public server is a Render web service built from this repository:
+
+| Setting | Value |
+| :--- | :--- |
+| Name | `antigravity-arcade` (the games look for `antigravity-arcade.onrender.com`) |
+| Region | Frankfurt, the closest to South Africa |
+| Instance type | Free |
+| Root directory | Leave empty: the server also serves `games/` and `shared/` |
+| Build command | `cd server && npm ci` |
+| Start command | `node server/index.js` |
+| Environment | `NODE_VERSION=22` |
+| Health check | `/healthz` answers `ok` |
+
+Any host that runs Node 22 and supports WebSockets works the same way, as long as it sets `PORT`. If the address changes, update `HOSTED_SERVER_URL` in `shared/arcade-room.js`. Rooms are kept in memory, so a restart or a new deploy ends any match being played at the time.
 
 ---
 

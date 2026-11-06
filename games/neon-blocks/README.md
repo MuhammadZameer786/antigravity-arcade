@@ -57,7 +57,7 @@ On touchscreen devices, an arcade virtual keypad is automatically surfaced:
    - Saved in `localStorage` as `neon_blocks_daily`, and in the arcade's shared daily log.
 
 5. **⚔️ Online Versus (Prototype)**:
-   - Two devices, one room code, last matrix standing wins. Needs the [arcade server](../../README.md#option-3-arcade-server-for-online-play).
+   - Two devices, one room code, last matrix standing wins. Uses the arcade's [room server](../../README.md#option-3-arcade-server-for-online-play).
    - Both players draw the same pieces, and speed rises every 30 seconds.
    - Clears send garbage rows: Double 1, Triple 2, Tetris 4, T-Spin 2 per line, Back-to-Back +1, combos up to +4, Perfect Clear +10.
    - Clears cancel incoming garbage first. Whatever's left rises when your next piece locks without a clear.

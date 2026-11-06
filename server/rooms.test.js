@@ -242,3 +242,43 @@ test('the static server exposes the arcade and nothing else', async () => {
   assert.equal(await get('/games/%2e%2e/server/index.js'), 404);
   assert.equal(await get('/games/%2e%2e/%2e%2e/%2e%2e/etc/passwd'), 404);
 });
+
+test('the health check answers any page, so a sleeping server can be woken', async () => {
+  const res = await fetch(`http://localhost:${arcade.port}/healthz`);
+  assert.equal(res.status, 200);
+  assert.equal(await res.text(), 'ok');
+  assert.equal(res.headers.get('access-control-allow-origin'), '*');
+  assert.equal(res.headers.get('cache-control'), 'no-store');
+});
+
+test('a flood of messages is cut off instead of relayed', async () => {
+  const { host, guest } = await startMatch();
+  for (let i = 0; i < 500; i++) host.send({ t: 'relay', d: { i } });
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  const relayed = guest.inbox.filter((m) => m.t === 'relay').length;
+  assert.ok(relayed >= 190 && relayed < 300, `relayed ${relayed} of 500`);
+
+  // The allowance comes back, so a normal game carries on
+  host.send({ t: 'relay', d: { after: true } });
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.ok(guest.inbox.some((m) => m.t === 'relay' && m.d.after));
+  host.close();
+  guest.close();
+});
+
+test('a full server turns new players away with a reason', async () => {
+  const small = await startArcadeServer({ port: 0, maxConnections: 1 });
+  try {
+    const first = new WebSocket(`ws://localhost:${small.port}/ws`);
+    await new Promise((resolve) => first.addEventListener('open', resolve));
+
+    const second = new WebSocket(`ws://localhost:${small.port}/ws`);
+    const reply = await new Promise((resolve) => second.addEventListener('message', (e) => resolve(JSON.parse(e.data))));
+    assert.deepEqual(reply, { t: 'error', reason: 'server-full' });
+    await new Promise((resolve) => second.addEventListener('close', resolve));
+    first.close();
+  } finally {
+    await small.close();
+  }
+});
