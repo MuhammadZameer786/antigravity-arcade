@@ -31,7 +31,7 @@ python3 -m http.server 8000
 Then visit `http://localhost:8000` in your browser.
 
 ### Option 3: Arcade Server (For Online Play)
-Neon Blocks versus, the Gravity Flipper race and Circuit Duel online need the room server, which also serves the arcade (requires Node 22+):
+Neon Blocks versus, the Gravity Flipper race, Circuit Duel online and Neon Pong online need the room server, which also serves the arcade (requires Node 22+):
 ```bash
 cd server
 npm install
@@ -61,7 +61,7 @@ antigravity/
 │   │   ├── style.css
 │   │   └── README.md
 │   │
-│   ├── neon-pong/              # 🏓 Neon Pong (1P AI + 2P Local Curve Rally)
+│   ├── neon-pong/              # 🏓 Neon Pong (1P AI, 2P Local, 2P Online Curve Rally)
 │   │   ├── index.html
 │   │   ├── game.js
 │   │   ├── style.css
@@ -149,7 +149,7 @@ antigravity/
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **⚡ [Neon Runner](file:///Users/zameer/Documents/antigravity/games/neon-runner/index.html)** | Synthwave Endless Runner | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-runner/index.html) |
 | **🌀 [Gravity Flipper](file:///Users/zameer/Documents/antigravity/games/gravity-flipper/index.html)** | Quantum Inversion Runner | Canvas 2D + Web Audio | 1P (Endless / Daily Run) / 2P Online Race (Prototype) | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/gravity-flipper/index.html) |
-| **🏓 [Neon Pong](file:///Users/zameer/Documents/antigravity/games/neon-pong/index.html)** | Cyberpunk Curve Rally | Canvas 2D + Web Audio | 1P AI / 2P Local | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-pong/index.html) |
+| **🏓 [Neon Pong](file:///Users/zameer/Documents/antigravity/games/neon-pong/index.html)** | Cyberpunk Curve Rally | Canvas 2D + Web Audio | 1P AI / 2P Local / 2P Online | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/neon-pong/index.html) |
 | **🚀 [Cyber Jetpack](file:///Users/zameer/Documents/antigravity/games/cyber-jetpack/index.html)** | Laser Flap Vector Thrust Runner | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/cyber-jetpack/index.html) |
 | **🌌 [Star Voyager](file:///Users/zameer/Documents/antigravity/games/star-voyager/index.html)** | 3D Procedural Space Flight Sim | Three.js 3D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/star-voyager/index.html) |
 | **🧱 [Quantum Breaker](file:///Users/zameer/Documents/antigravity/games/quantum-breaker/index.html)** | Neon Multi-Ball Matrix Arkanoid | Canvas 2D + Web Audio | 1P | ✅ Ready | [Launch Game](file:///Users/zameer/Documents/antigravity/games/quantum-breaker/index.html) |

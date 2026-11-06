@@ -24,6 +24,14 @@ Open the master [Arcade Hub](../../index.html) and launch **Neon Pong**.
      - **Insane**: Instant path calculation, impossible reflexes, and maximum spin!
 2. **👥 2-Player Local Versus**:
    - Same-keyboard or split-screen battle between two human players.
+3. **🌐 Online Versus**:
+   - Play a friend on another device: one player creates a room and shares the 4-letter code, the other joins with it.
+   - Each player sees their own paddle on the left (bottom on a phone) in cyan, and moves it with `W`/`S`, the arrow keys or a drag.
+   - The room creator's match length is used. Online matches can't be paused, and a player who leaves forfeits.
+   - Needs the arcade's room server (`cd server && npm start`, see the main README). To play across the internet rather than on the same Wi-Fi, the server has to be hosted somewhere both players can reach.
+
+### How online play stays in sync
+Between hits the ball flies in straight lines, so the two devices only trade the moments that change it. Each device decides whether its own paddle hit or missed, and the room creator's device keeps the score, serves and drops power-ups. Your own hits always count exactly as you saw them. Your rival's hits reach you a network trip late, so the ball waits at their paddle for that moment and is then moved on by the trip time, which keeps both screens showing it in the same place. If one device stalls for a moment, it makes up the lost time on its next frame (up to a second), so its ball doesn't fall behind the other screen's.
 
 ---
 

@@ -349,6 +349,19 @@ class ParticleSystem {
 }
 
 // ============================================================================
+// ONLINE VERSUS SETTINGS (see the ONLINE VERSUS section of NeonPong)
+// ============================================================================
+const NET_PADDLE_SEND_SECONDS = 1 / 30; // How often your paddle position goes to the rival
+const NET_PING_SECONDS = 2;             // How often the trip time to the rival is measured
+const NET_MAX_LEAD_SECONDS = 0.2;       // Most a received ball is moved on to make up for its trip
+const NET_HOLD_MARGIN = 24;             // How near the rival's paddle a ball waits for their verdict
+const NET_GLIDE_LIMIT = 160;            // Bigger corrections than this jump instead of gliding
+const NET_MAX_CATCH_UP_SECONDS = 1;     // Longest stall an online game makes up for in one frame
+const MAX_STEP_SECONDS = 0.05;          // Longest single update step, so the ball can't skip a paddle
+const NET_QUEUED_KINDS = ['setup', 'serve', 'hit', 'orb', 'collect', 'point', 'miss'];
+const POWER_UP_TYPES = ['turbo', 'expand', 'multiball'];
+
+// ============================================================================
 // MAIN NEON PONG CONTROLLER
 // ============================================================================
 class NeonPong {
@@ -374,7 +387,7 @@ class NeonPong {
     this.touchGain = 1.4; // paddle travel per unit of finger travel, so thumbs can reach the walls
 
     // Game Config & Modes
-    this.mode = '1p'; // '1p' or '2p'
+    this.mode = '1p'; // '1p', '2p' or 'online'
     this.difficulty = 'normal'; // 'easy', 'normal', 'hard', 'impossible'
     this.targetScore = 7;
 
@@ -435,6 +448,19 @@ class NeonPong {
     this.powerUp = null;
     this.nextPowerUpRally = 5;
 
+    // Online versus: each device always plays the left paddle (p1)
+    this.lobby = null;          // ArcadeLobby, built the first time someone goes online
+    this.isHost = false;        // The room's creator keeps score, serves and drops power-ups
+    this.rivalPad = null;       // The rival's latest paddle report
+    this.netLatency = 0.05;     // One-way trip to the rival in seconds, measured during play
+    this.latencyMeasured = false;
+    this.padSendTimer = 0;
+    this.pingTimer = 0;
+    this.lastPadSent = '';
+    this.ballSerial = 0;
+    this.onlineStarted = false; // False during the countdown, when early messages wait in a queue
+    this.pendingRelay = [];
+
     this.initDOM();
     this.bindEvents();
     this.updateHUD();
@@ -464,29 +490,31 @@ class NeonPong {
     this.resBestRally = document.getElementById('res-best-rally');
     this.resP1Label = document.getElementById('res-p1-label');
     this.resP2Label = document.getElementById('res-p2-label');
+
+    this.netStatus = document.getElementById('net-status');
+    this.startLabel = document.getElementById('start-label');
+    this.lengthTitle = document.getElementById('length-title');
+    this.rematchBtn = document.getElementById('btn-restart');
+    this.rematchLabel = document.getElementById('rematch-label');
   }
 
   bindEvents() {
     // Mode toggles
-    const mode1pBtn = document.getElementById('btn-mode-1p');
-    const mode2pBtn = document.getElementById('btn-mode-2p');
+    const modeButtons = document.querySelectorAll('#mode-group .toggle-btn');
     const diffGroup = document.getElementById('difficulty-group');
     const p2ControlRow = document.getElementById('p2-control-row');
 
-    mode1pBtn.addEventListener('click', () => {
-      this.mode = '1p';
-      mode1pBtn.classList.add('active');
-      mode2pBtn.classList.remove('active');
-      diffGroup.style.display = 'block';
-      p2ControlRow.style.opacity = '0.5';
-    });
-
-    mode2pBtn.addEventListener('click', () => {
-      this.mode = '2p';
-      mode2pBtn.classList.add('active');
-      mode1pBtn.classList.remove('active');
-      diffGroup.style.display = 'none';
-      p2ControlRow.style.opacity = '1';
+    modeButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.mode = btn.dataset.mode;
+        modeButtons.forEach((b) => b.classList.toggle('active', b === btn));
+        diffGroup.style.display = this.mode === '1p' ? 'block' : 'none';
+        p2ControlRow.style.opacity = this.mode === '2p' ? '1' : '0.5';
+        this.startLabel.textContent = this.mode === 'online' ? 'FIND A RIVAL' : 'START MATCH';
+        this.lengthTitle.textContent = this.mode === 'online'
+          ? 'MATCH LENGTH (ROOM CREATOR DECIDES)'
+          : 'MATCH LENGTH (FIRST TO)';
+      });
     });
 
     // Difficulty buttons
@@ -501,15 +529,17 @@ class NeonPong {
     // Match point buttons
     document.querySelectorAll('.pts-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.pts-btn').forEach(b => b.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        this.targetScore = parseInt(e.currentTarget.dataset.pts, 10);
+        this.setTargetScore(parseInt(e.currentTarget.dataset.pts, 10));
       });
     });
 
     // Start / Restart / Pause buttons
-    document.getElementById('btn-start').addEventListener('click', () => this.startMatch());
-    document.getElementById('btn-restart').addEventListener('click', () => this.startMatch());
+    document.getElementById('btn-start').addEventListener('click', () => {
+      if (this.mode === 'online') this.openLobby();
+      else this.startMatch();
+    });
+    this.rematchBtn.addEventListener('click', () => this.rematch());
+    document.getElementById('btn-menu').addEventListener('click', () => this.backToMenu());
     document.getElementById('btn-resume').addEventListener('click', () => this.togglePause());
     document.getElementById('btn-pause-restart').addEventListener('click', () => this.startMatch());
 
@@ -526,6 +556,9 @@ class NeonPong {
 
     // Keyboard bindings
     window.addEventListener('keydown', (e) => {
+      // Typing a room code shouldn't mute the game or start a rematch
+      if (e.target instanceof HTMLInputElement) return;
+
       this.keys[e.code] = true;
 
       if (e.code === 'KeyP' || e.code === 'Escape') {
@@ -537,7 +570,7 @@ class NeonPong {
 
       if (e.code === 'KeyR' && this.state === 'gameover') {
         e.preventDefault();
-        this.startMatch();
+        this.rematch();
       }
 
       if (e.code === 'KeyM') {
@@ -582,9 +615,15 @@ class NeonPong {
     bindZone(document.getElementById('touch-p1-zone'), () => this.p1);
     bindZone(document.getElementById('touch-p2-zone'), () => (this.mode === '2p' ? this.p2 : this.p1));
 
-    // Don't let the rally run on while the phone is locked or another app is open
+    // Don't let the rally run on while the phone is locked or another app is open.
+    // Online matches can't pause; the room forfeits a player who stays away too long.
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden && this.state === 'playing') this.togglePause();
+      if (document.hidden && this.state === 'playing' && this.mode !== 'online') this.togglePause();
+    });
+
+    // Closing the page tells the rival at once, instead of after the reconnect grace period
+    window.addEventListener('pagehide', () => {
+      if (this.lobby) this.lobby.leave();
     });
 
     window.addEventListener('resize', () => this.resizeCanvas());
@@ -639,7 +678,11 @@ class NeonPong {
     // Reset balls
     this.balls = [];
     this.serveTimer = 0;
-    this.spawnBall(Math.random() > 0.5 ? 1 : -1);
+    if (this.mode === 'online') {
+      this.resetOnlineMatch();
+    } else {
+      this.spawnBall(Math.random() > 0.5 ? 1 : -1);
+    }
 
     // Update labels
     this.p1Label.textContent = this.isTouch ? 'PLAYER 1' : 'PLAYER 1 [W/S]';
@@ -647,6 +690,10 @@ class NeonPong {
       const diffNames = { easy: 'CASUAL', normal: 'CYBER', hard: 'OVERLORD', impossible: 'INSANE' };
       this.p2Label.textContent = this.isTouch ? 'AI' : `AI [${diffNames[this.difficulty]}]`;
       this.modeTagDisplay.textContent = `1P VS AI (${diffNames[this.difficulty]})`;
+    } else if (this.mode === 'online') {
+      this.p1Label.textContent = this.isTouch ? 'YOU' : 'YOU [W/S ↑/↓]';
+      this.p2Label.textContent = 'RIVAL';
+      this.modeTagDisplay.textContent = `ONLINE VERSUS // ROOM ${this.lobby.room.code}`;
     } else {
       this.p2Label.textContent = this.isTouch ? 'PLAYER 2' : 'PLAYER 2 [↑/↓]';
       this.modeTagDisplay.textContent = '2P LOCAL VERSUS';
@@ -665,9 +712,41 @@ class NeonPong {
 
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
+
+    // Anything the rival sent while this side was still counting down
+    if (this.mode === 'online') {
+      this.onlineStarted = true;
+      this.pendingRelay.splice(0).forEach((d) => this.handleRivalData(d));
+    }
+  }
+
+  rematch() {
+    if (this.mode === 'online') {
+      if (this.lobby) this.lobby.requestRematch();
+    } else {
+      this.startMatch();
+    }
+  }
+
+  backToMenu() {
+    if (this.mode === 'online') this.leaveOnline();
+    this.state = 'start';
+    this.audio.stopMusic();
+    this.gameoverScreen.classList.remove('active');
+    this.pauseScreen.classList.remove('active');
+    this.startScreen.classList.add('active');
+  }
+
+  setTargetScore(points) {
+    this.targetScore = points;
+    document.querySelectorAll('.pts-btn').forEach((b) => {
+      b.classList.toggle('active', parseInt(b.dataset.pts, 10) === points);
+    });
+    this.targetScoreDisplay.textContent = points;
   }
 
   togglePause() {
+    if (this.mode === 'online') return;
     if (this.state === 'playing') {
       this.state = 'paused';
       this.audio.stopMusic();
@@ -693,7 +772,9 @@ class NeonPong {
     const baseSpeed = 520;
     const launchAngle = (Math.random() * 0.5 - 0.25) * Math.PI; // -45 deg to +45 deg
 
-    this.balls.push({
+    const ball = {
+      // Odd and even ids, so the two devices in an online match never pick the same one
+      id: this.ballSerial++ * 2 + (this.isHost ? 0 : 1),
       x: this.width / 2,
       y: this.height / 2,
       radius: 9,
@@ -703,8 +784,17 @@ class NeonPong {
       lastHitter: direction > 0 ? this.p2 : this.p1,
       isSmash: false,
       color: direction > 0 ? '#ff007f' : '#00f3ff',
-      trail: []
-    });
+      trail: [],
+      ...this.netBallState(true)
+    };
+    this.balls.push(ball);
+    return ball;
+  }
+
+  // Launches the next rally's ball, and online sends it to the rival too
+  serve(direction) {
+    const ball = this.spawnBall(direction);
+    if (this.mode === 'online') this.relay({ k: 'serve', ball: this.packBall(ball) });
   }
 
   showBanner(msg) {
@@ -716,7 +806,8 @@ class NeonPong {
     }, 2000);
   }
 
-  scorePoint(scorer) {
+  // Online, only the host runs this; the guest hears about the point from the host
+  scorePoint(scorer, y = this.height / 2) {
     const isP1 = scorer === this.p1;
     if (isP1) {
       this.p1Score++;
@@ -724,6 +815,19 @@ class NeonPong {
       this.p2Score++;
     }
 
+    if (this.mode === 'online') {
+      this.relay({ k: 'point', by: isP1 ? 'host' : 'guest', h: this.p1Score, g: this.p2Score, y: Math.round(y) });
+    }
+
+    if (this.settlePoint(isP1)) {
+      // Spawn ball after short delay towards scorer (counted in update so pausing can't lose it)
+      this.serveTimer = 0.6;
+      this.serveDir = isP1 ? -1 : 1;
+    }
+  }
+
+  // Everything a point does besides the score itself. Returns false if it ended the match.
+  settlePoint(isP1) {
     this.audio.playScore(isP1);
     this.shake = 12;
     this.flashAlpha = 0.4;
@@ -745,7 +849,7 @@ class NeonPong {
     // Check match win
     if (this.p1Score >= this.targetScore || this.p2Score >= this.targetScore) {
       this.endMatch(isP1);
-      return;
+      return false;
     }
 
     // Match point warning
@@ -753,13 +857,16 @@ class NeonPong {
       this.showBanner('★ MATCH POINT ★');
     }
 
-    // Spawn ball after short delay towards scorer (counted in update so pausing can't lose it)
     this.balls = [];
-    this.serveTimer = 0.6;
-    this.serveDir = isP1 ? -1 : 1;
+    return true;
   }
 
   endMatch(isP1Won) {
+    if (this.mode === 'online') {
+      this.awaitOnlineResult(isP1Won);
+      return;
+    }
+
     this.state = 'gameover';
     this.audio.stopMusic();
     this.audio.playMatchWin();
@@ -801,6 +908,9 @@ class NeonPong {
 
     if (this.mode === '1p') {
       this.updateAI(dt);
+    } else if (this.mode === 'online') {
+      this.updateRivalPaddle(dt);
+      this.updateNetSync(dt);
     }
 
     // Update Power-ups
@@ -809,7 +919,7 @@ class NeonPong {
     // Serve the next ball
     if (this.serveTimer > 0) {
       this.serveTimer -= dt;
-      if (this.serveTimer <= 0) this.spawnBall(this.serveDir);
+      if (this.serveTimer <= 0) this.serve(this.serveDir);
     }
 
     // Update Balls
@@ -823,9 +933,11 @@ class NeonPong {
   }
 
   updatePlayerPaddles(dt) {
+    // Online you're the only player at this keyboard, so the arrows work too
+    const arrowsToo = this.mode === 'online';
     let p1Dir = 0;
-    if (this.keys['KeyW']) p1Dir -= 1;
-    if (this.keys['KeyS']) p1Dir += 1;
+    if (this.keys['KeyW'] || (arrowsToo && this.keys['ArrowUp'])) p1Dir -= 1;
+    if (this.keys['KeyS'] || (arrowsToo && this.keys['ArrowDown'])) p1Dir += 1;
     this.movePaddle(this.p1, p1Dir, dt);
 
     // 2P Mode: Player 2 keyboard input
@@ -959,12 +1071,24 @@ class NeonPong {
   }
 
   updateBalls(dt) {
+    const online = this.mode === 'online';
+
     for (let i = this.balls.length - 1; i >= 0; i--) {
       const b = this.balls[i];
 
+      // Online corrections glide in rather than making the ball jump
+      if (b.ox || b.oy) {
+        const fade = Math.exp(-dt * 14);
+        b.ox = Math.abs(b.ox) > 0.5 ? b.ox * fade : 0;
+        b.oy = Math.abs(b.oy) > 0.5 ? b.oy * fade : 0;
+      }
+
       // Record trail positions
-      b.trail.unshift({ x: b.x, y: b.y, color: b.color });
+      b.trail.unshift({ x: b.x + b.ox, y: b.y + b.oy, color: b.color });
       if (b.trail.length > (b.isSmash ? 14 : 7)) b.trail.pop();
+
+      // Waiting at the rival's end to hear whether they hit it
+      if (b.held) continue;
 
       // Move ball
       b.x += b.vx * dt;
@@ -983,16 +1107,22 @@ class NeonPong {
         this.particles.emit(b.x, this.bottomBound, 8, '#ffffff', 140, 0.25);
       }
 
-      // Check Paddle Collisions (P1 & P2)
+      // Check Paddle Collisions (P1 & P2). Online, the rival's device decides their hits.
       this.checkPaddleCollision(b, this.p1);
-      this.checkPaddleCollision(b, this.p2);
+      if (online) {
+        this.holdAtRivalEnd(b);
+      } else {
+        this.checkPaddleCollision(b, this.p2);
+      }
 
-      // Check Power-up Collision
-      if (this.powerUp) {
+      // Check Power-up Collision. Online, only the device that launched the ball checks.
+      if (this.powerUp && (!online || b.local)) {
         const dist = Math.hypot(b.x - this.powerUp.x, b.y - this.powerUp.y);
         if (dist < b.radius + this.powerUp.radius) {
-          this.activatePowerUp(this.powerUp.type, b.lastHitter);
+          const type = this.powerUp.type;
+          const extraBall = this.activatePowerUp(type, b.lastHitter, b);
           this.powerUp = null;
+          if (online) this.sendPowerUp(type, b, extraBall);
         }
       }
 
@@ -1000,12 +1130,16 @@ class NeonPong {
       if (b.x < -20) {
         // Point for P2 / AI
         this.particles.emit(0, b.y, 25, '#ff007f', 300, 0.6);
-        this.scorePoint(this.p2);
+        if (online && !this.isHost) {
+          this.reportMiss(i);
+          continue;
+        }
+        this.scorePoint(this.p2, b.y);
         return;
       } else if (b.x > this.width + 20) {
-        // Point for P1
+        // Point for P1 (never online: the ball waits at the goal line for the rival's word)
         this.particles.emit(this.width, b.y, 25, '#00f3ff', 300, 0.6);
-        this.scorePoint(this.p1);
+        this.scorePoint(this.p1, b.y);
         return;
       }
     }
@@ -1063,10 +1197,32 @@ class NeonPong {
       this.audio.playPaddleHit(clampedOffset, isSmash);
       this.particles.emit(b.x, b.y, isSmash ? 18 : 10, paddle.color, 200, 0.35);
 
-      // Check power-up spawn
-      if (this.rally >= this.nextPowerUpRally && !this.powerUp) {
-        this.spawnPowerUp();
-        this.nextPowerUpRally = this.rally + Math.floor(Math.random() * 5 + 5);
+      // Online, this device now owns the ball's flight until the rival answers it
+      if (this.mode === 'online') {
+        b.local = true;
+        b.passing = false;
+        this.relay({
+          k: 'hit',
+          ball: this.packBall(b),
+          rally: this.rally,
+          offset: Math.round(clampedOffset * 100) / 100,
+          smash: isSmash
+        });
+      }
+
+      this.maybeSpawnPowerUp();
+    }
+  }
+
+  // Online, only the host drops power-ups, so both courts get the same one
+  maybeSpawnPowerUp() {
+    if (this.mode === 'online' && !this.isHost) return;
+    if (this.rally >= this.nextPowerUpRally && !this.powerUp) {
+      this.spawnPowerUp();
+      this.nextPowerUpRally = this.rally + Math.floor(Math.random() * 5 + 5);
+      if (this.mode === 'online') {
+        const { x, y, type } = this.powerUp;
+        this.relay({ k: 'orb', x: Math.round(x), y: Math.round(y), type });
       }
     }
   }
@@ -1075,8 +1231,7 @@ class NeonPong {
   // POWER-UPS
   // ==========================================================================
   spawnPowerUp() {
-    const types = ['turbo', 'expand', 'multiball'];
-    const chosenType = types[Math.floor(Math.random() * types.length)];
+    const chosenType = POWER_UP_TYPES[Math.floor(Math.random() * POWER_UP_TYPES.length)];
     this.powerUp = {
       x: this.width / 2 + (Math.random() * 200 - 100),
       y: 120 + Math.random() * (this.height - 240),
@@ -1086,31 +1241,34 @@ class NeonPong {
     };
   }
 
-  activatePowerUp(type, recipient) {
+  // The ball is the one that collected it. Returns the extra ball a multi-ball adds.
+  activatePowerUp(type, recipient, ball) {
     this.audio.playPowerup();
     this.particles.emit(this.powerUp.x, this.powerUp.y, 25, '#ffe600', 250, 0.5);
+    this.showBanner(this.powerUpBanner(type, recipient));
 
     switch (type) {
       case 'expand':
         recipient.h = 145; // 50% larger!
         recipient.powerTimer = 10;
-        this.showBanner(`${recipient.isP1 ? 'P1' : 'P2'} PADDLE EXPANDED`);
         break;
 
       case 'turbo':
-        if (this.balls.length > 0) {
-          const ball = this.balls[0];
-          ball.speed *= 1.35;
-          ball.isSmash = true;
-          this.showBanner('⚡ TURBO BALL ACTIVE');
-        }
+        ball.speed *= 1.35;
+        ball.isSmash = true;
         break;
 
       case 'multiball':
-        this.spawnBall(recipient.isP1 ? 1 : -1);
-        this.showBanner('✦ MULTI-BALL ENGAGED');
-        break;
+        return this.spawnBall(recipient.isP1 ? 1 : -1);
     }
+    return null;
+  }
+
+  powerUpBanner(type, recipient) {
+    if (type === 'turbo') return '⚡ TURBO BALL ACTIVE';
+    if (type === 'multiball') return '✦ MULTI-BALL ENGAGED';
+    if (this.mode === 'online') return recipient.isP1 ? 'YOUR PADDLE EXPANDED' : 'RIVAL PADDLE EXPANDED';
+    return `${recipient.isP1 ? 'P1' : 'P2'} PADDLE EXPANDED`;
   }
 
   updatePowerUp(dt) {
@@ -1271,7 +1429,7 @@ class NeonPong {
       ctx.shadowBlur = b.isSmash ? 30 : 16;
 
       ctx.beginPath();
-      ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+      ctx.arc(b.x + b.ox, b.y + b.oy, b.radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
@@ -1315,13 +1473,415 @@ class NeonPong {
     ctx.restore();
   }
 
+  // ==========================================================================
+  // ONLINE VERSUS
+  // Both devices run the court with their own paddle on the left, and send
+  // each other what they see mirrored. Between hits a ball flies in straight
+  // lines, so the devices only trade the moments that change it: each device
+  // decides the hits on its own paddle, and the room's creator (the host)
+  // keeps the score, serves and drops power-ups. Your own hits are never
+  // second-guessed. The rival's arrive a network trip late and are moved on
+  // by that trip, so both courts show the ball in the same place.
+  // ==========================================================================
+  openLobby() {
+    this.startScreen.classList.remove('active');
+
+    // Built on first use, so the other modes never depend on the shared scripts
+    if (!this.lobby) {
+      this.lobby = new ArcadeLobby({
+        mount: document.getElementById('game-container'),
+        classes: {
+          overlay: 'game-modal',
+          box: 'modal-card',
+          title: 'gameover-title',
+          primaryButton: 'neon-btn primary-btn',
+          secondaryButton: 'neon-btn secondary-btn'
+        },
+        rules: 'YOU PLAY CYAN // NO PAUSING ONLINE',
+        rematchButton: this.rematchBtn,
+        rematchLabel: this.rematchLabel,
+        onGesture: () => this.audio.init(),
+        onCountdown: () => this.prepareOnlineMatch(),
+        onStart: () => this.startMatch(),
+        onRelay: (data) => this.handleRivalData(data),
+        onStatus: (text) => this.setNetStatus(text),
+        onResult: (won, reason) => this.showOnlineResult(won, reason),
+        onBack: () => {
+          this.leaveOnline();
+          this.startScreen.classList.add('active');
+        }
+      });
+    }
+    this.lobby.open();
+  }
+
+  prepareOnlineMatch() {
+    this.state = 'countdown';
+    this.onlineStarted = false;
+    this.pendingRelay = [];
+    document.body.classList.add('online-match');
+    this.gameoverScreen.classList.remove('active');
+    this.setNetStatus('');
+  }
+
+  // Called from startMatch once the countdown ends
+  resetOnlineMatch() {
+    this.isHost = this.lobby.room.slot === 0;
+    this.ballSerial = 0;
+    this.rivalPad = null;
+    this.padSendTimer = 0;
+    this.pingTimer = 0;
+    this.lastPadSent = '';
+
+    if (this.isHost) {
+      this.relay({ k: 'setup', target: this.targetScore });
+      this.serveTimer = 0.8;
+      this.serveDir = Math.random() > 0.5 ? 1 : -1;
+    }
+  }
+
+  leaveOnline() {
+    if (this.lobby) this.lobby.leave();
+    this.onlineStarted = false;
+    this.pendingRelay = [];
+    document.body.classList.remove('online-match');
+    this.setNetStatus('');
+  }
+
+  setNetStatus(text) {
+    this.netStatus.textContent = text;
+    this.netStatus.classList.toggle('show', text !== '');
+  }
+
+  // Volatile messages are dropped, not queued, while either player is offline
+  relay(data, volatile = false) {
+    if (this.lobby && this.lobby.room) this.lobby.room.relay(data, { volatile });
+  }
+
+  // Ball fields only online play reads, kept on every ball so the court code needn't check
+  netBallState(local) {
+    return {
+      local,          // This device launched the ball's current flight
+      held: false,    // Waiting at the rival's end for their hit or miss
+      passing: false, // Already past the rival's paddle on this screen
+      ox: 0,          // Drawing offset that glides away after a correction
+      oy: 0
+    };
+  }
+
+  // In this device's view of the court; the receiver mirrors it
+  packBall(b) {
+    const r = (v) => Math.round(v * 10) / 10;
+    return {
+      id: b.id,
+      x: r(b.x),
+      y: r(b.y),
+      vx: r(b.vx),
+      vy: r(b.vy),
+      speed: r(b.speed),
+      smash: b.isSmash,
+      mine: b.lastHitter === this.p1
+    };
+  }
+
+  isBallState(s) {
+    return Boolean(s) && Number.isInteger(s.id) && [s.x, s.y, s.vx, s.vy, s.speed].every(Number.isFinite);
+  }
+
+  // Takes a ball as the rival's device launched it: mirrored onto this side of
+  // the court and moved on by the time the message spent travelling. Updates
+  // the ball with the same id, or adds it when create is set.
+  adoptBall(s, create = false) {
+    if (!this.isBallState(s)) return null;
+    let b = this.balls.find((ball) => ball.id === s.id);
+    if (!b && !create) return null;
+
+    const lastHitter = s.mine ? this.p2 : this.p1;
+    const next = {
+      radius: 9,
+      x: this.width - s.x,
+      y: s.y,
+      vx: -s.vx,
+      vy: s.vy,
+      speed: s.speed,
+      isSmash: Boolean(s.smash),
+      lastHitter,
+      color: lastHitter.color
+    };
+    this.advanceBall(next, Math.min(this.netLatency, NET_MAX_LEAD_SECONDS));
+
+    if (b) {
+      // Glide from where the ball was drawn rather than jumping
+      const ox = b.x + b.ox - next.x;
+      const oy = b.y + b.oy - next.y;
+      const glide = Math.hypot(ox, oy) < NET_GLIDE_LIMIT ? { ox, oy } : {};
+      Object.assign(b, next, this.netBallState(false), glide);
+    } else {
+      b = { id: s.id, trail: [], ...next, ...this.netBallState(false) };
+      this.balls.push(b);
+    }
+    return b;
+  }
+
+  // Straight-line flight with wall bounces, to catch a ball up after its trip
+  advanceBall(b, seconds) {
+    const top = this.topBound + b.radius;
+    const span = this.bottomBound - b.radius - top;
+    const travel = (b.y + b.vy * seconds - top) / span;
+    const bounces = Math.floor(travel);
+    const along = (travel - bounces) * span;
+
+    b.x += b.vx * seconds;
+    if (bounces % 2 === 0) {
+      b.y = top + along;
+    } else {
+      b.y = top + span - along;
+      b.vy = -b.vy;
+    }
+  }
+
+  // The rival's device decides their hits. Until it says, a ball waits where it
+  // meets their paddle, or at their goal line once it's clearly past, so it
+  // never runs on ahead of what really happened over there.
+  holdAtRivalEnd(b) {
+    if (b.vx <= 0) return;
+    const p = this.p2;
+    const face = p.x - b.radius;
+
+    if (!b.passing && b.x >= face) {
+      if (b.y >= p.y - NET_HOLD_MARGIN && b.y <= p.y + p.h + NET_HOLD_MARGIN) {
+        b.x = face;
+        b.held = true;
+        return;
+      }
+      b.passing = true;
+    }
+    if (b.x > this.width + 20) {
+      b.x = this.width + 20;
+      b.held = true;
+    }
+  }
+
+  // The guest only reports its misses; the host keeps the score
+  reportMiss(index) {
+    const [ball] = this.balls.splice(index, 1);
+    this.relay({ k: 'miss', id: ball.id });
+  }
+
+  sendPowerUp(type, ball, extraBall) {
+    this.relay({
+      k: 'collect',
+      type,
+      ball: this.packBall(ball),
+      extra: extraBall ? this.packBall(extraBall) : null
+    });
+  }
+
+  updateRivalPaddle(dt) {
+    const p = this.p2;
+    if (p.powerTimer > 0) p.powerTimer -= dt;
+
+    const report = this.rivalPad;
+    if (!report) return;
+
+    // Reports are a trip old, so lead them by the way the paddle was moving
+    p.h = report.h;
+    const lead = Math.min(this.netLatency, NET_MAX_LEAD_SECONDS);
+    const target = Math.max(this.topBound, Math.min(this.bottomBound - p.h, report.y + report.vy * lead));
+    const prevY = p.y;
+    p.y += (target - p.y) * Math.min(1, dt * 20);
+    p.vy = dt > 0 ? (p.y - prevY) / dt : 0;
+  }
+
+  updateNetSync(dt) {
+    this.pingTimer -= dt;
+    if (this.pingTimer <= 0) {
+      this.pingTimer = NET_PING_SECONDS;
+      this.relay({ k: 'ping', t: performance.now() }, true);
+      this.lastPadSent = ''; // Resend the paddle now and then, in case a report was dropped
+    }
+
+    this.padSendTimer -= dt;
+    if (this.padSendTimer <= 0) {
+      this.padSendTimer = NET_PADDLE_SEND_SECONDS;
+      const pad = { k: 'pad', y: Math.round(this.p1.y * 10) / 10, vy: Math.round(this.p1.vy), h: this.p1.h };
+      const key = `${pad.y}|${pad.vy}|${pad.h}`;
+      if (key !== this.lastPadSent) {
+        this.lastPadSent = key;
+        this.relay(pad, true);
+      }
+    }
+  }
+
+  measureLatency(sentAt) {
+    const oneWay = Math.max(0, (performance.now() - sentAt) / 2000);
+    if (oneWay > 2) return; // An echo held up by a reconnect says nothing about play
+    this.netLatency = this.latencyMeasured ? this.netLatency * 0.75 + oneWay * 0.25 : oneWay;
+    this.latencyMeasured = true;
+  }
+
+  handleRivalData(d) {
+    if (!d || typeof d.k !== 'string') return;
+
+    // Play that beats this side's countdown waits for it; play after the match is ignored
+    if (NET_QUEUED_KINDS.includes(d.k)) {
+      if (!this.onlineStarted) {
+        if (this.lobby && this.lobby.matchActive) this.pendingRelay.push(d);
+        return;
+      }
+      if (this.state !== 'playing') return;
+    }
+
+    switch (d.k) {
+      case 'pad':
+        if ([d.y, d.vy, d.h].every(Number.isFinite)) {
+          this.rivalPad = { y: d.y, vy: d.vy, h: Math.max(40, Math.min(200, d.h)) };
+        }
+        break;
+      case 'ping':
+        this.relay({ k: 'pong', t: d.t }, true);
+        break;
+      case 'pong':
+        if (Number.isFinite(d.t)) this.measureLatency(d.t);
+        break;
+      case 'setup':
+        if (!this.isHost && [5, 7, 11].includes(d.target)) this.setTargetScore(d.target);
+        break;
+      case 'serve':
+        if (!this.isHost) this.adoptBall(d.ball, true);
+        break;
+      case 'hit':
+        this.applyRivalHit(d);
+        break;
+      case 'miss':
+        if (this.isHost) this.applyRivalMiss(d);
+        break;
+      case 'point':
+        if (!this.isHost) this.applyHostPoint(d);
+        break;
+      case 'orb':
+        if (!this.isHost) this.applyHostOrb(d);
+        break;
+      case 'collect':
+        this.applyRivalPowerUp(d);
+        break;
+    }
+  }
+
+  applyRivalHit(d) {
+    const b = this.adoptBall(d.ball);
+    if (!b) return; // From a rally that's already over
+
+    const y = d.ball.y;
+    const isSmash = Boolean(d.smash);
+    this.rally = Math.max(this.rally + 1, Number.isInteger(d.rally) ? d.rally : 0);
+    this.audio.playPaddleHit(Number.isFinite(d.offset) ? d.offset : 0, isSmash);
+    this.particles.emit(this.p2.x, y, isSmash ? 18 : 10, this.p2.color, 200, 0.35);
+    if (isSmash) {
+      this.shake = 8;
+      this.showBanner('★ HYPER SMASH ★');
+      this.particles.emitSmashBurst(this.p2.x, y, this.p2.color);
+    }
+    this.maybeSpawnPowerUp();
+  }
+
+  applyRivalMiss(d) {
+    const b = this.balls.find((ball) => ball.id === d.id);
+    if (!b) return; // From a rally that's already over
+    this.particles.emit(this.width, b.y, 25, '#00f3ff', 300, 0.6);
+    this.scorePoint(this.p1, b.y);
+  }
+
+  applyHostPoint(d) {
+    if (!Number.isInteger(d.h) || !Number.isInteger(d.g)) return;
+    const mine = d.by === 'guest';
+    this.p1Score = d.g;
+    this.p2Score = d.h;
+
+    // A miss on this side already burst at this goal when it happened
+    if (mine) {
+      this.particles.emit(this.width, Number.isFinite(d.y) ? d.y : this.height / 2, 25, '#00f3ff', 300, 0.6);
+    }
+    this.settlePoint(mine);
+  }
+
+  applyHostOrb(d) {
+    if (!POWER_UP_TYPES.includes(d.type) || !Number.isFinite(d.x) || !Number.isFinite(d.y)) return;
+    this.powerUp = { x: this.width - d.x, y: d.y, radius: 18, type: d.type, life: 14 };
+  }
+
+  applyRivalPowerUp(d) {
+    if (!POWER_UP_TYPES.includes(d.type) || !this.isBallState(d.ball)) return;
+    if (!this.balls.some((ball) => ball.id === d.ball.id)) return; // From a rally that's already over
+
+    const recipient = d.ball.mine ? this.p2 : this.p1;
+    this.audio.playPowerup();
+    if (this.powerUp) {
+      this.particles.emit(this.powerUp.x, this.powerUp.y, 25, '#ffe600', 250, 0.5);
+      this.powerUp = null;
+    }
+    this.showBanner(this.powerUpBanner(d.type, recipient));
+
+    this.adoptBall(d.ball); // Turbo changed its speed
+    if (d.type === 'expand') {
+      recipient.h = 145;
+      recipient.powerTimer = 10;
+    } else if (d.type === 'multiball') {
+      this.adoptBall(d.extra, true);
+    }
+  }
+
+  // The loser tells the room, which then gives both players the result
+  awaitOnlineResult(won) {
+    this.state = 'decided';
+    this.audio.stopMusic();
+    this.showBanner(won ? 'MATCH WON' : 'MATCH LOST');
+    if (!won && this.lobby.room) this.lobby.reportLoss();
+  }
+
+  showOnlineResult(won, reason) {
+    this.state = 'gameover';
+    this.audio.stopMusic();
+    this.audio.playMatchWin();
+    this.setNetStatus('');
+
+    const subtitles = won
+      ? { lost: 'Rival Circuit Overloaded', forfeit: 'Rival Disconnected', away: 'Rival Left The Arena' }
+      : { lost: 'Rival Took The Match', forfeit: 'Connection Lost', away: 'You Were Away Too Long' };
+    this.winnerTitle.textContent = won ? 'VICTORY!' : 'DEFEAT';
+    this.winnerTitle.style.color = won ? 'var(--neon-cyan)' : 'var(--neon-pink)';
+    this.winnerSub.textContent = subtitles[reason] || 'Match Over';
+
+    this.resP1Score.textContent = this.p1Score;
+    this.resP2Score.textContent = this.p2Score;
+    this.resMaxRally.textContent = this.maxRallyInMatch;
+    this.resBestRally.textContent = this.allTimeBestRally;
+    this.resP1Label.textContent = 'YOU';
+    this.resP2Label.textContent = 'RIVAL';
+
+    this.gameoverScreen.classList.add('active');
+    this.updateHUD();
+  }
+
   loop(currentTime) {
     if (this.state !== 'playing') return;
 
-    const dt = Math.min((currentTime - this.lastTime) / 1000, 0.05);
+    const elapsed = Math.max(0, (currentTime - this.lastTime) / 1000);
     this.lastTime = currentTime;
 
-    this.update(dt);
+    if (this.mode === 'online') {
+      // The rival's game didn't stall with this one, so a long frame is made up
+      // in short steps. Dropping that time would leave this side's ball behind theirs.
+      let remaining = Math.min(elapsed, NET_MAX_CATCH_UP_SECONDS);
+      do {
+        const step = Math.min(remaining, MAX_STEP_SECONDS);
+        this.update(step);
+        remaining -= step;
+      } while (remaining > 0 && this.state === 'playing');
+    } else {
+      // Offline, a long frame just plays a little slow
+      this.update(Math.min(elapsed, MAX_STEP_SECONDS));
+    }
     this.render();
 
     requestAnimationFrame((t) => this.loop(t));

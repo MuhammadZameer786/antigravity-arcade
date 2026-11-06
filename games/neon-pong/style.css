@@ -265,6 +265,34 @@ html, body {
   transform: translateX(-50%) translateY(0);
 }
 
+/* Online: connection news stays up until it clears, unlike the banner */
+.net-status {
+  position: absolute;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  white-space: nowrap;
+  color: var(--neon-yellow);
+  background: rgba(8, 3, 20, 0.9);
+  border: 1px solid var(--neon-yellow);
+  padding: 5px 14px;
+  border-radius: 20px;
+  display: none;
+}
+
+.net-status.show {
+  display: block;
+}
+
+/* Online matches can't pause: the rival's game would keep running */
+body.online-match #btn-pause {
+  display: none;
+}
+
 /* Modals */
 .game-modal {
   position: absolute;
